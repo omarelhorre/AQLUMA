@@ -1,0 +1,76 @@
+/* Satoshi via Fontshare CDN — fallback until local woff2 files are added (see §3 / README).
+   When you add the local files, swap this for next/font/local in app/fonts.ts. */
+@import url("https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-satoshi: "Satoshi", system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    background-color: theme("colors.void");
+    color: theme("colors.cream");
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    font-family: theme("fontFamily.satoshi");
+    background-color: theme("colors.void");
+    /* Lenis controls scrolling; keep native overscroll quiet. */
+    overscroll-behavior: none;
+  }
+
+  /* Lenis smooth-scroll hooks */
+  html.lenis,
+  html.lenis body {
+    height: auto;
+  }
+  .lenis.lenis-smooth {
+    scroll-behavior: auto !important;
+  }
+  .lenis.lenis-stopped {
+    overflow: hidden;
+  }
+
+  ::selection {
+    background: theme("colors.gold");
+    color: theme("colors.void");
+  }
+}
+
+@layer utilities {
+  /* uppercase, letter-spaced kicker / nav label */
+  .kicker {
+    font-family: theme("fontFamily.satoshi");
+    text-transform: uppercase;
+    letter-spacing: theme("letterSpacing.kicker");
+    font-weight: 500;
+  }
+
+  /* Custom cursor: enlarges over interactive elements (see Cursor.tsx). */
+  .cursor-dot--hover {
+    width: 2.25rem;
+    height: 2.25rem;
+    background-color: theme("colors.gold");
+  }
+}
+
+/* Respect reduced-motion globally: kill smooth scroll + heavy transitions.
+   Scroll choreography is additionally disabled in JS (see lib/useReducedMotion). */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
