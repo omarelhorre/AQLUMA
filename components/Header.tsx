@@ -97,8 +97,9 @@ export default function Header() {
             onClick={() => setOpen((v) => !v)}
             aria-haspopup="menu"
             aria-expanded={open}
-            className="kicker flex items-center gap-2 rounded-sm py-2 text-[11px] text-cream/70 outline-none transition-opacity duration-300 ease-editorial hover:text-cream focus-visible:ring-1 focus-visible:ring-cream/30"
+            className="group/btn flex items-center gap-2.5 rounded-sm py-2 font-satoshi text-[14px] font-medium tracking-tight text-cream/75 outline-none transition-colors duration-300 ease-editorial hover:text-cream focus-visible:ring-1 focus-visible:ring-cream/30"
           >
+            <PlanetGlyph />
             Mondes
             <svg
               width="10"
@@ -106,7 +107,7 @@ export default function Header() {
               viewBox="0 0 10 10"
               aria-hidden
               className={[
-                "translate-y-[1px] transition-transform duration-300 ease-editorial",
+                "translate-y-[1px] text-cream/45 transition-transform duration-300 ease-editorial group-hover/btn:text-cream/70",
                 open ? "rotate-180" : "rotate-0",
               ].join(" ")}
             >
@@ -143,15 +144,21 @@ export default function Header() {
                       "flex w-full items-center justify-between gap-6 rounded-sm px-3 py-2.5 text-left transition-colors duration-200",
                       w.enabled
                         ? "text-cream/85 hover:bg-cream/[0.06] hover:text-cream"
-                        : "cursor-default text-cream/30",
+                        : "cursor-default text-cream/35",
                     ].join(" ")}
                   >
-                    <span className="font-satoshi text-[13px] tracking-tight">
+                    <span className="font-satoshi text-[13.5px] font-medium tracking-tight">
                       {w.label}
                     </span>
-                    <span className="kicker text-[9px] text-cream/30">
-                      {w.enabled ? `0${i + 1}` : "Bientôt"}
-                    </span>
+                    {w.enabled ? (
+                      <span className="font-satoshi text-[11px] tabular-nums text-cream/35">
+                        {`0${i + 1}`}
+                      </span>
+                    ) : (
+                      <span className="rounded-full border border-cream/10 bg-cream/[0.04] px-2 py-[3px] font-satoshi text-[9px] font-medium tracking-tight text-cream/40">
+                        Bientôt
+                      </span>
+                    )}
                   </button>
                 </li>
               ))}
@@ -160,5 +167,43 @@ export default function Header() {
         </div>
       </div>
     </header>
+  );
+}
+
+/**
+ * Small ringed-planet glyph for the "Mondes" nav item. The orbit ring + its
+ * travelling dot rotate a quiet arc on hover (eased, no spin) — the three
+ * worlds, abstracted. 1.2px strokes in currentColor so it inherits the label.
+ */
+function PlanetGlyph() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden
+      className="-translate-y-[0.5px]"
+    >
+      {/* planet body */}
+      <circle cx="12" cy="12" r="4.1" stroke="currentColor" strokeWidth="1.2" />
+      {/* orbit ring + dot — rotate together on hover */}
+      <g
+        className="transition-transform duration-700 ease-editorial group-hover/btn:rotate-[58deg]"
+        style={{ transformOrigin: "12px 12px", transformBox: "fill-box" }}
+      >
+        <ellipse
+          cx="12"
+          cy="12"
+          rx="9.4"
+          ry="3.6"
+          stroke="currentColor"
+          strokeWidth="1.1"
+          opacity="0.5"
+          transform="rotate(-22 12 12)"
+        />
+        <circle cx="21" cy="8.7" r="1.25" fill="currentColor" />
+      </g>
+    </svg>
   );
 }
