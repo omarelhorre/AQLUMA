@@ -5,73 +5,51 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 
-/**
- * ACT I — The Door.
- *
- * The door clip is a STILL, dark, atmospheric backdrop — never scrubbed, never
- * flashed. One pinned ScrollTrigger drives a purely typographic choreography on
- * the left:
- *
- *   intro → four traits, one strictly after another (reveal · hold · clear,
- *   with an empty beat between each) → climax "AQLUMA est là".
- *
- * On the climax the brand name carries the most weight (large cream Didot), and
- * a terracotta brushstroke paints itself in above it via a stroke-dashoffset
- * sweep the instant the line reaches full opacity.
- *
- * All copy + progression markers are locked to the left gutter (ragged-left,
- * leaving the right free for the briefing media). Reveals are blur → sharp, no
- * clipping. Reduced motion: the climax shows statically, fully resolved.
- */
-
+// Descriptive adjectives completing "…apprend à devenir." — scattered on the
+// right with a little jitter in position + scale so they don't read as a list.
 const TRAITS = [
-  { num: "I", word: "Créativité" },
-  { num: "II", word: "Esprit critique" },
-  { num: "III", word: "Méthode" },
-  { num: "IV", word: "Flow" },
+  { word: "Créatif",    top: "28%", right: "9vw",  size: "clamp(2.1rem,4.9vw,4.2rem)" },
+  { word: "Lucide",     top: "43%", right: "18vw", size: "clamp(1.7rem,3.7vw,3.2rem)" },
+  { word: "Méthodique", top: "57%", right: "7vw",  size: "clamp(1.95rem,4.3vw,3.8rem)" },
+  { word: "Concentré",  top: "70%", right: "15vw", size: "clamp(1.7rem,3.8vw,3.3rem)" },
 ];
 
 const BLUR_HIDDEN = { opacity: 0, filter: "blur(14px)", y: 22 };
-const BLUR_SHOWN = { opacity: 1, filter: "blur(0px)", y: 0 };
+const BLUR_SHOWN  = { opacity: 1, filter: "blur(0px)",  y: 0  };
 
-// Progress at which the door clip starts opening — it stays frozen on its first
-// frame for the whole text choreography, then plays out as the closing beat.
+// Door stays frozen on frame 0 for the whole text sequence, then opens here.
 const DOOR_START = 0.78;
 
 export default function ActDoor() {
   const sectionRef = useRef<HTMLDivElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const line1Ref = useRef<HTMLDivElement>(null);
-  const line2Ref = useRef<HTMLDivElement>(null);
-  const climaxRef = useRef<HTMLDivElement>(null);
-  const traitsRef = useRef<(HTMLDivElement | null)[]>([]);
-  const reduced = useReducedMotion();
+  const videoRef   = useRef<HTMLVideoElement>(null);
+  const line1Ref   = useRef<HTMLDivElement>(null);
+  const line2Ref   = useRef<HTMLDivElement>(null);
+  const itemsRef   = useRef<(HTMLDivElement | null)[]>([]);
+  const climaxRef  = useRef<HTMLDivElement>(null);
+  const reduced    = useReducedMotion();
 
   useEffect(() => {
     if (reduced) return;
 
     const section = sectionRef.current;
-    const video = videoRef.current;
+    const video   = videoRef.current;
     if (!section) return;
 
     gsap.registerPlugin(ScrollTrigger);
     if (video) video.pause();
 
-    const traits = traitsRef.current.filter(Boolean) as HTMLDivElement[];
+    const items = itemsRef.current.filter(Boolean) as HTMLDivElement[];
 
     const ctx = gsap.context(() => {
-      // Initial states — line1 sharp on load, everything else in soft focus.
       gsap.set(line1Ref.current, BLUR_SHOWN);
       gsap.set([line2Ref.current, climaxRef.current], BLUR_HIDDEN);
-      gsap.set(traits, BLUR_HIDDEN);
+      gsap.set(items, BLUR_HIDDEN);
 
-      // Eased scrub of the door clip toward scroll progress (final phase only).
       const seek = video
         ? gsap.quickTo(video, "currentTime", { duration: 0.25, ease: "power3.out" })
         : null;
 
-      // ONE ScrollTrigger owns the pin; the timeline rides it. The video stays
-      // frozen on frame 0 until DOOR_START, then opens out.
       const tl = gsap.timeline({
         defaults: { ease: "power2.out" },
         scrollTrigger: {
@@ -83,45 +61,34 @@ export default function ActDoor() {
           invalidateOnRefresh: true,
           onUpdate(self) {
             if (!seek || !video || !video.duration) return;
-            const p = self.progress;
+            const p  = self.progress;
             const vp = p <= DOOR_START ? 0 : (p - DOOR_START) / (1 - DOOR_START);
             seek(vp * video.duration);
           },
         },
       });
 
-      const reveal = (el: gsap.TweenTarget, at: number, dur = 0.035) =>
+      const reveal = (el: gsap.TweenTarget, at: number, dur = 0.04) =>
         tl.to(el, { ...BLUR_SHOWN, duration: dur }, at);
       const dissolve = (el: gsap.TweenTarget, at: number, dur = 0.04) =>
-        tl.to(
-          el,
-          { opacity: 0, filter: "blur(14px)", y: -22, ease: "power2.in", duration: dur },
-          at
-        );
+        tl.to(el, { opacity: 0, filter: "blur(14px)", y: -22, ease: "power2.in", duration: dur }, at);
 
       // ── Intro ──
       dissolve(line1Ref.current, 0.04);
       reveal(line2Ref.current, 0.09);
-      dissolve(line2Ref.current, 0.17);
+      dissolve(line2Ref.current, 0.20);
 
-      // ── Four traits, strictly sequential ──
-      // Each owns a slot wide enough that it fully clears (plus an empty beat)
-      // before the next one arrives — same on-screen position, never doubled.
-      const tStart = 0.22;
-      const tStep = 0.115;
-      traits.forEach((t, i) => {
-        const at = tStart + i * tStep;
-        reveal(t, at);
-        dissolve(t, at + 0.05); // clears ~0.03 before the next reveal
-      });
-      // trait IV ("Flow") is fully gone by ~0.65.
+      // ── Traits (scattered, right side): fade in one after another ──
+      const tStart = 0.27;
+      const tStep  = 0.07;
+      items.forEach((it, i) => reveal(it, tStart + i * tStep, 0.05));
 
-      // ── Climax: bring the destination frame in. ──
-      reveal(climaxRef.current, 0.66, 0.05);
+      // ── …then the whole group fades out together ──
+      dissolve(items, 0.62, 0.06);
 
-      // ── Exit: the door opens (video scrubs, see onUpdate) while the climax
-      //    dissolves into it. ──
-      dissolve(climaxRef.current, 0.9, 0.06);
+      // ── Climax ──
+      reveal(climaxRef.current, 0.68, 0.05);
+      dissolve(climaxRef.current, 0.90, 0.05);
     }, section);
 
     return () => ctx.revert();
@@ -133,8 +100,6 @@ export default function ActDoor() {
       className="relative h-screen w-full overflow-hidden bg-void"
       aria-label="AQLUMA — introduction"
     >
-      {/* Dark backdrop — the door clip is held on frame 0 through the whole
-          text sequence, then scrubs open as the closing beat. */}
       <video
         ref={videoRef}
         className="absolute inset-0 h-full w-full object-cover"
@@ -146,84 +111,93 @@ export default function ActDoor() {
         tabIndex={-1}
       />
 
-      {/* Left-weighted vignette so ragged-left copy reads on the dark frame. */}
+      {/* Vignette weighted to both gutters so left + right copy read on frame. */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 z-10"
         style={{
           background:
-            "linear-gradient(90deg, rgba(8,10,12,0.72) 0%, rgba(8,10,12,0.32) 32%, rgba(8,10,12,0) 60%), radial-gradient(120% 100% at 0% 50%, rgba(8,10,12,0) 40%, rgba(8,10,12,0.5) 100%)",
+            "linear-gradient(90deg, rgba(8,10,12,0.72) 0%, rgba(8,10,12,0.28) 30%, rgba(8,10,12,0) 50%, rgba(8,10,12,0.28) 70%, rgba(8,10,12,0.7) 100%)",
         }}
       />
 
-      {/* All choreography locked to the left gutter. */}
       <div className="pointer-events-none absolute inset-0 z-20">
-        {/* Intro line 1 (sharp on load). */}
-        <LeftBeat innerRef={line1Ref} initialOpacity={reduced ? 0 : 1}>
+
+        {/* Line 1 — on load (left) */}
+        <Beat side="left" innerRef={line1Ref} initialOpacity={reduced ? 0 : 1}>
           <p className="font-didot text-[clamp(1.7rem,3.6vw,3.2rem)] leading-[1.12] tracking-display text-cream">
             Bienvenu chez AQLUMA.
           </p>
-        </LeftBeat>
+        </Beat>
 
-        {/* Intro line 2. */}
-        <LeftBeat innerRef={line2Ref} initialOpacity={0}>
-          <p className="font-didot text-[clamp(1.55rem,3.3vw,2.95rem)] leading-[1.16] tracking-display text-cream/90">
-            Ici votre adolescent apprend à devenir.
+        {/* Line 2 — editorial two-line treatment (left) */}
+        <Beat side="left" innerRef={line2Ref} initialOpacity={0}>
+          <p className="font-didot leading-[1.12] tracking-display">
+            <span className="block text-[clamp(1rem,2vw,1.6rem)] text-cream/50">
+              Ici, votre adolescent
+            </span>
+            <span className="block text-[clamp(1.7rem,3.8vw,3.4rem)] text-cream">
+              apprend à devenir.
+            </span>
           </p>
-        </LeftBeat>
+        </Beat>
 
-        {/* The four traits — identical position + transition, one at a time.
-            The roman-numeral marker + tick are locked to the left edge. */}
+        {/* The 4 traits — scattered on the right, staggered in, group fade-out */}
         {TRAITS.map((t, i) => (
-          <LeftBeat
+          <div
             key={t.word}
-            innerRef={(el) => {
-              traitsRef.current[i] = el;
+            ref={(el) => {
+              itemsRef.current[i] = el;
             }}
-            initialOpacity={0}
+            style={{
+              opacity: reduced ? 1 : 0,
+              top: t.top,
+              right: t.right,
+              fontSize: t.size,
+            }}
+            className="absolute font-didot leading-[1.04] tracking-display text-cream will-change-[transform,opacity,filter]"
           >
-            <span className="kicker mb-3 block text-[10px] tabular-nums text-clay/80">
-              {t.num}
-            </span>
-            <span className="block h-px w-10 bg-cream/25" />
-            <span className="mt-4 block font-didot text-[clamp(2rem,4.6vw,3.9rem)] leading-none tracking-display text-cream">
-              {t.word}
-            </span>
-          </LeftBeat>
+            {t.word}
+          </div>
         ))}
 
-        {/* Climax — the destination frame. AQLUMA carries the weight. */}
-        <LeftBeat innerRef={climaxRef} initialOpacity={reduced ? 1 : 0}>
-          <span className="block font-didot text-[clamp(2.9rem,7.4vw,6.2rem)] font-normal leading-[0.96] tracking-display text-cream">
+        {/* Climax — AQLUMA in brand clay/orange (left) */}
+        <Beat side="left" innerRef={climaxRef} initialOpacity={reduced ? 1 : 0}>
+          <span
+            className="block font-didot text-[clamp(2.9rem,7.4vw,6.2rem)] font-normal leading-[0.96] tracking-display"
+            style={{ color: "#C9612E" }}
+          >
             AQLUMA
           </span>
           <span className="mt-3 block font-didot text-[clamp(1.4rem,3vw,2.4rem)] leading-tight tracking-display text-cream/70">
-            est là.
+            est là pour ça.
           </span>
-        </LeftBeat>
+        </Beat>
+
       </div>
     </section>
   );
 }
 
-/**
- * A reveal locked to the left gutter, vertically centred — every beat shares
- * this position so the sequential transitions stay perfectly registered.
- */
-function LeftBeat({
+function Beat({
+  side,
   innerRef,
   initialOpacity,
   children,
 }: {
-  innerRef: React.Ref<HTMLDivElement>;
+  side: "left" | "right";
+  innerRef: React.Ref<HTMLDivElement> | null;
   initialOpacity: number;
   children: React.ReactNode;
 }) {
   return (
     <div
-      ref={innerRef}
+      ref={innerRef ?? undefined}
       style={{ opacity: initialOpacity }}
-      className="absolute left-[6vw] top-1/2 max-w-[min(86vw,38rem)] -translate-y-1/2 text-left will-change-[transform,opacity,filter]"
+      className={[
+        "absolute top-1/2 max-w-[min(86vw,40rem)] -translate-y-1/2 will-change-[transform,opacity,filter]",
+        side === "left" ? "left-[6vw] text-left" : "right-[6vw] text-right",
+      ].join(" ")}
     >
       {children}
     </div>
