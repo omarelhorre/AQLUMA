@@ -75,16 +75,19 @@ export default function ActDoor() {
 
       // ── Intro ──
       dissolve(line1Ref.current, 0.04);
-      reveal(line2Ref.current, 0.09);
-      dissolve(line2Ref.current, 0.20);
 
-      // ── Traits (scattered, right side): fade in one after another ──
+      // "…apprend à devenir" reveals and LOCKS at full opacity (no early exit).
+      reveal(line2Ref.current, 0.09);
+
+      // ── Traits (scattered, right side): fade in one after another while
+      //    "à devenir" stays on screen. ──
       const tStart = 0.27;
       const tStep  = 0.07;
       items.forEach((it, i) => reveal(it, tStart + i * tStep, 0.05));
 
-      // ── …then the whole group fades out together ──
-      dissolve(items, 0.62, 0.06);
+      // ── …then the whole 5-element block ("à devenir" + the 4 traits) fades
+      //    out together as one unified block, before the climax. ──
+      dissolve([line2Ref.current, ...items], 0.62, 0.06);
 
       // ── Climax ──
       reveal(climaxRef.current, 0.68, 0.05);
@@ -137,7 +140,7 @@ export default function ActDoor() {
               Ici, votre adolescent
             </span>
             <span className="block text-[clamp(1.7rem,3.8vw,3.4rem)] text-cream">
-              apprend à devenir.
+              apprend à devenir
             </span>
           </p>
         </Beat>
