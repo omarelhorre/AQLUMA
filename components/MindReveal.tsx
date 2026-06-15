@@ -9,34 +9,52 @@ import { useReducedMotion } from "@/lib/useReducedMotion";
 /**
  * PHASE 4.5 — L'esprit (the reveal after the Musée panorama).
  *
- * dala's actual technique, rebuilt: a CC0/CC-BY brain mesh (Poly by Google) is
- * surface-sampled into thousands of instanced POLYGON facets (little triangles),
- * each tumbled by a simplex-noise rotation in the vertex shader and nudged by the
- * pointer — the "premium polygons particles" look. Three.js, instanced shader.
+ * dala's actual technique, rebuilt: a CC-BY brain mesh (Poly by Google) is
+ * EVENLY RESAMPLED (area-weighted) into ~2.7k surface points — decoupled from the
+ * mesh's uneven tessellation — and each point places one small instanced facet.
+ * The facets are drawn as HOLLOW OUTLINE TRIANGLES (barycentric edge shader) and
+ * kept SMALL with space between them, so the brain's PROFILE reads through the
+ * negative space instead of packing into a solid, ball-like clump (the old bug).
+ *
+ * Critical for legibility: the brain is auto-oriented to a PROFILE view from its
+ * bounding-box extents (largest extent → horizontal, smallest → vertical, view
+ * down the middle axis), so the classic brain silhouette + stem read clearly.
+ *
+ * Frame: linear → UnrealBloom → FXAA → ACES tonemap (EffectComposer, MSAA RT).
+ * Near-black backdrop drawn in-GL so bloom composites cleanly; the brain spins
+ * slowly and perpetually (in-shader Y rotation, so pointer math stays local).
  *
  * Scroll (one pinned timeline, progress 0→1):
  *   · 0.00–0.34  facets fly in from a scatter cloud and ASSEMBLE into the brain
- *   · 0.34–0.52  hold — the white brain breathes/tumbles
- *   · 0.52–0.78  a cinematic Y-axis FLIP; mid-flip the facets recolour to the
- *                 AQLUMA brand mix
+ *   · 0.34–0.52  hold — the white wireframe brain breathes/tumbles, spinning
+ *   · 0.52–0.78  a cinematic Y-axis FLIP; mid-flip the facets recolour to brand
  *   · 0.78–1.00  hold — the colourful brain
  * Caption advances in step. Left: frosted-glass 3D AQLUMA (air.inc treatment).
  *
- * Reduced motion: static colourful brain + final caption (gentle idle tumble).
+ * Reduced motion: static colourful brain + final caption (no spin, no scrub).
  *
  * Model: "Brain" by Poly by Google (CC-BY) via Poly Pizza — /public/models/brain.glb
  */
 
 const VOID = "#080A0C";
-const PARTICLE_COUNT = 12000;
 
-// AQLUMA brand mix for the colourful brain (sRGB; converted to linear at build).
-const BRAND_HEX = [0xe8b23a, 0xc8662f, 0x8052ff, 0x15846e, 0xf7f4ef];
+// AQLUMA brand mix for the colourful brain (sRGB → linear at build). dala reads
+// WHITE-dominant with vivid accent pops, so weight white/cream high and keep the
+// brand accents saturated (not muddy terracotta). White stays brand-neutral.
+const BRAND_HEX = [
+  0xffffff, 0xfff7ea, 0xffffff, // white / warm-white ×3 (clean, luminous)
+  0xf3bd47, 0xffcf5e, 0xffd877, // gold ×3, brighter range (dala reads gold-heavy)
+  0xff48ad, // magenta pop ×1
+  0xb98bff, // violet, lifted (was a muddy plum) ×1
+  0x2bd1ab, // teal ×1
+  0x46d6e6, // cyan ×1
+  0xff8a46, // warm amber-orange (was dark terracotta) ×1
+];
 
 const BEATS = [
   "Aqluma accompagne votre adolescent.",
-  "D’un esprit qui recopie les réponses…",
-  "…à un esprit qui pense avec l’IA.",
+  "D'un esprit qui recopie les réponses…",
+  "…à un esprit qui pense avec l'IA.",
 ];
 
 const clamp01 = (x: number) => (x < 0 ? 0 : x > 1 ? 1 : x);
@@ -48,17 +66,20 @@ const smooth = (a: number, b: number, x: number) => {
 const VERT = /* glsl */ `
   uniform float uTime;
   uniform float uForm;      // 0..1 assemble
-  uniform float uFlip;      // 0..PI flip angle (Y)
+  uniform float uFlip;      // 0..PI scroll flip angle (Y)
+  uniform float uSpin;      // continuous idle spin angle (Y)
   uniform float uColorMix;  // 0..1 white -> brand colour
   uniform vec2  uMouse;     // pointer in group-local world XY
   uniform float uAmp;
 
+  attribute vec3 aBary;     // barycentric coord of this triangle corner
   attribute vec3 aOffset;   // brain-surface position (normalised, r~1)
   attribute vec3 aScatter;  // fly-in origin
   attribute vec3 aRandom;   // per-facet seeds
   attribute vec3 aColor;    // per-facet brand colour (linear)
 
   varying vec3 vColor;
+  varying vec3 vBary;
   varying float vFade;
 
   // --- Ashima 3D simplex noise ---
@@ -87,36 +108,78 @@ const VERT = /* glsl */ `
     return 42.0*dot(m*m,vec4(dot(p0,x0),dot(p1,x1),dot(p2,x2),dot(p3,x3)));
   }
 
-  mat3 rot3(vec3 axis, float a){
-    axis=normalize(axis); float s=sin(a), c=cos(a), o=1.0-c;
-    return mat3(
-      o*axis.x*axis.x+c,        o*axis.x*axis.y-axis.z*s, o*axis.z*axis.x+axis.y*s,
-      o*axis.x*axis.y+axis.z*s, o*axis.y*axis.y+c,        o*axis.y*axis.z-axis.x*s,
-      o*axis.z*axis.x-axis.y*s, o*axis.y*axis.z+axis.x*s, o*axis.z*axis.z+c
-    );
-  }
-
   void main(){
+    vBary = aBary;
     float form = smoothstep(0.0, 1.0, uForm);
     vec3 center = mix(aScatter, aOffset, form);
 
-    // Cinematic Y-axis flip of the whole cloud.
-    float ca=cos(uFlip), sa=sin(uFlip);
+    // Barely-there breathing — keeps the surface alive WITHOUT fluffing the
+    // silhouette (the old larger puff rounded the profile off toward a ball).
+    float spread = snoise(aOffset * 3.5 + uTime * 0.06) * 0.005;
+    center += normalize(aOffset + 0.001) * spread * form;
+
+    // Y-axis rotation of the whole cloud: scroll flip + slow perpetual idle spin.
+    // Done here (not on the group) so uMouse stays valid in local space.
+    float ang = uFlip + uSpin;
+    float ca=cos(ang), sa=sin(ang);
     center = vec3(ca*center.x + sa*center.z, center.y, -sa*center.x + ca*center.z);
 
     // Pointer repulsion in the view plane.
     vec2 toM = center.xy - uMouse;
     float md = dot(toM,toM);
-    center.xy += normalize(toM + 0.0001) * (0.22 / (1.0 + md*9.0)) * form;
+    center.xy += normalize(toM + 0.0001) * (0.26 / (1.0 + md*8.0)) * form;
 
-    // Tumble each facet by a noise-driven rotation (the dala move).
-    float n = snoise(center * uAmp + uTime * 0.12);
-    mat3 r = rot3(vec3(1.0,0.55,1.0) + aRandom, n * 3.14159 + uTime * (0.2 + aRandom.x*0.5));
-    float s = (0.55 + aRandom.y * 0.95) * mix(0.25, 1.0, form);
-    vec3 finalPos = center + r * (position * s);
+    // Lay each shard FLAT on the brain surface: build a tangent basis from the
+    // outward normal so triangles tile the 3D shell (and foreshorten as it spins)
+    // instead of billboarding flat at the camera. This is the "3D texture".
+    float n = snoise(center * uAmp + uTime * 0.15);
+    vec3 N = normalize(center + 0.0001);          // true surface normal (rim/shade)
 
-    vColor = mix(vec3(0.95,0.94,0.92), aColor, uColorMix);
-    vFade  = (0.35 + 0.65*form);
+    // Surface tangent frame (T, Bt) + outward normal N — the basis each shard lives
+    // in. Each shard is a flat triangle that ROTATES IN 3D inside this frame: it
+    // spins in-plane AND tumbles out-of-plane over time, so the polygons read as
+    // little 3D plates turning in space (edge-on, then flat). Per-shard seeds +
+    // speeds so they're all out of phase.
+    vec3 up = abs(N.y) > 0.92 ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 1.0, 0.0);
+    vec3 T = normalize(cross(up, N));
+    vec3 Bt = cross(N, T);
+
+    float spin   = aRandom.x * 6.2831853 + n * 0.3 + uTime * (0.18 + aRandom.y * 0.30);
+    float tumble = aRandom.z * 6.2831853 + uTime * (0.14 + aRandom.x * 0.26);
+    vec3 q = vec3(position.x, position.y, 0.0);
+    float cs = cos(spin), sn = sin(spin);
+    q = vec3(q.x * cs - q.y * sn, q.x * sn + q.y * cs, 0.0);   // spin in-plane
+    float ct = cos(tumble), st = sin(tumble);
+    q = vec3(q.x, q.y * ct, q.y * st);                        // flip out-of-plane → 3D
+
+    // SMALL shards, strong size variation: most tiny, a few larger accents. Plus an
+    // INTERIOR THIN-OUT — shards on the front/back caps (low restEdge) shrink so the
+    // centre opens up and the brain's silhouette/structure leads (more readable),
+    // while the limb stays full. restEdge is baked from the rest pose → no flicker.
+    float restEdge = 1.0 - abs(normalize(aOffset + 0.0001).z);
+    float sv = pow(aRandom.y, 1.7);
+    float s = (0.55 + sv * 1.05) * mix(0.10, 1.0, form);
+    s *= mix(0.56, 1.0, smoothstep(0.05, 0.55, restEdge));
+    vec3 finalPos = center + (T * q.x + Bt * q.y + N * q.z) * s;
+
+    // Read as a PROFILE, not a see-through ball: the front surface + the silhouette
+    // dominate, while the BACK hemisphere fades back (less overlap muddle). The rim
+    // (normal ⟂ view) re-lifts the outline so the brain's edge is traced — this is
+    // the single biggest legibility lever, dala-style.
+    // The SHAPE reads from point density (pointillist), not a traced edge — a hard
+    // rim just traces the convex hull (an oval). So: front surface leads, back
+    // hemisphere drops back to cut see-through muddle, and only a GENTLE rim lifts
+    // the limb. Colour variation (below) is what stops the density reading as a
+    // solid ball, dala-style.
+    float rim = pow(1.0 - abs(N.z), 1.6);
+    float facing = clamp(N.z, 0.0, 1.0);      // 1 = facing camera, 0 = side/back
+    float depthF = clamp(center.z * 0.5 + 0.5, 0.0, 1.0);
+    float frontW = mix(0.18, 1.0, facing) + rim * 0.35;
+    float shade = mix(0.82, 1.14, depthF);
+    float brightness = (0.92 + 0.30 * aRandom.z) * shade * frontW;
+    vColor = mix(vec3(0.97, 0.96, 0.94), aColor, uColorMix) * brightness;
+
+    vFade = (0.30 + 0.70 * form) * (mix(0.32, 1.0, facing) + rim * 0.3);
 
     gl_Position = projectionMatrix * modelViewMatrix * vec4(finalPos, 1.0);
   }
@@ -125,11 +188,60 @@ const VERT = /* glsl */ `
 const FRAG = /* glsl */ `
   precision highp float;
   varying vec3 vColor;
+  varying vec3 vBary;
   varying float vFade;
   void main(){
-    gl_FragColor = vec4(vColor, vFade);
+    // Hollow triangle: keep a thin band near the edges, ghost the interior.
+    float d = min(min(vBary.x, vBary.y), vBary.z);
+    float line = 1.0 - smoothstep(0.03, 0.085, d);   // crisp outline
+    float a = max(line, 0.05) * vFade;                // outline + faint fill
+    if (a < 0.01) discard;
+    // Edges run hotter than the ghost fill so the wireframe pops (and blooms).
+    vec3 col = vColor * (0.45 + 0.55 * line);
+    gl_FragColor = vec4(col, a);
   }
 `;
+
+// Near-black ambient backdrop with two faint, small glows (warm-violet upper,
+// teal lower) drawn in-GL so the bloom/tonemap pipeline composites over a real
+// frame. Colours are LINEAR and kept dim so the backdrop never blooms.
+const BG_VERT = /* glsl */ `
+  varying vec2 vUv;
+  void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }
+`;
+const BG_FRAG = /* glsl */ `
+  precision highp float;
+  varying vec2 vUv;
+  uniform vec2 uAspect;
+  float glow(vec2 uv, vec2 c, float r){
+    float d = length((uv - c) * uAspect);
+    return smoothstep(r, 0.0, d);
+  }
+  void main(){
+    vec3 col = vec3(0.0020, 0.0026, 0.0032);          // void, linear
+    col += vec3(0.018, 0.006, 0.040) * glow(vUv, vec2(0.66, 0.60), 0.42); // violet
+    col += vec3(0.002, 0.022, 0.018) * glow(vUv, vec2(0.60, 0.30), 0.40); // teal
+    gl_FragColor = vec4(col, 1.0);
+  }
+`;
+
+// Total facets, spread EVENLY across the brain surface (area-weighted resample,
+// see below) rather than one-per-face. Decoupling count from the mesh lets us dial
+// density directly. dala reads DENSE (the brain's form comes from point density,
+// pointillist) but textured — so we want many SMALL hollow shards with gaps, not a
+// sparse handful (too sparse and the shape doesn't render). ~5.5k small shards
+// keeps clear negative space between them while the profile still reads.
+const TARGET_COUNT = 5500;
+// Facet triangle radius (object space, before per-facet scale). Kept tiny — a
+// shard, not a panel — so even at this count neighbours leave gaps (hollow
+// outlines) and the texture stays airy instead of a solid ball.
+const R = 0.020;
+
+function makeTriangle(): Float32Array {
+  return new Float32Array([0, R * 1.2, 0, R, -R * 0.6, 0, -R, -R * 0.6, 0]);
+}
+// Barycentric coords, one per triangle corner — drives the hollow outline.
+const BARY = new Float32Array([1, 0, 0, 0, 1, 0, 0, 0, 1]);
 
 export default function MindReveal() {
   const sectionRef = useRef<HTMLDivElement>(null);
@@ -150,19 +262,44 @@ export default function MindReveal() {
     (async () => {
       const THREE = await import("three");
       const { GLTFLoader } = await import("three/examples/jsm/loaders/GLTFLoader.js");
-      const { MeshSurfaceSampler } = await import(
-        "three/examples/jsm/math/MeshSurfaceSampler.js"
-      );
+      const { EffectComposer } = await import("three/examples/jsm/postprocessing/EffectComposer.js");
+      const { RenderPass } = await import("three/examples/jsm/postprocessing/RenderPass.js");
+      const { UnrealBloomPass } = await import("three/examples/jsm/postprocessing/UnrealBloomPass.js");
+      const { ShaderPass } = await import("three/examples/jsm/postprocessing/ShaderPass.js");
+      const { OutputPass } = await import("three/examples/jsm/postprocessing/OutputPass.js");
+      const { FXAAShader } = await import("three/examples/jsm/shaders/FXAAShader.js");
       if (disposed) return;
 
-      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-      renderer.setClearColor(0x000000, 0);
+      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+      renderer.setClearColor(0x000000, 1);
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.12;
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       renderer.setPixelRatio(dpr);
 
       const scene = new THREE.Scene();
       const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
       camera.position.set(0, 0, 5);
+
+      // Ambient backdrop — fullscreen triangle in clip space, rendered first.
+      const bgUniforms = { uAspect: { value: new THREE.Vector2(1, 1) } };
+      const bgGeo = new THREE.BufferGeometry();
+      bgGeo.setAttribute(
+        "position",
+        new THREE.BufferAttribute(new Float32Array([-1, -1, 0, 3, -1, 0, -1, 3, 0]), 3)
+      );
+      bgGeo.setAttribute("uv", new THREE.BufferAttribute(new Float32Array([0, 0, 2, 0, 0, 2]), 2));
+      const bgMat = new THREE.ShaderMaterial({
+        uniforms: bgUniforms,
+        vertexShader: BG_VERT,
+        fragmentShader: BG_FRAG,
+        depthTest: false,
+        depthWrite: false,
+      });
+      const bgMesh = new THREE.Mesh(bgGeo, bgMat);
+      bgMesh.frustumCulled = false;
+      bgMesh.renderOrder = -1;
+      scene.add(bgMesh);
 
       const group = new THREE.Group();
       scene.add(group);
@@ -171,9 +308,10 @@ export default function MindReveal() {
         uTime: { value: 0 },
         uForm: { value: reduced ? 1 : 0 },
         uFlip: { value: 0 },
+        uSpin: { value: 0 },
         uColorMix: { value: reduced ? 1 : 0 },
         uMouse: { value: new THREE.Vector2(999, 999) },
-        uAmp: { value: 0.9 },
+        uAmp: { value: 1.1 },
       };
 
       const material = new THREE.ShaderMaterial({
@@ -182,72 +320,182 @@ export default function MindReveal() {
         fragmentShader: FRAG,
         transparent: true,
         depthWrite: false,
-        blending: THREE.AdditiveBlending,
+        blending: THREE.NormalBlending,
+        side: THREE.DoubleSide,
       });
 
       let mesh: THREE_NS.Mesh | null = null;
+
+      // --- Post-processing: linear render → bloom → FXAA → ACES/sRGB out. ---
+      const dbSize = renderer.getDrawingBufferSize(new THREE.Vector2());
+      const renderTarget = new THREE.WebGLRenderTarget(dbSize.x, dbSize.y, {
+        type: THREE.HalfFloatType,
+        samples: 4,
+      });
+      const composer = new EffectComposer(renderer, renderTarget);
+      composer.addPass(new RenderPass(scene, camera));
+      const bloom = new UnrealBloomPass(
+        new THREE.Vector2(dbSize.x, dbSize.y),
+        0.16, // strength — light glow keeps shards crisp/separated, not blurred
+        0.5, // radius
+        0.58 // threshold (luminance) — only the brightest shards glow, dala-style
+      );
+      composer.addPass(bloom);
+      const fxaa = new ShaderPass(FXAAShader);
+      composer.addPass(fxaa);
+      composer.addPass(new OutputPass());
 
       const layout = () => {
         const rect = canvas.getBoundingClientRect();
         const w = rect.width;
         const h = rect.height;
         renderer.setSize(w, h, false);
+        composer.setSize(w, h);
+        bloom.setSize(w * dpr, h * dpr);
+        fxaa.material.uniforms["resolution"].value.set(1 / (w * dpr), 1 / (h * dpr));
+        bgUniforms.uAspect.value.set(w >= h ? w / h : 1, w >= h ? 1 : h / w);
         camera.aspect = w / h;
         camera.updateProjectionMatrix();
         const halfH = Math.tan((camera.fov * Math.PI) / 360) * camera.position.z;
         const halfW = halfH * camera.aspect;
         const narrow = w < 760;
-        const radius = narrow ? Math.min(halfW * 0.82, halfH * 0.78) : halfH * 0.74;
+        const radius = narrow ? Math.min(halfW * 0.9, halfH * 0.84) : halfH * 0.82;
         group.scale.setScalar(radius);
-        group.position.x = narrow ? 0 : halfW * 0.32;
+        group.position.x = narrow ? 0 : halfW * 0.3;
         group.position.y = narrow ? halfH * 0.04 : 0;
       };
 
       const loader = new GLTFLoader();
       loader.load("/models/brain.glb", (gltf) => {
         if (disposed) return;
-        let src: THREE_NS.Mesh | null = null;
+        gltf.scene.updateMatrixWorld(true);
+
+        // Collect EVERY mesh, bake each one's world transform into its verts, and
+        // concatenate into one position buffer. Robust to multi-mesh models AND node
+        // transforms — so ANY brain .glb dropped in at /models/brain.glb resamples
+        // correctly (e.g. a different Sketchfab/Poly model), not just this one.
+        const chunks: Float32Array[] = [];
+        let total = 0;
+        const tmpV = new THREE.Vector3();
         gltf.scene.traverse((o) => {
-          if (!src && (o as THREE_NS.Mesh).isMesh) src = o as THREE_NS.Mesh;
+          const m = o as THREE_NS.Mesh;
+          if (!m.isMesh || !m.geometry) return;
+          const ng = m.geometry.index ? m.geometry.toNonIndexed() : m.geometry;
+          const p = ng.attributes.position;
+          const arr = new Float32Array(p.count * 3);
+          for (let i = 0; i < p.count; i++) {
+            tmpV.set(p.getX(i), p.getY(i), p.getZ(i)).applyMatrix4(m.matrixWorld);
+            arr[i * 3] = tmpV.x;
+            arr[i * 3 + 1] = tmpV.y;
+            arr[i * 3 + 2] = tmpV.z;
+          }
+          chunks.push(arr);
+          total += arr.length;
+          if (ng !== m.geometry) ng.dispose();
         });
-        if (!src) return;
+        if (total === 0) return;
 
-        // Surface-sample the brain → instanced facet cloud.
-        const sampler = new MeshSurfaceSampler(src).build();
-        const pos = new THREE.Vector3();
-        const offsets = new Float32Array(PARTICLE_COUNT * 3);
-        const scatter = new Float32Array(PARTICLE_COUNT * 3);
-        const random = new Float32Array(PARTICLE_COUNT * 3);
-        const colors = new Float32Array(PARTICLE_COUNT * 3);
-
-        // First pass: sample + accumulate centroid/extent for normalisation.
-        const raw: number[] = [];
-        const c = new THREE.Vector3();
-        for (let i = 0; i < PARTICLE_COUNT; i++) {
-          sampler.sample(pos);
-          raw.push(pos.x, pos.y, pos.z);
-          c.add(pos);
+        // The brain's OWN surface is the particle source. Walk every face once to
+        // build an area table, then draw TARGET_COUNT samples weighted by face area
+        // so facets land EVENLY across the shell — independent of the mesh's uneven
+        // tessellation. Even + sparse spacing is what makes the profile read.
+        const posArr = new Float32Array(total);
+        for (let off = 0, k = 0; k < chunks.length; k++) {
+          posArr.set(chunks[k], off);
+          off += chunks[k].length;
         }
-        c.multiplyScalar(1 / PARTICLE_COUNT);
+        const faceCount = Math.floor(posArr.length / 9);
+
+        // Cumulative face-area table → weighted face picking via binary search.
+        const cumArea = new Float32Array(faceCount + 1);
+        const e1 = new THREE.Vector3();
+        const e2 = new THREE.Vector3();
+        let totalArea = 0;
+        for (let f = 0; f < faceCount; f++) {
+          const o = f * 9;
+          e1.set(posArr[o + 3] - posArr[o], posArr[o + 4] - posArr[o + 1], posArr[o + 5] - posArr[o + 2]);
+          e2.set(posArr[o + 6] - posArr[o], posArr[o + 7] - posArr[o + 1], posArr[o + 8] - posArr[o + 2]);
+          cumArea[f] = totalArea;
+          totalArea += e1.cross(e2).length() * 0.5;
+        }
+        cumArea[faceCount] = totalArea;
+        const pickFace = (u: number) => {
+          let lo = 0;
+          let hi = faceCount - 1;
+          const t = u * totalArea;
+          while (lo < hi) {
+            const mid = (lo + hi) >> 1;
+            if (cumArea[mid + 1] <= t) lo = mid + 1;
+            else hi = mid;
+          }
+          return lo;
+        };
+
+        const pts: number[] = [];
+        const cc = new THREE.Vector3();
+        for (let i = 0; i < TARGET_COUNT; i++) {
+          const o = pickFace(Math.random()) * 9;
+          let a = Math.random();
+          let b = Math.random();
+          if (a + b > 1) {
+            a = 1 - a;
+            b = 1 - b;
+          }
+          const x = posArr[o] + a * (posArr[o + 3] - posArr[o]) + b * (posArr[o + 6] - posArr[o]);
+          const y = posArr[o + 1] + a * (posArr[o + 4] - posArr[o + 1]) + b * (posArr[o + 7] - posArr[o + 1]);
+          const z = posArr[o + 2] + a * (posArr[o + 5] - posArr[o + 2]) + b * (posArr[o + 8] - posArr[o + 2]);
+          pts.push(x, y, z);
+          cc.x += x;
+          cc.y += y;
+          cc.z += z;
+        }
+        const ptCount = pts.length / 3;
+        cc.multiplyScalar(1 / ptCount);
+
+        // Centre, then orient to a PROFILE view. glTF is authored Y-up (this
+        // model sits on the ground plane, min Y ≈ 0), so KEEP Y as vertical and
+        // view down the SHORTER horizontal axis — the wider front-back silhouette
+        // then faces the camera (the classic brain profile + stem at the bottom),
+        // instead of a round face-on or top-down blob. Robust to any Y-up model.
+        const min = [Infinity, Infinity, Infinity];
+        const max = [-Infinity, -Infinity, -Infinity];
+        for (let i = 0; i < ptCount; i++) {
+          for (let c = 0; c < 3; c++) {
+            const v = pts[i * 3 + c] - (c === 0 ? cc.x : c === 1 ? cc.y : cc.z);
+            if (v < min[c]) min[c] = v;
+            if (v > max[c]) max[c] = v;
+          }
+        }
+        const ext = [max[0] - min[0], max[1] - min[1], max[2] - min[2]];
+        const wideHoriz = ext[0] >= ext[2]; // is model-X the wider ground axis?
+        const aX = wideHoriz ? 0 : 2; // wider horizontal extent → screen X
+        const aY = 1; // model up-axis → screen vertical
+        const aZ = wideHoriz ? 2 : 0; // shorter horizontal extent → view axis
+        const cArr = [cc.x, cc.y, cc.z];
+
         let maxR = 1e-5;
-        for (let i = 0; i < PARTICLE_COUNT; i++) {
-          const dx = raw[i * 3] - c.x;
-          const dy = raw[i * 3 + 1] - c.y;
-          const dz = raw[i * 3 + 2] - c.z;
-          maxR = Math.max(maxR, Math.hypot(dx, dy, dz));
+        for (let i = 0; i < ptCount; i++) {
+          maxR = Math.max(
+            maxR,
+            Math.hypot(pts[i * 3] - cc.x, pts[i * 3 + 1] - cc.y, pts[i * 3 + 2] - cc.z)
+          );
         }
+
         const palette = BRAND_HEX.map((hx) => new THREE.Color(hx).convertSRGBToLinear());
-        for (let i = 0; i < PARTICLE_COUNT; i++) {
-          const nx = (raw[i * 3] - c.x) / maxR;
-          const ny = (raw[i * 3 + 1] - c.y) / maxR;
-          const nz = (raw[i * 3 + 2] - c.z) / maxR;
-          offsets[i * 3] = nx;
-          offsets[i * 3 + 1] = ny;
-          offsets[i * 3 + 2] = nz;
-          // scatter origin: random point in a larger shell
+
+        const tri = makeTriangle();
+        const offsets = new Float32Array(ptCount * 3);
+        const scatter = new Float32Array(ptCount * 3);
+        const random = new Float32Array(ptCount * 3);
+        const colors = new Float32Array(ptCount * 3);
+        for (let i = 0; i < ptCount; i++) {
+          // Reorient to profile via the extent-derived axis permutation.
+          offsets[i * 3] = (pts[i * 3 + aX] - cArr[aX]) / maxR;
+          offsets[i * 3 + 1] = (pts[i * 3 + aY] - cArr[aY]) / maxR;
+          offsets[i * 3 + 2] = (pts[i * 3 + aZ] - cArr[aZ]) / maxR;
           const u = Math.random() * Math.PI * 2;
           const v = Math.acos(2 * Math.random() - 1);
-          const rr = 1.7 + Math.random() * 1.1;
+          const rr = 2.2 + Math.random() * 1.6;
           scatter[i * 3] = Math.sin(v) * Math.cos(u) * rr;
           scatter[i * 3 + 1] = Math.cos(v) * rr;
           scatter[i * 3 + 2] = Math.sin(v) * Math.sin(u) * rr;
@@ -260,19 +508,19 @@ export default function MindReveal() {
           colors[i * 3 + 2] = col.b;
         }
 
-        // Base facet: a small triangle, instanced PARTICLE_COUNT times.
-        const geo = new THREE.InstancedBufferGeometry();
-        const tri = new Float32Array([0, 0.05, 0, 0.043, -0.025, 0, -0.043, -0.025, 0]);
-        geo.setAttribute("position", new THREE.BufferAttribute(tri, 3));
-        geo.setAttribute("aOffset", new THREE.InstancedBufferAttribute(offsets, 3));
-        geo.setAttribute("aScatter", new THREE.InstancedBufferAttribute(scatter, 3));
-        geo.setAttribute("aRandom", new THREE.InstancedBufferAttribute(random, 3));
-        geo.setAttribute("aColor", new THREE.InstancedBufferAttribute(colors, 3));
-        geo.instanceCount = PARTICLE_COUNT;
+        const ibg = new THREE.InstancedBufferGeometry();
+        ibg.setAttribute("position", new THREE.BufferAttribute(tri, 3));
+        ibg.setAttribute("aBary", new THREE.BufferAttribute(BARY, 3));
+        ibg.setAttribute("aOffset", new THREE.InstancedBufferAttribute(offsets, 3));
+        ibg.setAttribute("aScatter", new THREE.InstancedBufferAttribute(scatter, 3));
+        ibg.setAttribute("aRandom", new THREE.InstancedBufferAttribute(random, 3));
+        ibg.setAttribute("aColor", new THREE.InstancedBufferAttribute(colors, 3));
+        ibg.instanceCount = ptCount;
 
-        mesh = new THREE.Mesh(geo, material);
+        mesh = new THREE.Mesh(ibg, material);
         mesh.frustumCulled = false;
         group.add(mesh);
+
         layout();
       });
 
@@ -284,7 +532,6 @@ export default function MindReveal() {
         const ndcY = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
         const halfH = Math.tan((camera.fov * Math.PI) / 360) * camera.position.z;
         const halfW = halfH * camera.aspect;
-        // world XY, then into the group's local space (undo scale + offset).
         mouseTarget.set(
           (ndcX * halfW - group.position.x) / group.scale.x,
           (ndcY * halfH - group.position.y) / group.scale.x
@@ -302,8 +549,12 @@ export default function MindReveal() {
         const dt = Math.min(0.05, (now - last) / 1000);
         last = now;
         uniforms.uTime.value += dt;
+        // Gentle ROCK around the profile (±~18°) instead of a full 360° turntable,
+        // so the brain always reads in its iconic side view (a full spin rotates it
+        // through round front/back views where it looks like a ball). dala-style.
+        if (!reduced) uniforms.uSpin.value = Math.sin(uniforms.uTime.value * 0.22) * 0.32;
         (uniforms.uMouse.value as THREE_NS.Vector2).lerp(mouseTarget, 0.08);
-        renderer.render(scene, camera);
+        composer.render();
         raf = requestAnimationFrame(tick);
       };
       raf = requestAnimationFrame(tick);
@@ -338,7 +589,11 @@ export default function MindReveal() {
         window.removeEventListener("pointermove", onMove);
         st?.kill();
         material.dispose();
+        bgGeo.dispose();
+        bgMat.dispose();
         mesh?.geometry.dispose();
+        composer.dispose();
+        renderTarget.dispose();
         renderer.dispose();
       };
     })();
@@ -373,20 +628,20 @@ export default function MindReveal() {
       id="mind-reveal"
       className="relative h-screen w-full overflow-hidden"
       style={{ backgroundColor: VOID }}
-      aria-label="AQLUMA — l’esprit"
+      aria-label="AQLUMA — l'esprit"
     >
-      {/* Soft dark gradient blobs behind the cloud (dala depth cue). */}
+      {/* Instanced wireframe brain (Three.js) — backdrop + bloom composited in-GL. */}
+      <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
+
+      {/* Edge vignette: pure CSS, focuses attention on the brain. */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "radial-gradient(40% 50% at 68% 42%, rgba(20,9,51,0.55), rgba(8,10,12,0) 70%), radial-gradient(36% 46% at 60% 64%, rgba(4,41,33,0.5), rgba(8,10,12,0) 72%)",
+            "radial-gradient(120% 90% at 60% 50%, rgba(8,10,12,0) 54%, rgba(8,10,12,0.6) 100%)",
         }}
       />
-
-      {/* Instanced polygon brain (Three.js). */}
-      <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
 
       {/* Left-centre: frosted-glass 3D AQLUMA + the three-beat caption. */}
       <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex w-full flex-col justify-center px-[min(7vw,5.5rem)] md:w-[46%]">
