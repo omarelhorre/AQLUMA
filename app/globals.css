@@ -44,6 +44,15 @@
 }
 
 @layer utilities {
+  /* Hide the scrollbar on a scroll container (panorama museum). */
+  .hide-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
   /* uppercase, letter-spaced kicker / nav label */
   .kicker {
     font-family: theme("fontFamily.satoshi");
@@ -57,6 +66,21 @@
     width: 2.25rem;
     height: 2.25rem;
     background-color: theme("colors.gold");
+  }
+
+  /* Pulsing "browse the collection" hint (panorama museum). */
+  .animate-hint {
+    animation: hint-pulse 2s ease-in-out infinite;
+  }
+}
+
+@keyframes hint-pulse {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.8;
   }
 }
 

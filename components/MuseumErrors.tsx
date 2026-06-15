@@ -4,49 +4,91 @@ import { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useReducedMotion } from "@/lib/useReducedMotion";
-import GrowthLine, { type GrowthLineHandle } from "./GrowthLine";
+import RunwayRule, { type RunwayRuleHandle } from "./RunwayRule";
 
 /**
- * PHASE 4 — Le Musée des Erreurs (inverted horizontal pan, RIGHT → LEFT).
+ * LE MUSÉE AQLUMA — scroll-driven horizontal pan, RIGHT → LEFT.
  *
- * A pinned, dark gallery. Unlike the studio, this scrolls backwards: the track
- * starts showing its right end and travels to its left end, so the viewer walks
- * the gallery right-to-left. Each panel is a spotlit pedestal — a mistake shown
- * as an exhibit. The growth line continues across the top (drawn right→left to
- * match the motion); its dot tracks progress.
+ * One pinned section; vertical scroll pans the whole gallery wall from its right
+ * end to its left end. Moderate zoom (the whole wall reads; only empty
+ * ceiling/floor crop). Editorial captions (Briefing style) travel with the wall
+ * and fade in as they enter frame — alternated top/bottom so a label never sits
+ * over its exhibit.
  *
- * Mobile / reduced motion: vertical stack, native scroll.
+ * Mobile / reduced motion: the full image sits above stacked captions.
  */
 
-type Exhibit = { tag: string; header: string; body: string };
+const PANORAMA = "/musee-aqluma-panorama.jpg";
+const ZOOM_W = 140; // vw — unzoomed; ~40vw of horizontal travel
 
-// Authored in VIEW order (first seen = rightmost). Rendered row-reverse.
-const EXHIBITS: Exhibit[] = [
+type Block = {
+  left: string;
+  /** Vertical anchor — top for exhibits whose piece sits low, bottom for high. */
+  v: React.CSSProperties;
+  title: string;
+  note: string;
+};
+
+// Authored 01→04 left→right on the wall. Right→left pan meets 04 first.
+// Alternated: 01 bottom · 02 top · 03 bottom · 04 top (never over the exhibit).
+// Copy drawn from the Musée des Erreurs IA scripts — same storytelling voice.
+const BLOCKS: Block[] = [
   {
-    tag: "Salle I",
-    header: "Le Musée des Erreurs",
-    body: "Ici, chaque erreur est exposée comme une œuvre. Car c’est en se trompant, lentement, que l’on apprend à penser.",
+    left: "8%",
+    v: { bottom: "3%" },
+    title: "La source qui n’existait pas.",
+    note: "Un titre crédible. Un auteur. Une année. Tout avait la forme d’une référence — sans jamais en avoir la réalité.",
   },
   {
-    tag: "Salle II",
-    header: "L’erreur féconde",
-    body: "Une réponse fausse, bien interrogée, enseigne davantage qu’une bonne réponse copiée sans la comprendre.",
+    left: "30%",
+    v: { top: "15%" },
+    title: "Le ton ne tremble jamais.",
+    note: "Juste ou faux, la réponse garde la même voix. La fluidité n’est pas la fiabilité.",
   },
   {
-    tag: "Salle III",
-    header: "La méthode",
-    body: "On ne supprime pas l’erreur : on apprend à la lire, à la corriger, à en faire un tremplin vers la suite.",
+    left: "53%",
+    v: { bottom: "3%" },
+    title: "Le calcul élégant et faux.",
+    note: "Des étapes claires, une conclusion nette. Et une erreur, glissée au milieu, que l’élégance rend invisible.",
+  },
+  {
+    left: "76%",
+    v: { top: "15%" },
+    title: "Le geste à retenir.",
+    note: "Le problème n’est pas l’erreur. C’est la confiance trop rapide. On apprend à lire la réponse — sans la croire.",
   },
 ];
 
-// Drawn right → left to match the inverted pan (0..1000 viewBox space).
-const MUSEUM_PATH = "M960,196 C 680,260 320,140 40,210";
+const SHADOW = "0 2px 30px rgba(0,0,0,0.85)";
+
+function Caption({ b, i }: { b: Block; i: number }) {
+  return (
+    <div style={{ textShadow: SHADOW }}>
+      <span className="mb-3 flex items-center gap-3">
+        <span className="font-satoshi text-[11px] tabular-nums tracking-tight text-cream/45">
+          {/* Right→left pan: the rightmost exhibit is seen first → reverse the index. */}
+          {String(BLOCKS.length - i).padStart(2, "0")} / {String(BLOCKS.length).padStart(2, "0")}
+        </span>
+        <span
+          className="h-px w-10"
+          style={{ background: "linear-gradient(90deg, rgba(247,244,239,0.5), rgba(247,244,239,0))" }}
+        />
+      </span>
+      <h2 className="font-didot text-[clamp(2.1rem,3.9vw,3.6rem)] leading-[1.04] tracking-display text-cream">
+        {b.title}
+      </h2>
+      <p className="mt-4 font-satoshi text-[clamp(0.95rem,1.25vw,1.2rem)] leading-relaxed text-cream/70">
+        {b.note}
+      </p>
+    </div>
+  );
+}
 
 export default function MuseumErrors() {
-  const sectionRef = useRef<HTMLDivElement>(null);
+  const sectionRef = useRef<HTMLElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
-  const contentRef = useRef<(HTMLDivElement | null)[]>([]);
-  const growthRef = useRef<GrowthLineHandle>(null);
+  const blockRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const ruleRef = useRef<RunwayRuleHandle>(null);
 
   const reduced = useReducedMotion();
   const [narrow, setNarrow] = useState(false);
@@ -68,13 +110,11 @@ export default function MuseumErrors() {
     if (!section || !track) return;
 
     gsap.registerPlugin(ScrollTrigger);
-    const content = contentRef.current.filter(Boolean) as HTMLDivElement[];
-    const span = EXHIBITS.length - 1;
+    const blocks = blockRefs.current.filter(Boolean) as HTMLDivElement[];
     const distance = () => Math.max(0, track.offsetWidth - window.innerWidth);
 
     const ctx = gsap.context(() => {
-      gsap.set(content, { opacity: 0, y: 26 });
-      // Start showing the RIGHT end (row-reverse → first exhibit sits right).
+      // Start showing the RIGHT end; pan to the LEFT end.
       gsap.set(track, { x: () => -distance() });
 
       const tl = gsap.timeline({
@@ -85,70 +125,36 @@ export default function MuseumErrors() {
           pin: true,
           scrub: 1,
           invalidateOnRefresh: true,
-          onUpdate: (self) => growthRef.current?.setProgress(self.progress),
+          onUpdate: (self) => {
+            ruleRef.current?.setProgress(self.progress);
+            const trackX = (gsap.getProperty(track, "x") as number) || 0;
+            const vw = window.innerWidth;
+            blocks.forEach((el) => {
+              const sx = trackX + el.offsetLeft;
+              if (sx >= -60 && sx <= vw + 60) el.style.opacity = "1";
+            });
+          },
+          onToggle: (self) => ruleRef.current?.setActive(self.isActive),
         },
       });
 
-      // Travel from the right end (-distance) back to the left end (0).
-      tl.fromTo(track, { x: () => -distance() }, { x: 0, ease: "none", duration: span }, 0);
-
-      content.forEach((el, i) => {
-        tl.fromTo(
-          el,
-          { opacity: 0, y: 26 },
-          { opacity: 1, y: 0, ease: "power3.out", duration: 0.5 },
-          Math.max(0, i - 0.5)
-        );
-        if (i < content.length - 1) {
-          tl.to(el, { opacity: 0, y: -22, ease: "power2.in", duration: 0.4 }, i + 0.35);
-        }
-      });
+      tl.fromTo(track, { x: () => -distance() }, { x: 0, ease: "none", duration: 1 }, 0);
     }, section);
 
     return () => ctx.revert();
   }, [stacked]);
 
-  const Pedestal = ({ e, idx }: { e: Exhibit; idx: number }) => (
-    <>
-      {/* Spotlight cone from above. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(46% 60% at 50% 30%, rgba(232,178,58,0.16), rgba(232,178,58,0.04) 40%, rgba(8,10,12,0) 70%)",
-        }}
-      />
-      {/* The exhibit: a framed plate on a plinth. */}
-      <div className="relative flex h-[44vh] w-[26vw] min-w-[280px] flex-col items-center justify-end">
-        <div
-          className="flex h-[30vh] w-full items-center justify-center border border-cream/12 bg-[#0c0e10]"
-          style={{ boxShadow: "0 30px 80px -30px rgba(0,0,0,0.8), inset 0 0 60px rgba(0,0,0,0.5)" }}
-        >
-          <span className="font-didot text-[clamp(3rem,6vw,5rem)] leading-none text-cream/22">
-            {String(idx + 1).padStart(2, "0")}
-          </span>
-        </div>
-        {/* Plinth. */}
-        <div className="mt-0 h-[7vh] w-[60%] bg-gradient-to-b from-[#15171a] to-[#080a0c]" />
-      </div>
-    </>
-  );
-
-  // ── Mobile / reduced motion: vertical stack ──
+  // ── Mobile / reduced motion: full image above stacked captions ──
   if (stacked) {
     return (
-      <section id="museum-section" className="relative w-full bg-void" aria-label="AQLUMA — Le Musée des Erreurs">
-        {EXHIBITS.map((e, i) => (
-          <div key={i} className="relative flex min-h-[80vh] flex-col items-center justify-center gap-7 overflow-hidden px-7 py-16 text-center">
-            <Pedestal e={e} idx={i} />
-            <div>
-              <span className="font-satoshi text-[11px] uppercase tracking-[0.2em] text-gold/80">{e.tag}</span>
-              <h2 className="mt-3 font-didot text-[clamp(2rem,8vw,3rem)] leading-[1.06] tracking-display text-cream">{e.header}</h2>
-              <p className="mx-auto mt-4 max-w-[44ch] font-satoshi text-[15px] leading-relaxed text-cream/70">{e.body}</p>
-            </div>
-          </div>
-        ))}
+      <section id="museum-section" className="relative w-full" style={{ background: "#080A0C" }} aria-label="AQLUMA — Le Musée">
+        {/* eslint-disable-next-line @next/next/no-img-element -- full gallery panorama */}
+        <img src={PANORAMA} alt="" className="block h-auto w-full select-none" draggable={false} />
+        <div className="flex flex-col gap-12 px-7 py-16">
+          {BLOCKS.map((b, i) => (
+            <Caption key={i} b={b} i={i} />
+          ))}
+        </div>
       </section>
     );
   }
@@ -157,38 +163,36 @@ export default function MuseumErrors() {
     <section
       ref={sectionRef}
       id="museum-section"
-      className="relative h-screen w-full overflow-hidden bg-void"
-      aria-label="AQLUMA — Le Musée des Erreurs"
+      className="relative h-screen w-full overflow-hidden"
+      style={{ background: "#080A0C" }}
+      aria-label="AQLUMA — Le Musée"
     >
-      <div
-        ref={trackRef}
-        className="flex h-screen flex-row-reverse will-change-transform"
-        style={{ width: `${EXHIBITS.length * 100}vw` }}
-      >
-        {EXHIBITS.map((e, i) => (
-          <div key={i} className="relative flex h-screen w-screen flex-shrink-0 items-center justify-center overflow-hidden">
-            <Pedestal e={e} idx={i} />
+      <div ref={trackRef} className="absolute inset-y-0 left-0 h-full will-change-transform" style={{ width: `${ZOOM_W}vw` }}>
+        {/* eslint-disable-next-line @next/next/no-img-element -- single panned canvas */}
+        <img
+          src={PANORAMA}
+          alt=""
+          draggable={false}
+          className="pointer-events-none absolute left-0 top-1/2 h-auto w-full max-w-none -translate-y-1/2 select-none"
+        />
 
-            {/* Wall label, set to the side of the pedestal. */}
-            <div
-              ref={(el) => {
-                contentRef.current[i] = el;
-              }}
-              className="absolute bottom-[16vh] left-[8vw] z-20 w-[30rem] max-w-[80vw] text-left will-change-[transform,opacity]"
-            >
-              <span className="font-satoshi text-[12px] uppercase tracking-[0.22em] text-gold/80">{e.tag}</span>
-              <h2 className="mt-3 font-didot text-[clamp(2.2rem,4.6vw,4rem)] leading-[1.05] tracking-display text-cream">
-                {e.header}
-              </h2>
-              <p className="mt-5 max-w-[36ch] font-satoshi text-[clamp(0.95rem,1.2vw,1.1rem)] leading-relaxed text-cream/72">
-                {e.body}
-              </p>
-            </div>
+        {/* Wall captions — travel with the wall, fade in as they enter frame. */}
+        {BLOCKS.map((b, i) => (
+          <div
+            key={i}
+            ref={(el) => {
+              blockRefs.current[i] = el;
+            }}
+            className="pointer-events-none absolute w-[min(27rem,36vw)]"
+            style={{ left: b.left, ...b.v, opacity: 0, transition: "opacity 1.2s ease" }}
+          >
+            <Caption b={b} i={i} />
           </div>
         ))}
       </div>
 
-      <GrowthLine ref={growthRef} d={MUSEUM_PATH} />
+      {/* Loading bar — Briefing-style runway, pinned to the TOP. */}
+      <RunwayRule ref={ruleRef} total={BLOCKS.length} label="Le Musée" placement="top" />
     </section>
   );
 }

@@ -17,12 +17,14 @@ export type RunwayRuleHandle = {
 type Props = {
   total: number;
   label: string;
+  placement?: "top" | "bottom";
 };
 
 const RunwayRule = forwardRef<RunwayRuleHandle, Props>(function RunwayRule(
-  { total, label },
+  { total, label, placement = "bottom" },
   ref
 ) {
+  const isTop = placement === "top";
   const fillRef = useRef<HTMLSpanElement>(null);
   const countRef = useRef<HTMLSpanElement>(null);
   const [active, setActive] = useState(false);
@@ -45,8 +47,9 @@ const RunwayRule = forwardRef<RunwayRuleHandle, Props>(function RunwayRule(
     <div
       aria-hidden
       className={[
-        "pointer-events-none absolute inset-x-0 bottom-9 z-30 flex justify-center transition-all duration-700 ease-editorial md:bottom-12",
-        active ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0",
+        "pointer-events-none absolute inset-x-0 z-30 flex justify-center transition-all duration-700 ease-editorial",
+        isTop ? "top-8 md:top-10" : "bottom-9 md:bottom-12",
+        active ? "translate-y-0 opacity-100" : isTop ? "-translate-y-2 opacity-0" : "translate-y-2 opacity-0",
       ].join(" ")}
     >
       <div className="w-[min(44vw,440px)]">
