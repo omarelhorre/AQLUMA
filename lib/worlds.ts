@@ -78,7 +78,7 @@ export const worlds: World[] = [
       { id: "m2", placeholderLabel: "contenu — à venir" },
       { id: "m3", placeholderLabel: "contenu — à venir" },
     ],
-    enabled: false,
+    enabled: true,
   },
   {
     // STUDIO — stubbed. Palette TBD (§2): keep the dark + single-warm-light scheme.
@@ -98,7 +98,7 @@ export const worlds: World[] = [
       { id: "s2", placeholderLabel: "contenu — à venir" },
       { id: "s3", placeholderLabel: "contenu — à venir" },
     ],
-    enabled: false,
+    enabled: true,
   },
 ];
 

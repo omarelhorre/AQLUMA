@@ -6,31 +6,25 @@ import { worlds } from "@/lib/worlds";
 import { smoothScrollTo } from "@/lib/lenis";
 
 /**
- * Fixed, transparent over the hero. Past the hero it gains a faint backdrop-blur
- * + hairline bottom border, and auto-hides on scroll-down / reveals on scroll-up.
+ * Fixed, ALWAYS-VISIBLE header for the whole journey. It is never transparent:
+ * an opaque vertical gradient-black bar with a hairline base and a soft drop
+ * shadow, so copy and worlds read cleanly over every section. Past the hero it
+ * deepens its border/shadow a touch for premium separation.
  *
- * Nav is intentionally minimal: the AQLUMA mark (scrolls to top) and a single
- * "Mondes" dropdown listing the three worlds. Disabled worlds read "Bientôt".
+ * Nav: the AQLUMA mark (scrolls to top), the "Mondes" dropdown listing the three
+ * worlds, and a single solid-white CTA that scrolls to the contact section.
  */
 export default function Header() {
   const [scrolled, setScrolled] = useState(false);
-  const [hidden, setHidden] = useState(false);
   const [open, setOpen] = useState(false);
-  const lastY = useRef(0);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const onScroll = () => {
-      const y = window.scrollY;
-      setScrolled(y > 24);
-      const goingDown = y > lastY.current;
-      setHidden(goingDown && y > window.innerHeight * 0.9 && !open);
-      lastY.current = y;
-    };
+    const onScroll = () => setScrolled(window.scrollY > 24);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, [open]);
+  }, []);
 
   // close the dropdown on outside click / escape
   useEffect(() => {
@@ -57,14 +51,18 @@ export default function Header() {
     smoothScrollTo(`#${id}`, { offset: 0 });
   };
 
+  const goContact = () => {
+    setOpen(false);
+    smoothScrollTo("#contact", { offset: 0 });
+  };
+
   return (
     <header
       className={[
-        "fixed inset-x-0 top-0 z-50 transition-[transform,background-color,backdrop-filter,border-color] duration-500 ease-editorial",
-        hidden ? "-translate-y-full" : "translate-y-0",
+        "fixed inset-x-0 top-0 z-50 border-b bg-gradient-to-b from-[#0d1115] via-[#0a0c0f] to-void transition-[border-color,box-shadow] duration-500 ease-editorial",
         scrolled
-          ? "border-b border-cream/[0.06] bg-void/30 backdrop-blur-md"
-          : "border-b border-transparent bg-transparent",
+          ? "border-cream/[0.09] shadow-[0_14px_40px_-18px_rgba(0,0,0,0.85)]"
+          : "border-cream/[0.05] shadow-[0_10px_30px_-20px_rgba(0,0,0,0.7)]",
       ].join(" ")}
     >
       <div className="mx-auto flex h-16 max-w-[1600px] items-center justify-between px-6 md:px-10">
@@ -85,85 +83,113 @@ export default function Header() {
           />
         </button>
 
-        {/* Mondes — expandable dropdown */}
-        <div
-          ref={menuRef}
-          className="relative"
-          onMouseEnter={() => setOpen(true)}
-          onMouseLeave={() => setOpen(false)}
-        >
-          <button
-            type="button"
-            onClick={() => setOpen((v) => !v)}
-            aria-haspopup="menu"
-            aria-expanded={open}
-            className="group/btn flex items-center gap-2.5 rounded-sm py-2 font-satoshi text-[14px] font-medium tracking-tight text-cream/75 outline-none transition-colors duration-300 ease-editorial hover:text-cream focus-visible:ring-1 focus-visible:ring-cream/30"
+        <div className="flex items-center gap-3 md:gap-5">
+          {/* Mondes — expandable dropdown */}
+          <div
+            ref={menuRef}
+            className="relative"
+            onMouseEnter={() => setOpen(true)}
+            onMouseLeave={() => setOpen(false)}
           >
-            <PlanetGlyph />
-            Mondes
-            <svg
-              width="10"
-              height="10"
-              viewBox="0 0 10 10"
-              aria-hidden
+            <button
+              type="button"
+              onClick={() => setOpen((v) => !v)}
+              aria-haspopup="menu"
+              aria-expanded={open}
+              className="group/btn flex items-center gap-2.5 rounded-sm px-1 py-2 font-satoshi text-[14px] font-medium tracking-tight text-cream/75 outline-none transition-colors duration-300 ease-editorial hover:text-cream focus-visible:ring-1 focus-visible:ring-cream/30"
+            >
+              <PlanetGlyph />
+              Mondes
+              <svg
+                width="10"
+                height="10"
+                viewBox="0 0 10 10"
+                aria-hidden
+                className={[
+                  "translate-y-[1px] text-cream/45 transition-transform duration-300 ease-editorial group-hover/btn:text-cream/70",
+                  open ? "rotate-180" : "rotate-0",
+                ].join(" ")}
+              >
+                <path
+                  d="M1 3l4 4 4-4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+
+            {/* dropdown panel */}
+            <div
+              role="menu"
               className={[
-                "translate-y-[1px] text-cream/45 transition-transform duration-300 ease-editorial group-hover/btn:text-cream/70",
-                open ? "rotate-180" : "rotate-0",
+                "absolute right-0 top-full min-w-[200px] origin-top-right pt-3 transition-all duration-300 ease-editorial",
+                open
+                  ? "pointer-events-auto translate-y-0 opacity-100"
+                  : "pointer-events-none -translate-y-1 opacity-0",
               ].join(" ")}
             >
+              <ul className="overflow-hidden rounded-md border border-cream/10 bg-ink/95 p-1.5 shadow-[0_24px_60px_-24px_rgba(0,0,0,0.9)] backdrop-blur-xl">
+                {worlds.map((w, i) => (
+                  <li key={w.id}>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      disabled={!w.enabled}
+                      onClick={() => goWorld(w.id, w.enabled)}
+                      className={[
+                        "flex w-full items-center justify-between gap-6 rounded-sm px-3 py-2.5 text-left transition-colors duration-200",
+                        w.enabled
+                          ? "text-cream/85 hover:bg-cream/[0.06] hover:text-cream"
+                          : "cursor-default text-cream/35",
+                      ].join(" ")}
+                    >
+                      <span className="font-satoshi text-[13.5px] font-medium tracking-tight">
+                        {w.label}
+                      </span>
+                      {w.enabled ? (
+                        <span className="font-satoshi text-[11px] tabular-nums text-cream/35">
+                          {`0${i + 1}`}
+                        </span>
+                      ) : (
+                        <span className="rounded-full border border-cream/10 bg-cream/[0.04] px-2 py-[3px] font-satoshi text-[9px] font-medium tracking-tight text-cream/40">
+                          Bientôt
+                        </span>
+                      )}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          {/* CTA — solid white pill, scrolls to the contact section. The arrow
+              slides on hover and the button lifts a touch (quiet, premium). */}
+          <button
+            type="button"
+            onClick={goContact}
+            className="group/cta inline-flex items-center gap-2 rounded-full bg-cream px-5 py-2.5 font-satoshi text-[12.5px] font-semibold tracking-tight text-void outline-none transition-all duration-300 ease-editorial hover:-translate-y-[1px] hover:bg-white hover:shadow-[0_12px_30px_-8px_rgba(247,244,239,0.45)] focus-visible:ring-2 focus-visible:ring-cream/40"
+          >
+            Contactez-nous
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 14 14"
+              aria-hidden
+              className="translate-x-0 transition-transform duration-300 ease-editorial group-hover/cta:translate-x-[3px]"
+            >
               <path
-                d="M1 3l4 4 4-4"
+                d="M2.5 7h9M8 3.5L11.5 7 8 10.5"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="1.2"
+                strokeWidth="1.4"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
             </svg>
           </button>
-
-          {/* dropdown panel */}
-          <div
-            role="menu"
-            className={[
-              "absolute right-0 top-full min-w-[200px] origin-top-right pt-3 transition-all duration-300 ease-editorial",
-              open
-                ? "pointer-events-auto translate-y-0 opacity-100"
-                : "pointer-events-none -translate-y-1 opacity-0",
-            ].join(" ")}
-          >
-            <ul className="overflow-hidden rounded-md border border-cream/10 bg-ink/80 p-1.5 backdrop-blur-xl">
-              {worlds.map((w, i) => (
-                <li key={w.id}>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    disabled={!w.enabled}
-                    onClick={() => goWorld(w.id, w.enabled)}
-                    className={[
-                      "flex w-full items-center justify-between gap-6 rounded-sm px-3 py-2.5 text-left transition-colors duration-200",
-                      w.enabled
-                        ? "text-cream/85 hover:bg-cream/[0.06] hover:text-cream"
-                        : "cursor-default text-cream/35",
-                    ].join(" ")}
-                  >
-                    <span className="font-satoshi text-[13.5px] font-medium tracking-tight">
-                      {w.label}
-                    </span>
-                    {w.enabled ? (
-                      <span className="font-satoshi text-[11px] tabular-nums text-cream/35">
-                        {`0${i + 1}`}
-                      </span>
-                    ) : (
-                      <span className="rounded-full border border-cream/10 bg-cream/[0.04] px-2 py-[3px] font-satoshi text-[9px] font-medium tracking-tight text-cream/40">
-                        Bientôt
-                      </span>
-                    )}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
         </div>
       </div>
     </header>
@@ -207,4 +233,3 @@ function PlanetGlyph() {
     </svg>
   );
 }
-

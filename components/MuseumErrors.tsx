@@ -52,7 +52,7 @@ const BLOCKS: GalleryBlock[] = [
 export default function MuseumErrors() {
   return (
     <WorldGallery
-      id="museum-section"
+      id="musee"
       label="Le Musée"
       image="/musee-world.jpg"
       bg={VOID}

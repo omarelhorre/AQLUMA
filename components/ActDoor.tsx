@@ -53,7 +53,6 @@ export default function ActDoor() {
   const climaxRef  = useRef<HTMLDivElement>(null);
   const descRef    = useRef<HTMLDivElement>(null);
   const descLineRefs = useRef<(HTMLParagraphElement | null)[]>([]);
-  const ctaRef     = useRef<HTMLDivElement>(null);
   const reduced    = useReducedMotion();
 
   useEffect(() => {
@@ -76,7 +75,6 @@ export default function ActDoor() {
       gsap.set(items, BLUR_HIDDEN);
       gsap.set(descLines, BLUR_HIDDEN);
       gsap.set(descRef.current, { y: 30 });
-      gsap.set(ctaRef.current, { opacity: 1 }); // the CTA is there from the start
 
       const seek = video
         ? gsap.quickTo(video, "currentTime", { duration: 0.25, ease: "power3.out" })
@@ -105,13 +103,13 @@ export default function ActDoor() {
       const dissolve = (el: gsap.TweenTarget, at: number, dur = 0.04) =>
         tl.to(el, { opacity: 0, filter: "blur(14px)", y: -22, ease: "power2.in", duration: dur }, at);
 
-      // ── Intro: "Bienvenu chez AQLUMA" + the CTA hold while ONLY the right side
-      //    scrolls up and reveals the six-line description, then it fades out. ──
+      // ── Intro: "Bienvenu chez AQLUMA" holds while ONLY the right side scrolls
+      //    up and reveals the six-line description, then it fades out. ──
       tl.to(descRef.current, { y: -30, ease: "none", duration: 0.26 }, 0);
       descLines.forEach((el, i) => reveal(el, 0.02 + i * 0.028, 0.05));
       dissolve(descLines, 0.27, 0.05);
 
-      // Bienvenu hands off to the existing sequence (CTA stays put).
+      // Bienvenu hands off to the existing sequence.
       dissolve(line1Ref.current, 0.31);
 
       // "…apprend à devenir" reveals and LOCKS at full opacity (no early exit).
@@ -127,15 +125,11 @@ export default function ActDoor() {
       //    as one unified block, before the climax. ──
       dissolve([line2Ref.current, ...items], 0.59, 0.06);
 
-      // ── Climax ── "AQLUMA est là pour ça" reads, then clears the moment the
-      //    door video starts opening — handed off cleanly with the CTA so nothing
-      //    lingers over the opening frame.
-      reveal(climaxRef.current, 0.66, 0.05);
-      dissolve(climaxRef.current, DOOR_START, 0.05);
-
-      // The CTA is always there — until the door video starts, when everything
-      // (CTA + climax) clears together for the opening.
-      dissolve(ctaRef.current, DOOR_START, 0.06);
+      // ── Climax ── "AQLUMA est là pour ça" reads, then is fully cleared by the
+      //    time the door video starts playing — the dissolve COMPLETES at
+      //    DOOR_START so nothing lingers over the very first opening frame.
+      reveal(climaxRef.current, 0.64, 0.05);
+      dissolve(climaxRef.current, DOOR_START - 0.06, 0.06);
     }, section);
 
     return () => ctx.revert();
@@ -201,21 +195,6 @@ export default function ActDoor() {
               </p>
             ))}
           </div>
-        </div>
-
-        {/* Persistent CTA — under "Bienvenu chez AQLUMA", stays through the whole
-            intro, clears when the door video starts. */}
-        <div
-          ref={ctaRef}
-          className="absolute left-[6vw] top-[60%] z-30 will-change-[opacity]"
-          style={{ opacity: 1 }}
-        >
-          <a
-            href="#contact"
-            className="pointer-events-auto inline-flex items-center rounded-[10px] bg-cream px-7 py-3.5 font-satoshi text-[12.5px] font-semibold uppercase tracking-[0.18em] text-void shadow-[0_10px_30px_rgba(0,0,0,0.35)] transition-colors duration-300 hover:bg-white"
-          >
-            Contactez-nous
-          </a>
         </div>
 
         {/* Line 2 — editorial two-line treatment (left) */}
