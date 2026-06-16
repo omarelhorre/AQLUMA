@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import type * as THREE_NS from "three";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -21,14 +21,17 @@ import { useReducedMotion } from "@/lib/useReducedMotion";
  * down the middle axis), so the classic brain silhouette + stem read clearly.
  *
  * Frame: linear → UnrealBloom → FXAA → ACES tonemap (EffectComposer, MSAA RT).
- * Near-black backdrop drawn in-GL so bloom composites cleanly; the brain spins
- * slowly and perpetually (in-shader Y rotation, so pointer math stays local).
+ * Near-black backdrop drawn in-GL so bloom composites cleanly. The brain stays
+ * FIXED in its side-profile pose (no auto-spin); depth comes from a pointer
+ * PARALLAX that tilts/shifts the group toward the cursor. Near the cursor the
+ * facets SCATTER into a loose triangle cloud (a local dissolve), not a hole.
  *
  * Scroll (one pinned timeline, progress 0→1):
  *   · 0.00–0.34  facets fly in from a scatter cloud and ASSEMBLE into the brain
- *   · 0.34–0.52  hold — the white wireframe brain breathes/tumbles, spinning
+ *   · 0.34–0.52  hold — the white wireframe brain breathes/tumbles
  *   · 0.52–0.78  a cinematic Y-axis FLIP; mid-flip the facets recolour to brand
- *   · 0.78–1.00  hold — the colourful brain
+ *   · 0.78–0.85  hold — the colourful brain
+ *   · 0.85–1.00  the facets SCATTER back apart as the scroll finishes
  * Caption advances in step. Left: frosted-glass 3D AQLUMA (air.inc treatment).
  *
  * Reduced motion: static colourful brain + final caption (no spin, no scrub).
@@ -51,11 +54,15 @@ const BRAND_HEX = [
   0xff8a46, // warm amber-orange (was dark terracotta) ×1
 ];
 
-const BEATS = [
-  "Aqluma accompagne votre adolescent.",
-  "D'un esprit qui recopie les réponses…",
-  "…à un esprit qui pense avec l'IA.",
-];
+// The wordmark (AQLUMA, Didot signature) reads as the subject of LEAD. Below it,
+// two descriptions cross-fade on scroll: the "lost" adolescent (no method) →
+// the adolescent who thinks WITH the AI. Copy distilled from the Briefing/Studio
+// scripts (assets/scripts.txt): "Même outil. Deux trajectoires."
+const LEAD = "transforme votre adolescent.";
+const LOST =
+  "D'un adolescent qui demande une réponse, la recopie et l'oublie le lendemain — un esprit perdu, sans méthode, dont la voix se dissout dans celle de la machine.";
+const THINKER =
+  "…à un esprit qui pense avec l'IA : il interroge, vérifie, reformule et garde sa voix. Même outil, deux trajectoires — la différence, c'est la méthode.";
 
 const clamp01 = (x: number) => (x < 0 ? 0 : x > 1 ? 1 : x);
 const smooth = (a: number, b: number, x: number) => {
@@ -69,6 +76,7 @@ const VERT = /* glsl */ `
   uniform float uFlip;      // 0..PI scroll flip angle (Y)
   uniform float uSpin;      // continuous idle spin angle (Y)
   uniform float uColorMix;  // 0..1 white -> brand colour
+  uniform float uScatter;   // 0..1 end-of-scroll dispersal
   uniform vec2  uMouse;     // pointer in group-local world XY
   uniform float uAmp;
 
@@ -111,7 +119,10 @@ const VERT = /* glsl */ `
   void main(){
     vBary = aBary;
     float form = smoothstep(0.0, 1.0, uForm);
-    vec3 center = mix(aScatter, aOffset, form);
+    // uScatter (end-of-scroll) disperses the assembled brain back toward its
+    // scatter cloud, so the facets fly apart as you finish scrolling.
+    float assemble = form * (1.0 - uScatter);
+    vec3 center = mix(aScatter, aOffset, assemble);
 
     // Barely-there breathing — keeps the surface alive WITHOUT fluffing the
     // silhouette (the old larger puff rounded the profile off toward a ball).
@@ -124,10 +135,16 @@ const VERT = /* glsl */ `
     float ca=cos(ang), sa=sin(ang);
     center = vec3(ca*center.x + sa*center.z, center.y, -sa*center.x + ca*center.z);
 
-    // Pointer repulsion in the view plane.
+    // Pointer SCATTER: near the cursor the facets jitter/shimmer IN PLACE in
+    // RANDOM directions (not radially away from the cursor), so they sparkle and
+    // tumble while the dense field stays intact — no void/hole is ever cleared.
+    // They also brighten and grow a touch (see brightness + scale below).
     vec2 toM = center.xy - uMouse;
-    float md = dot(toM,toM);
-    center.xy += normalize(toM + 0.0001) * (0.26 / (1.0 + md*8.0)) * form;
+    float md2 = dot(toM, toM);
+    float ptScatter = exp(-md2 * 6.0);          // soft gaussian around the cursor
+    vec3 jitterDir = normalize(aRandom - 0.5 + 0.0001);
+    float wob = snoise(aOffset * 5.0 + uTime * 1.6);
+    center += jitterDir * ptScatter * 0.14 * (0.7 + 0.3 * wob) * form;
 
     // Lay each shard FLAT on the brain surface: build a tangent basis from the
     // outward normal so triangles tile the 3D shell (and foreshorten as it spins)
@@ -160,6 +177,7 @@ const VERT = /* glsl */ `
     float sv = pow(aRandom.y, 1.7);
     float s = (0.55 + sv * 1.05) * mix(0.10, 1.0, form);
     s *= mix(0.56, 1.0, smoothstep(0.05, 0.55, restEdge));
+    s *= 1.0 + ptScatter * 0.9;                 // shimmering shards read a touch larger
     vec3 finalPos = center + (T * q.x + Bt * q.y + N * q.z) * s;
 
     // Read as a PROFILE, not a see-through ball: the front surface + the silhouette
@@ -176,7 +194,7 @@ const VERT = /* glsl */ `
     float depthF = clamp(center.z * 0.5 + 0.5, 0.0, 1.0);
     float frontW = mix(0.18, 1.0, facing) + rim * 0.35;
     float shade = mix(0.82, 1.14, depthF);
-    float brightness = (0.92 + 0.30 * aRandom.z) * shade * frontW;
+    float brightness = (0.92 + 0.30 * aRandom.z) * shade * frontW * (1.0 + ptScatter * 0.9);
     vColor = mix(vec3(0.97, 0.96, 0.94), aColor, uColorMix) * brightness;
 
     vFade = (0.30 + 0.70 * form) * (mix(0.32, 1.0, facing) + rim * 0.3);
@@ -246,9 +264,10 @@ const BARY = new Float32Array([1, 0, 0, 0, 1, 0, 0, 0, 1]);
 export default function MindReveal() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const slabRef = useRef<HTMLDivElement>(null);
+  const headRef = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLDivElement>(null);
   const reduced = useReducedMotion();
-  const [beat, setBeat] = useState(0);
+  const [phase, setPhase] = useState(0); // 0 = lost adolescent, 1 = thinker
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -310,6 +329,7 @@ export default function MindReveal() {
         uFlip: { value: 0 },
         uSpin: { value: 0 },
         uColorMix: { value: reduced ? 1 : 0 },
+        uScatter: { value: 0 },
         uMouse: { value: new THREE.Vector2(999, 999) },
         uAmp: { value: 1.1 },
       };
@@ -325,6 +345,17 @@ export default function MindReveal() {
       });
 
       let mesh: THREE_NS.Mesh | null = null;
+
+      // Group placement, set in layout(). The brain and the text SWAP sides as you
+      // scroll: brain starts RIGHT (startX) and ends LEFT (endX) while the text
+      // travels the other way. Pointer parallax is added on top each frame so
+      // neither feeds back into the base position.
+      let startX = 0; // brain on the RIGHT to start
+      let endX = 0; // brain on the LEFT after the swap
+      let baseY = 0;
+      let brainX = 0; // current interpolated base X (no parallax)
+      let scrollShift = 0;
+      let isNarrow = false;
 
       // --- Post-processing: linear render → bloom → FXAA → ACES/sRGB out. ---
       const dbSize = renderer.getDrawingBufferSize(new THREE.Vector2());
@@ -359,10 +390,15 @@ export default function MindReveal() {
         const halfH = Math.tan((camera.fov * Math.PI) / 360) * camera.position.z;
         const halfW = halfH * camera.aspect;
         const narrow = w < 760;
-        const radius = narrow ? Math.min(halfW * 0.9, halfH * 0.84) : halfH * 0.82;
+        isNarrow = narrow;
+        // Sized so brainX ± radius keeps a margin from the viewport edge on EITHER
+        // side, so the left↔right swap never clips.
+        const radius = narrow ? Math.min(halfW * 0.92, halfH * 0.9) : halfH * 0.9;
         group.scale.setScalar(radius);
-        group.position.x = narrow ? 0 : halfW * 0.3;
-        group.position.y = narrow ? halfH * 0.04 : 0;
+        startX = narrow ? 0 : halfW * 0.44; // brain on the RIGHT to start
+        endX = narrow ? 0 : -halfW * 0.44; // brain on the LEFT after the swap
+        baseY = narrow ? halfH * 0.04 : 0;
+        group.position.y = baseY;
       };
 
       const loader = new GLTFLoader();
@@ -467,10 +503,14 @@ export default function MindReveal() {
           }
         }
         const ext = [max[0] - min[0], max[1] - min[1], max[2] - min[2]];
-        const wideHoriz = ext[0] >= ext[2]; // is model-X the wider ground axis?
-        const aX = wideHoriz ? 0 : 2; // wider horizontal extent → screen X
-        const aY = 1; // model up-axis → screen vertical
-        const aZ = wideHoriz ? 2 : 0; // shorter horizontal extent → view axis
+        // PROFILE view, derived purely from extents so it's robust to whatever
+        // orientation the model was authored in (never top-down / "facing top"):
+        // look down the NARROWEST extent (left–right), put the LONGEST extent
+        // horizontal (front–back length) and the MIDDLE extent vertical (height).
+        const order = [0, 1, 2].sort((a, b) => ext[b] - ext[a]);
+        const aX = order[0]; // longest extent  → screen horizontal
+        const aY = order[1]; // middle extent   → screen vertical
+        const aZ = order[2]; // shortest extent → view (depth) axis
         const cArr = [cc.x, cc.y, cc.z];
 
         let maxR = 1e-5;
@@ -524,8 +564,10 @@ export default function MindReveal() {
         layout();
       });
 
-      // Pointer → smoothed group-local world XY.
+      // Pointer → smoothed group-local world XY (scatter) + normalised parallax.
       const mouseTarget = new THREE.Vector2(999, 999);
+      let pxTarget = 0;
+      let pyTarget = 0;
       const onMove = (e: PointerEvent) => {
         const rect = canvas.getBoundingClientRect();
         const ndcX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
@@ -533,9 +575,11 @@ export default function MindReveal() {
         const halfH = Math.tan((camera.fov * Math.PI) / 360) * camera.position.z;
         const halfW = halfH * camera.aspect;
         mouseTarget.set(
-          (ndcX * halfW - group.position.x) / group.scale.x,
-          (ndcY * halfH - group.position.y) / group.scale.x
+          (ndcX * halfW - brainX) / group.scale.x,
+          (ndcY * halfH - baseY) / group.scale.x
         );
+        pxTarget = ndcX;
+        pyTarget = ndcY;
       };
       window.addEventListener("pointermove", onMove);
 
@@ -545,14 +589,23 @@ export default function MindReveal() {
 
       let raf = 0;
       let last = performance.now();
+      let parX = 0;
+      let parY = 0;
       const tick = (now: number) => {
         const dt = Math.min(0.05, (now - last) / 1000);
         last = now;
         uniforms.uTime.value += dt;
-        // Gentle ROCK around the profile (±~18°) instead of a full 360° turntable,
-        // so the brain always reads in its iconic side view (a full spin rotates it
-        // through round front/back views where it looks like a ball). dala-style.
-        if (!reduced) uniforms.uSpin.value = Math.sin(uniforms.uTime.value * 0.22) * 0.32;
+        // No auto-rotation — the brain stays FIXED in its side-profile pose. Depth
+        // instead comes from a pointer PARALLAX: the group tilts and shifts subtly
+        // to follow the cursor, so it reads as 3D without spinning off profile.
+        parX += (pxTarget - parX) * 0.05;
+        parY += (pyTarget - parY) * 0.05;
+        // Ease the brain from its start position toward the right as you scroll.
+        brainX += (startX + (endX - startX) * scrollShift - brainX) * 0.1;
+        group.position.x = brainX + parX * 0.12;
+        group.position.y = baseY + parY * 0.12;
+        group.rotation.y = parX * 0.16;
+        group.rotation.x = -parY * 0.12;
         (uniforms.uMouse.value as THREE_NS.Vector2).lerp(mouseTarget, 0.08);
         composer.render();
         raf = requestAnimationFrame(tick);
@@ -562,7 +615,7 @@ export default function MindReveal() {
       // Scroll choreography.
       let st: ScrollTrigger | null = null;
       if (reduced) {
-        setBeat(2);
+        setPhase(1);
       } else {
         st = ScrollTrigger.create({
           trigger: section,
@@ -577,8 +630,18 @@ export default function MindReveal() {
             const flipT = clamp01((p - 0.52) / (0.78 - 0.52));
             uniforms.uFlip.value = flipT * Math.PI;
             uniforms.uColorMix.value = smooth(0.58, 0.7, p);
-            const b = p < 0.3 ? 0 : p < 0.52 ? 1 : 2;
-            setBeat((prev) => (prev === b ? prev : b));
+            uniforms.uScatter.value = smooth(0.85, 1.0, p);
+            // Brain slides centre → right; text flips lost → thinker just before
+            // the colour transition so the copy leads the visual change.
+            scrollShift = smooth(0.12, 0.5, p);
+            // Text slides LEFT → RIGHT as the brain slides RIGHT → LEFT (they swap).
+            if (textRef.current) {
+              textRef.current.style.transform = isNarrow
+                ? "translateX(0)"
+                : `translateX(${scrollShift * 52}vw)`;
+            }
+            const ph = p < 0.5 ? 0 : 1;
+            setPhase((prev) => (prev === ph ? prev : ph));
           },
         });
       }
@@ -598,20 +661,16 @@ export default function MindReveal() {
       };
     })();
 
-    // Frosted-glass wordmark: base tilt + slow float (air.inc treatment).
+    // Signature wordmark: a slow vertical float keeps it alive (no glass box).
     const ctxGsap = gsap.context(() => {
-      if (slabRef.current) {
-        gsap.set(slabRef.current, { transformPerspective: 1000, rotationY: -16, rotationX: 7 });
-        if (!reduced) {
-          gsap.to(slabRef.current, {
-            rotationY: -11,
-            y: -12,
-            duration: 4.5,
-            ease: "sine.inOut",
-            yoyo: true,
-            repeat: -1,
-          });
-        }
+      if (headRef.current && !reduced) {
+        gsap.to(headRef.current, {
+          y: -10,
+          duration: 5,
+          ease: "sine.inOut",
+          yoyo: true,
+          repeat: -1,
+        });
       }
     }, section);
 
@@ -621,6 +680,16 @@ export default function MindReveal() {
       ctxGsap.revert();
     };
   }, [reduced]);
+
+  // Luxurious blur cross-fade: inactive copy sits blurred + lifted + transparent,
+  // and resolves to crisp/opaque over a slow editorial curve when it becomes active.
+  const fade = (active: boolean): CSSProperties => ({
+    opacity: active ? 1 : 0,
+    filter: active ? "blur(0px)" : "blur(16px)",
+    transform: active ? "translateY(0)" : "translateY(14px)",
+    transition:
+      "opacity 1.2s cubic-bezier(0.16,1,0.3,1), filter 1.2s cubic-bezier(0.16,1,0.3,1), transform 1.2s cubic-bezier(0.16,1,0.3,1)",
+  });
 
   return (
     <section
@@ -643,37 +712,37 @@ export default function MindReveal() {
         }}
       />
 
-      {/* Left-centre: frosted-glass 3D AQLUMA + the three-beat caption. */}
-      <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex w-full flex-col justify-center px-[min(7vw,5.5rem)] md:w-[46%]">
-        <div ref={slabRef} className="will-change-transform" style={{ transformStyle: "preserve-3d" }}>
-          <div
-            className="inline-flex items-center rounded-[14px] px-7 py-5"
-            style={{
-              background:
-                "linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(66,97,136,0.14) 60%, rgba(255,255,255,0.04) 100%)",
-              backdropFilter: "blur(14px)",
-              WebkitBackdropFilter: "blur(14px)",
-              border: "1px solid rgba(255,255,255,0.18)",
-              boxShadow:
-                "inset 0 1px 0 rgba(255,255,255,0.35), inset 0 0 28px rgba(255,255,255,0.05), 0 24px 60px rgba(0,0,0,0.45)",
-            }}
-          >
-            <span className="font-didot text-[clamp(2.6rem,6vw,5.5rem)] font-normal leading-none tracking-display text-cream">
-              AQLUMA
-            </span>
-          </div>
+      {/* Left: bare Didot signature wordmark + a Satoshi narrative that cross-fades
+          (luxurious blur) from the "lost" adolescent to the one who thinks with AI. */}
+      <div
+        ref={textRef}
+        className="pointer-events-none absolute inset-y-0 left-0 z-10 flex w-full flex-col justify-center px-[min(7vw,5.5rem)] will-change-transform md:w-[46%]"
+      >
+        <div ref={headRef} className="will-change-transform">
+          <h2 className="font-didot text-[clamp(3rem,7vw,6.75rem)] font-normal leading-[0.92] tracking-display text-cream">
+            AQLUMA
+          </h2>
+          <p className="mt-3 font-satoshi text-[clamp(1.05rem,1.7vw,1.5rem)] font-medium leading-snug text-cream/65">
+            {LEAD}
+          </p>
         </div>
 
-        <div className="relative mt-9 h-[5.5rem]">
-          {BEATS.map((line, i) => (
-            <p
-              key={i}
-              className="absolute left-0 top-0 max-w-[26ch] font-didot text-[clamp(1.25rem,2.3vw,2rem)] leading-snug tracking-display text-cream/85 transition-opacity duration-700 ease-editorial"
-              style={{ opacity: beat === i ? 1 : 0 }}
-            >
-              {line}
+        {/* Cross-fade well — both states absolutely stacked so they dissolve in place. */}
+        <div className="relative mt-9 h-[12rem] max-w-[36ch]">
+          <p
+            className="absolute left-0 top-0 font-satoshi text-[clamp(1rem,1.55vw,1.35rem)] leading-relaxed text-cream/80"
+            style={fade(phase === 0)}
+          >
+            {LOST}
+          </p>
+          <div className="absolute left-0 top-0" style={fade(phase === 1)}>
+            <p className="font-satoshi text-[clamp(1rem,1.55vw,1.35rem)] leading-relaxed text-cream/90">
+              {THINKER}
             </p>
-          ))}
+            <p className="mt-5 font-satoshi text-sm uppercase tracking-kicker text-gold">
+              Think with AI.
+            </p>
+          </div>
         </div>
       </div>
     </section>

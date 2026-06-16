@@ -14,6 +14,17 @@ const TRAITS = [
   { word: "Concentré",  top: "70%", right: "15vw", size: "clamp(1.7rem,3.8vw,3.3rem)" },
 ];
 
+// Right-hand description that scrolls up + reveals while "Bienvenu chez AQLUMA"
+// and the CTA hold — six short lines, distilled from the AQLUMA scripts.
+const DESC = [
+  "Aqluma n’est pas un cours d’informatique.",
+  "C’est une école du jugement.",
+  "On y apprend à lire une réponse sans la croire,",
+  "à vérifier, à reformuler, à garder sa voix.",
+  "Pas à utiliser l’IA — à penser avec elle.",
+  "Une méthode calme, qui tient dans le temps.",
+];
+
 const BLUR_HIDDEN = { opacity: 0, filter: "blur(14px)", y: 22 };
 const BLUR_SHOWN  = { opacity: 1, filter: "blur(0px)",  y: 0  };
 
@@ -27,6 +38,9 @@ export default function ActDoor() {
   const line2Ref   = useRef<HTMLDivElement>(null);
   const itemsRef   = useRef<(HTMLDivElement | null)[]>([]);
   const climaxRef  = useRef<HTMLDivElement>(null);
+  const descRef    = useRef<HTMLDivElement>(null);
+  const descLineRefs = useRef<(HTMLParagraphElement | null)[]>([]);
+  const ctaRef     = useRef<HTMLDivElement>(null);
   const reduced    = useReducedMotion();
 
   useEffect(() => {
@@ -42,9 +56,14 @@ export default function ActDoor() {
     const items = itemsRef.current.filter(Boolean) as HTMLDivElement[];
 
     const ctx = gsap.context(() => {
+      const descLines = descLineRefs.current.filter(Boolean) as HTMLElement[];
+
       gsap.set(line1Ref.current, BLUR_SHOWN);
       gsap.set([line2Ref.current, climaxRef.current], BLUR_HIDDEN);
       gsap.set(items, BLUR_HIDDEN);
+      gsap.set(descLines, BLUR_HIDDEN);
+      gsap.set(descRef.current, { y: 30 });
+      gsap.set(ctaRef.current, { opacity: 1 }); // the CTA is there from the start
 
       const seek = video
         ? gsap.quickTo(video, "currentTime", { duration: 0.25, ease: "power3.out" })
@@ -55,7 +74,7 @@ export default function ActDoor() {
         scrollTrigger: {
           trigger: section,
           start: "top top",
-          end: "+=420%",
+          end: "+=560%",
           pin: true,
           scrub: true,
           invalidateOnRefresh: true,
@@ -73,25 +92,35 @@ export default function ActDoor() {
       const dissolve = (el: gsap.TweenTarget, at: number, dur = 0.04) =>
         tl.to(el, { opacity: 0, filter: "blur(14px)", y: -22, ease: "power2.in", duration: dur }, at);
 
-      // ── Intro ──
-      dissolve(line1Ref.current, 0.04);
+      // ── Intro: "Bienvenu chez AQLUMA" + the CTA hold while ONLY the right side
+      //    scrolls up and reveals the six-line description, then it fades out. ──
+      tl.to(descRef.current, { y: -30, ease: "none", duration: 0.26 }, 0);
+      descLines.forEach((el, i) => reveal(el, 0.02 + i * 0.028, 0.05));
+      dissolve(descLines, 0.27, 0.05);
+
+      // Bienvenu hands off to the existing sequence (CTA stays put).
+      dissolve(line1Ref.current, 0.31);
 
       // "…apprend à devenir" reveals and LOCKS at full opacity (no early exit).
-      reveal(line2Ref.current, 0.09);
+      reveal(line2Ref.current, 0.37);
 
       // ── Traits (scattered, right side): fade in one after another while
       //    "à devenir" stays on screen. ──
-      const tStart = 0.27;
-      const tStep  = 0.07;
+      const tStart = 0.45;
+      const tStep  = 0.06;
       items.forEach((it, i) => reveal(it, tStart + i * tStep, 0.05));
 
-      // ── …then the whole 5-element block ("à devenir" + the 4 traits) fades
-      //    out together as one unified block, before the climax. ──
-      dissolve([line2Ref.current, ...items], 0.62, 0.06);
+      // ── …then the whole block ("à devenir" + the 4 traits) fades out together
+      //    as one unified block, before the climax. ──
+      dissolve([line2Ref.current, ...items], 0.66, 0.06);
 
       // ── Climax ──
-      reveal(climaxRef.current, 0.68, 0.05);
-      dissolve(climaxRef.current, 0.90, 0.05);
+      reveal(climaxRef.current, 0.72, 0.05);
+      dissolve(climaxRef.current, 0.92, 0.05);
+
+      // The CTA is always there — until the door video starts, when everything
+      // clears for the opening.
+      dissolve(ctaRef.current, DOOR_START, 0.06);
     }, section);
 
     return () => ctx.revert();
@@ -132,6 +161,40 @@ export default function ActDoor() {
             Bienvenu chez AQLUMA.
           </p>
         </Beat>
+
+        {/* Right-hand description — scrolls up + reveals (6 short lines), then
+            fades; only this side moves while the left copy holds. */}
+        <div className="absolute inset-y-0 right-[6vw] z-20 flex items-center">
+          <div ref={descRef} className="max-w-[min(82vw,30rem)] text-right will-change-transform">
+            {DESC.map((line, i) => (
+              <p
+                key={i}
+                ref={(el) => {
+                  descLineRefs.current[i] = el;
+                }}
+                className="mb-2.5 font-satoshi text-[clamp(1rem,1.45vw,1.35rem)] leading-relaxed text-cream/75 will-change-[transform,opacity,filter]"
+                style={{ opacity: 0 }}
+              >
+                {line}
+              </p>
+            ))}
+          </div>
+        </div>
+
+        {/* Persistent CTA — under "Bienvenu chez AQLUMA", stays through the whole
+            intro, clears when the door video starts. */}
+        <div
+          ref={ctaRef}
+          className="absolute left-[6vw] top-[60%] z-30 will-change-[opacity]"
+          style={{ opacity: 1 }}
+        >
+          <a
+            href="#contact"
+            className="pointer-events-auto inline-flex items-center rounded-full bg-cream px-7 py-3 font-satoshi text-[12.5px] font-semibold uppercase tracking-[0.18em] text-void shadow-[0_10px_30px_rgba(0,0,0,0.35)] transition-colors duration-300 hover:bg-white"
+          >
+            Contactez-nous
+          </a>
+        </div>
 
         {/* Line 2 — editorial two-line treatment (left) */}
         <Beat side="left" innerRef={line2Ref} initialOpacity={0}>

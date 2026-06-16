@@ -171,8 +171,8 @@ export default function BriefingHero() {
         <video
           ref={videoRef}
           className="h-full w-full object-cover"
-          src="/video/support.mp4"
-          poster="/video/support-poster.jpg"
+          src="/video/briefing-hook.mp4"
+          poster="/video/briefing-hook-poster.jpg"
           muted
           playsInline
           preload="auto"

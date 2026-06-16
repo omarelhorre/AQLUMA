@@ -18,13 +18,16 @@ type Props = {
   total: number;
   label: string;
   placement?: "top" | "bottom";
+  /** "light" flips the hairline + labels to ink, for pale walls (Studio). */
+  tone?: "dark" | "light";
 };
 
 const RunwayRule = forwardRef<RunwayRuleHandle, Props>(function RunwayRule(
-  { total, label, placement = "bottom" },
+  { total, label, placement = "bottom", tone = "dark" },
   ref
 ) {
   const isTop = placement === "top";
+  const light = tone === "light";
   const fillRef = useRef<HTMLSpanElement>(null);
   const countRef = useRef<HTMLSpanElement>(null);
   const [active, setActive] = useState(false);
@@ -54,18 +57,26 @@ const RunwayRule = forwardRef<RunwayRuleHandle, Props>(function RunwayRule(
     >
       <div className="w-[min(44vw,440px)]">
         <div className="mb-3 flex items-baseline justify-between">
-          <span className="font-satoshi text-[11px] font-medium tracking-tight text-cream/70">
+          <span
+            className={[
+              "font-satoshi text-[11px] font-medium tracking-tight",
+              light ? "text-ink/70" : "text-cream/70",
+            ].join(" ")}
+          >
             {label}
           </span>
           <span
             ref={countRef}
-            className="font-satoshi text-[11px] tabular-nums tracking-tight text-cream/45"
+            className={[
+              "font-satoshi text-[11px] tabular-nums tracking-tight",
+              light ? "text-ink/45" : "text-cream/45",
+            ].join(" ")}
           >
             {`${pad(1)} / ${pad(total)}`}
           </span>
         </div>
 
-        <div className="relative h-px w-full bg-cream/15">
+        <div className={["relative h-px w-full", light ? "bg-ink/15" : "bg-cream/15"].join(" ")}>
           <span
             ref={fillRef}
             className="absolute inset-0 origin-left bg-gold"
