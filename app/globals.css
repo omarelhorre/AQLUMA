@@ -1,6 +1,6 @@
 /* Satoshi via Fontshare CDN — fallback until local woff2 files are added (see §3 / README).
    When you add the local files, swap this for next/font/local in app/fonts.ts. */
-@import url("https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap");
+@import url("https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700,900&display=swap");
 
 @tailwind base;
 @tailwind components;
