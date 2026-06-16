@@ -54,6 +54,44 @@ const BRAND_HEX = [
   0xff8a46, // warm amber-orange (was dark terracotta) ×1
 ];
 
+// After the brain scatters, the SAME shard field reassembles — one platform at a
+// time — into each social 3D logo (/public/models/*.glb), recoloured to that
+// platform's brand theme (matching the model). Each entry drives both the WebGL
+// (file + colour palette) and the matching contact CTA (label + profile link +
+// button colour). Profile URLs are placeholders — swap for the real AQLUMA pages.
+const FB_HEX = [0x1877f2, 0x1877f2, 0x2d88ff, 0x0d6efd, 0x4293fb, 0x69a8ff, 0xffffff, 0xeaf2ff];
+const IG_HEX = [
+  0x515bd4, 0x5851db, 0x833ab4, 0xa12d9a, 0xc13584, 0xdd2a7b, 0xe1306c, 0xf56040, 0xf77737, 0xfcaf45, 0xffdc80,
+];
+const LI_HEX = [0x0a66c2, 0x0a66c2, 0x0077b5, 0x0e76a8, 0x378fe9, 0x4aa3e0, 0xffffff, 0xeaf3fb];
+
+const SOCIALS = [
+  {
+    key: "facebook",
+    label: "Facebook",
+    file: "/models/facebook_3d.glb",
+    palette: FB_HEX,
+    href: "https://www.facebook.com/aqluma",
+    btn: "#1877F2",
+  },
+  {
+    key: "instagram",
+    label: "Instagram",
+    file: "/models/instagram_3d.glb",
+    palette: IG_HEX,
+    href: "https://www.instagram.com/aqluma",
+    btn: "linear-gradient(60deg,#F58529 0%,#DD2A7B 45%,#8134AF 100%)",
+  },
+  {
+    key: "linkedin",
+    label: "LinkedIn",
+    file: "/models/linkedin_3d.glb",
+    palette: LI_HEX,
+    href: "https://www.linkedin.com/company/aqluma",
+    btn: "#0A66C2",
+  },
+];
+
 // The wordmark (AQLUMA, Didot signature) reads as the subject of LEAD. Below it,
 // two descriptions cross-fade on scroll: the "lost" adolescent (no method) →
 // the adolescent who thinks WITH the AI. Copy distilled from the Briefing/Studio
@@ -74,6 +112,18 @@ const smooth = (a: number, b: number, x: number) => {
 const smoother = (a: number, b: number, x: number) => {
   const t = clamp01((x - a) / (b - a));
   return t * t * t * (t * (t * 6 - 15) + 10);
+};
+
+// Timeline split: the brain occupies the first BRAIN_END of the pinned scroll,
+// then the three social logos take one equal segment each. Within a social
+// segment the field assembles (scatter 1→0), HOLDS, then disperses (0→1) ready
+// for the next logo — except the last, which stays assembled at the end.
+const BRAIN_END = 0.34;
+const SEG_W = (1 - BRAIN_END) / SOCIALS.length;
+const socialScatter = (sp: number, isLast: boolean) => {
+  const inn = 1 - smoother(0.08, 0.34, sp); // 1 → 0 assemble
+  if (isLast) return inn;
+  return Math.max(inn, smoother(0.66, 0.92, sp)); // 0 → 1 disperse
 };
 
 const VERT = /* glsl */ `
@@ -142,6 +192,19 @@ const VERT = /* glsl */ `
     // silhouette (the old larger puff rounded the profile off toward a ball).
     float spread = snoise(aOffset * 3.5 + uTime * 0.06) * 0.005;
     center += normalize(aOffset + 0.001) * spread * form;
+
+    // SCATTERED FIELD — keep it ALIVE: a slow, per-shard 3D drift (noise-driven),
+    // strongest in Z so the cloud floats through DEPTH (foreground/background
+    // parallax) instead of sitting frozen. Each shard rides its own low-frequency
+    // current. Gated by uScatter so the assembled brain is never disturbed.
+    float dT = uTime * 0.10;
+    vec3 dSeed = aScatter * 0.5 + aRandom * 9.0;
+    vec3 drift = vec3(
+      snoise(dSeed + vec3(dT, 0.0, 4.0)),
+      snoise(dSeed + vec3(0.0, dT * 0.8, 8.0)),
+      snoise(dSeed + vec3(0.0, 0.0, dT * 1.3))
+    );
+    center += drift * vec3(0.22, 0.20, 0.65) * uScatter;
 
     // Y-axis rotation of the whole cloud: scroll flip + slow perpetual idle spin.
     // Done here (not on the group) so uMouse stays valid in local space.
@@ -286,7 +349,7 @@ const BG_FRAG = /* glsl */ `
 // pointillist) but textured — so we want many SMALL hollow shards with gaps, not a
 // sparse handful (too sparse and the shape doesn't render). ~5.5k small shards
 // keeps clear negative space between them while the profile still reads.
-const TARGET_COUNT = 4000;
+const TARGET_COUNT = 2800;
 // Facet triangle radius (object space, before per-facet scale). Kept tiny — a
 // shard, not a panel — so even at this count neighbours leave gaps (hollow
 // outlines) and the texture stays airy instead of a solid ball. Smaller now that
@@ -331,6 +394,7 @@ export default function MindReveal() {
   const reduced = useReducedMotion();
   const [phase, setPhase] = useState(0); // 0 = lost adolescent, 1 = thinker
   const [ended, setEnded] = useState(false); // after the scatter: copy out, CTA in
+  const [socialStage, setSocialStage] = useState(0); // 0 none · 1 fb · 2 ig · 3 li
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -421,6 +485,8 @@ export default function MindReveal() {
       let baseRadius = 1; // group scale before the transition growth
       let isNarrow = false; // mobile: brain stays centred, no growth offset
       let growT = 0; // 0..1 growth driven through the swap
+      let socialActive = false; // true once the brain hands off to the logos
+      let curScale = 1; // smoothed group scale (brain growth ↔ logo size)
 
       // --- Post-processing: linear render → bloom → FXAA → ACES/sRGB out. ---
       const dbSize = renderer.getDrawingBufferSize(new THREE.Vector2());
@@ -461,6 +527,7 @@ export default function MindReveal() {
         // is anchored in tick → margin stays constant as it scales up).
         const radius = narrow ? Math.min(halfW * 0.86, halfH * 0.82) : halfH * 0.82;
         baseRadius = radius;
+        if (curScale === 1) curScale = radius; // seed before the first tick lerp
         group.scale.setScalar(radius);
         startX = narrow ? 0 : halfW * 0.44; // brain on the RIGHT to start
         endX = narrow ? 0 : -halfW * 0.44; // brain on the LEFT after the swap
@@ -468,19 +535,21 @@ export default function MindReveal() {
         group.position.y = baseY;
       };
 
-      const loader = new GLTFLoader();
-      loader.load("/models/brain.glb", (gltf) => {
-        if (disposed) return;
-        gltf.scene.updateMatrixWorld(true);
+      // The shard field is shared across every model — the SAME ptCount facets and
+      // the SAME dispersal cloud reassemble into the brain, then each social logo.
+      // Only the target surface (aOffset) and colours (aColor) are swapped, and
+      // ALWAYS while the field is fully scattered, so the swap is invisible.
+      const ptCount = TARGET_COUNT;
 
-        // Collect EVERY mesh, bake each one's world transform into its verts, and
-        // concatenate into one position buffer. Robust to multi-mesh models AND node
-        // transforms — so ANY brain .glb dropped in at /models/brain.glb resamples
-        // correctly (e.g. a different Sketchfab/Poly model), not just this one.
+      // Resample ANY glb's surface to ptCount EVENLY-spread offsets (area-weighted),
+      // oriented either to a side PROFILE (brain) or FACE-ON (the flat logos). Walk
+      // every mesh, bake world transforms, build a cumulative area table, sample.
+      const resample = (root: THREE_NS.Object3D, mode: "profile" | "faceon") => {
+        root.updateMatrixWorld(true);
         const chunks: Float32Array[] = [];
         let total = 0;
         const tmpV = new THREE.Vector3();
-        gltf.scene.traverse((o) => {
+        root.traverse((o) => {
           const m = o as THREE_NS.Mesh;
           if (!m.isMesh || !m.geometry) return;
           const ng = m.geometry.index ? m.geometry.toNonIndexed() : m.geometry;
@@ -496,12 +565,9 @@ export default function MindReveal() {
           total += arr.length;
           if (ng !== m.geometry) ng.dispose();
         });
-        if (total === 0) return;
+        const offsets = new Float32Array(ptCount * 3);
+        if (total === 0) return offsets;
 
-        // The brain's OWN surface is the particle source. Walk every face once to
-        // build an area table, then draw TARGET_COUNT samples weighted by face area
-        // so facets land EVENLY across the shell — independent of the mesh's uneven
-        // tessellation. Even + sparse spacing is what makes the profile read.
         const posArr = new Float32Array(total);
         for (let off = 0, k = 0; k < chunks.length; k++) {
           posArr.set(chunks[k], off);
@@ -534,9 +600,9 @@ export default function MindReveal() {
           return lo;
         };
 
-        const pts: number[] = [];
+        const pts = new Float32Array(ptCount * 3);
         const cc = new THREE.Vector3();
-        for (let i = 0; i < TARGET_COUNT; i++) {
+        for (let i = 0; i < ptCount; i++) {
           const o = pickFace(Math.random()) * 9;
           let a = Math.random();
           let b = Math.random();
@@ -547,19 +613,15 @@ export default function MindReveal() {
           const x = posArr[o] + a * (posArr[o + 3] - posArr[o]) + b * (posArr[o + 6] - posArr[o]);
           const y = posArr[o + 1] + a * (posArr[o + 4] - posArr[o + 1]) + b * (posArr[o + 7] - posArr[o + 1]);
           const z = posArr[o + 2] + a * (posArr[o + 5] - posArr[o + 2]) + b * (posArr[o + 8] - posArr[o + 2]);
-          pts.push(x, y, z);
+          pts[i * 3] = x;
+          pts[i * 3 + 1] = y;
+          pts[i * 3 + 2] = z;
           cc.x += x;
           cc.y += y;
           cc.z += z;
         }
-        const ptCount = pts.length / 3;
         cc.multiplyScalar(1 / ptCount);
 
-        // Centre, then orient to a PROFILE view. glTF is authored Y-up (this
-        // model sits on the ground plane, min Y ≈ 0), so KEEP Y as vertical and
-        // view down the SHORTER horizontal axis — the wider front-back silhouette
-        // then faces the camera (the classic brain profile + stem at the bottom),
-        // instead of a round face-on or top-down blob. Robust to any Y-up model.
         const min = [Infinity, Infinity, Infinity];
         const max = [-Infinity, -Infinity, -Infinity];
         for (let i = 0; i < ptCount; i++) {
@@ -570,14 +632,23 @@ export default function MindReveal() {
           }
         }
         const ext = [max[0] - min[0], max[1] - min[1], max[2] - min[2]];
-        // PROFILE view, derived purely from extents so it's robust to whatever
-        // orientation the model was authored in (never top-down / "facing top"):
-        // look down the NARROWEST extent (left–right), put the LONGEST extent
-        // horizontal (front–back length) and the MIDDLE extent vertical (height).
-        const order = [0, 1, 2].sort((a, b) => ext[b] - ext[a]);
-        const aX = order[0]; // longest extent  → screen horizontal
-        const aY = order[1]; // middle extent   → screen vertical
-        const aZ = order[2]; // shortest extent → view (depth) axis
+        let aX: number, aY: number, aZ: number;
+        if (mode === "profile") {
+          // Brain: look down the NARROWEST extent; LONGEST → horizontal, MIDDLE →
+          // vertical, so the classic side profile + stem read regardless of authoring.
+          const order = [0, 1, 2].sort((a, b) => ext[b] - ext[a]);
+          aX = order[0];
+          aY = order[1];
+          aZ = order[2];
+        } else {
+          // Flat logo: view straight down the THINNEST extent (the logo's depth) so
+          // it faces the camera, and keep the OTHER two axes in their natural order
+          // so the mark stays upright instead of being rotated onto its side.
+          aZ = ext[0] < ext[1] ? (ext[0] < ext[2] ? 0 : 2) : ext[1] < ext[2] ? 1 : 2;
+          const rem = [0, 1, 2].filter((c) => c !== aZ);
+          aX = rem[0];
+          aY = rem[1];
+        }
         const cArr = [cc.x, cc.y, cc.z];
 
         let maxR = 1e-5;
@@ -587,54 +658,86 @@ export default function MindReveal() {
             Math.hypot(pts[i * 3] - cc.x, pts[i * 3 + 1] - cc.y, pts[i * 3 + 2] - cc.z)
           );
         }
-
-        const palette = BRAND_HEX.map((hx) => new THREE.Color(hx).convertSRGBToLinear());
-
-        const tri = makeTetra();
-        const offsets = new Float32Array(ptCount * 3);
-        const scatter = new Float32Array(ptCount * 3);
-        const random = new Float32Array(ptCount * 3);
-        const colors = new Float32Array(ptCount * 3);
         for (let i = 0; i < ptCount; i++) {
-          // Reorient to profile via the extent-derived axis permutation.
           offsets[i * 3] = (pts[i * 3 + aX] - cArr[aX]) / maxR;
           offsets[i * 3 + 1] = (pts[i * 3 + aY] - cArr[aY]) / maxR;
           offsets[i * 3 + 2] = (pts[i * 3 + aZ] - cArr[aZ]) / maxR;
-          // Scatter target = a WIDE field with real, but BOUNDED, depth (dala-style):
-          // a broad disc in X/Y plus a controlled Z range so there's a clear sense of
-          // foreground vs background (perspective parallax) — without any shard coming
-          // so close to the lens that it balloons. The near bound (+1.4) sits well in
-          // front of the camera plane (z=5 after the group scale) so the biggest ones
-          // read as foreground, not giants.
-          const ang = Math.random() * Math.PI * 2;
-          const rad = Math.sqrt(Math.random()) * 3.1;
-          scatter[i * 3] = Math.cos(ang) * rad * 1.6; // wider in X to fill the frame
-          scatter[i * 3 + 1] = Math.sin(ang) * rad;
-          scatter[i * 3 + 2] = (Math.random() - 0.5) * 3.2 - 0.2; // depth: ~ -1.8 .. +1.4
-          random[i * 3] = Math.random();
-          random[i * 3 + 1] = Math.random();
-          random[i * 3 + 2] = Math.random();
-          const col = palette[(Math.random() * palette.length) | 0];
-          colors[i * 3] = col.r;
-          colors[i * 3 + 1] = col.g;
-          colors[i * 3 + 2] = col.b;
         }
+        return offsets;
+      };
 
-        const ibg = new THREE.InstancedBufferGeometry();
-        ibg.setAttribute("position", new THREE.BufferAttribute(tri, 3));
-        ibg.setAttribute("aBary", new THREE.BufferAttribute(BARY, 3));
-        ibg.setAttribute("aOffset", new THREE.InstancedBufferAttribute(offsets, 3));
-        ibg.setAttribute("aScatter", new THREE.InstancedBufferAttribute(scatter, 3));
-        ibg.setAttribute("aRandom", new THREE.InstancedBufferAttribute(random, 3));
-        ibg.setAttribute("aColor", new THREE.InstancedBufferAttribute(colors, 3));
-        ibg.instanceCount = ptCount;
+      // Per-model colours: random pick from that platform's brand palette (linear).
+      const makeColors = (palette: number[]) => {
+        const cols = palette.map((hx) => new THREE.Color(hx).convertSRGBToLinear());
+        const out = new Float32Array(ptCount * 3);
+        for (let i = 0; i < ptCount; i++) {
+          const c = cols[(Math.random() * cols.length) | 0];
+          out[i * 3] = c.r;
+          out[i * 3 + 1] = c.g;
+          out[i * 3 + 2] = c.b;
+        }
+        return out;
+      };
 
-        mesh = new THREE.Mesh(ibg, material);
-        mesh.frustumCulled = false;
-        group.add(mesh);
+      // Shared dispersal cloud + per-facet seeds — identical for every model so the
+      // field always passes through the SAME scatter on the way to the next shape.
+      const scatter = new Float32Array(ptCount * 3);
+      const random = new Float32Array(ptCount * 3);
+      for (let i = 0; i < ptCount; i++) {
+        const ang = Math.random() * Math.PI * 2;
+        const rad = Math.sqrt(Math.random()) * 3.1;
+        scatter[i * 3] = Math.cos(ang) * rad * 1.6;
+        scatter[i * 3 + 1] = Math.sin(ang) * rad;
+        scatter[i * 3 + 2] = (Math.random() - 0.5) * 3.2 - 0.2;
+        random[i * 3] = Math.random();
+        random[i * 3 + 1] = Math.random();
+        random[i * 3 + 2] = Math.random();
+      }
 
-        layout();
-      });
+      const loader = new GLTFLoader();
+      const [brainGlb, ...socialGlb] = await Promise.all([
+        loader.loadAsync("/models/brain.glb"),
+        ...SOCIALS.map((s) => loader.loadAsync(s.file)),
+      ]);
+      if (disposed) return;
+
+      // models[0] = brain, [1..] = the social logos, in SOCIALS order.
+      const models = [
+        { offsets: resample(brainGlb.scene, "profile"), colors: makeColors(BRAND_HEX) },
+        ...SOCIALS.map((s, i) => ({
+          offsets: resample(socialGlb[i].scene, "faceon"),
+          colors: makeColors(s.palette),
+        })),
+      ];
+
+      const tri = makeTetra();
+      const offsetsAttr = new THREE.InstancedBufferAttribute(models[0].offsets.slice(), 3);
+      const colorsAttr = new THREE.InstancedBufferAttribute(models[0].colors.slice(), 3);
+      const ibg = new THREE.InstancedBufferGeometry();
+      ibg.setAttribute("position", new THREE.BufferAttribute(tri, 3));
+      ibg.setAttribute("aBary", new THREE.BufferAttribute(BARY, 3));
+      ibg.setAttribute("aOffset", offsetsAttr);
+      ibg.setAttribute("aScatter", new THREE.InstancedBufferAttribute(scatter, 3));
+      ibg.setAttribute("aRandom", new THREE.InstancedBufferAttribute(random, 3));
+      ibg.setAttribute("aColor", colorsAttr);
+      ibg.instanceCount = ptCount;
+
+      mesh = new THREE.Mesh(ibg, material);
+      mesh.frustumCulled = false;
+      group.add(mesh);
+      layout();
+
+      // Swap the field's target surface + colours. Only ever called while scattered,
+      // so the shards re-gather into the new shape with no visible pop.
+      let currentModel = 0;
+      const setModel = (idx: number) => {
+        if (idx === currentModel || !models[idx]) return;
+        (offsetsAttr.array as Float32Array).set(models[idx].offsets);
+        offsetsAttr.needsUpdate = true;
+        (colorsAttr.array as Float32Array).set(models[idx].colors);
+        colorsAttr.needsUpdate = true;
+        currentModel = idx;
+      };
 
       // Pointer → smoothed group-local world XY (scatter) + normalised parallax.
       const mouseTarget = new THREE.Vector2(999, 999);
@@ -676,21 +779,26 @@ export default function MindReveal() {
         // colourful "thinker" brain). Its OUTER edge is anchored: as it scales up,
         // the centre eases inward by exactly what it gained, so the margin to the
         // viewport side never changes — it grows in place, it doesn't drift off.
+        // Once the social logos take over, the field recentres and shrinks a touch
+        // so each logo sits as a centred hero above its contact CTA.
         const g = isNarrow ? 1 : 1 + 0.12 * growT;
-        group.scale.setScalar(baseRadius * g);
+        const targetScale = socialActive ? baseRadius * 0.6 : baseRadius * g;
+        curScale += (targetScale - curScale) * 0.09;
+        group.scale.setScalar(curScale);
         const grow = isNarrow ? 0 : baseRadius * (g - 1);
         const sx = startX - grow; // right anchor pulled inward as it grows
         const ex = endX + grow; // left anchor pulled inward as it grows
-        // Ease the brain across only when the swap window opens (held until ~0.5),
-        // then recentre the cloud as it scatters (the closing CTA is centred, so the
-        // dispersed field should fill the frame evenly behind it).
-        const scat = uniforms.uScatter.value as number;
-        const targetX = (sx + (ex - sx) * scrollShift) * (1 - scat);
+        // Ease the brain across only when the swap window opens (held until ~0.5).
+        // It then scatters IN PLACE — no recentring — so at the final transition it
+        // never slides back to the right; the field disperses where the brain sat
+        // (dala-style). The closing CTA is centred over the wide-spread cloud.
+        const targetX = socialActive ? 0 : sx + (ex - sx) * scrollShift;
         brainX += (targetX - brainX) * 0.09;
-        group.position.x = brainX + parX * 0.12;
-        group.position.y = baseY + parY * 0.12;
-        group.rotation.y = parX * 0.16;
-        group.rotation.x = -parY * 0.12;
+        // Quieter pointer parallax — a calmer, more premium drift (dala-style).
+        group.position.x = brainX + parX * 0.05;
+        group.position.y = baseY + parY * 0.05;
+        group.rotation.y = parX * 0.08;
+        group.rotation.x = -parY * 0.06;
         (uniforms.uMouse.value as THREE_NS.Vector2).lerp(mouseTarget, 0.08);
         composer.render();
         raf = requestAnimationFrame(tick);
@@ -701,33 +809,60 @@ export default function MindReveal() {
       let st: ScrollTrigger | null = null;
       if (reduced) {
         setPhase(1);
+        setEnded(true);
       } else {
         st = ScrollTrigger.create({
           trigger: section,
           start: "top top",
-          end: "+=460%",
+          end: "+=1300%",
           pin: true,
           scrub: true,
           invalidateOnRefresh: true,
           onUpdate(self) {
             const p = self.progress;
-            // Smoother assemble + dissolve (smootherstep over slightly wider windows).
-            uniforms.uForm.value = smoother(0, 0.40, p);
-            const flipT = clamp01((p - 0.52) / (0.78 - 0.52));
-            uniforms.uFlip.value = flipT * Math.PI;
-            uniforms.uColorMix.value = smooth(0.58, 0.7, p);
-            uniforms.uScatter.value = smoother(0.80, 0.93, p);
-            // The brain HOLDS its side until the copy hands off (~0.5), then swaps
-            // sides in step with the text cross-fade and GROWS — they switch
-            // position together rather than the brain drifting across early.
-            scrollShift = smoother(0.42, 0.6, p);
-            growT = smoother(0.4, 0.62, p);
-            const ph = p < 0.5 ? 0 : 1;
-            setPhase((prev) => (prev === ph ? prev : ph));
-            // Once the brain has scattered, the brain copy fades OUT and the closing
-            // CTA fades IN over the dispersed cloud of shapes.
-            const e = p > 0.9;
+            if (p <= BRAIN_END) {
+              // ── The brain (existing choreography, on its own sub-progress) ──
+              const bp = clamp01(p / BRAIN_END);
+              uniforms.uForm.value = smoother(0, 0.4, bp);
+              const flipT = clamp01((bp - 0.52) / (0.78 - 0.52));
+              uniforms.uFlip.value = flipT * Math.PI;
+              uniforms.uColorMix.value = smooth(0.58, 0.7, bp);
+              uniforms.uScatter.value = smoother(0.8, 1.0, bp);
+              scrollShift = smoother(0.42, 0.6, bp);
+              growT = smoother(0.4, 0.62, bp);
+              socialActive = false;
+              const ph = bp < 0.5 ? 0 : 1;
+              setPhase((prev) => (prev === ph ? prev : ph));
+              // Scrolling back up into the brain: restore it while scattered.
+              if (currentModel !== 0 && uniforms.uScatter.value > 0.8) setModel(0);
+            } else {
+              // ── The social logos: each segment assembles → holds → disperses ──
+              uniforms.uForm.value = 1;
+              uniforms.uFlip.value = 0;
+              uniforms.uColorMix.value = 1; // show the platform theme colours
+              const segF = (p - BRAIN_END) / SEG_W;
+              const seg = Math.min(SOCIALS.length - 1, Math.floor(segF));
+              const sp = clamp01(segF - seg);
+              const sc = socialScatter(sp, seg === SOCIALS.length - 1);
+              uniforms.uScatter.value = sc;
+              socialActive = true;
+              // Swap to this segment's logo while the field is fully scattered.
+              if (currentModel !== seg + 1 && sc > 0.8) setModel(seg + 1);
+            }
+
+            // Closing copy appears once the brain has handed off, and stays.
+            const e = p > BRAIN_END - 0.05;
             setEnded((prev) => (prev === e ? prev : e));
+
+            // Which platform CTA is showing (only while its logo is assembled).
+            let stage = 0;
+            if (p > BRAIN_END) {
+              const segF = (p - BRAIN_END) / SEG_W;
+              const seg = Math.min(SOCIALS.length - 1, Math.floor(segF));
+              const sp = clamp01(segF - seg);
+              if (socialScatter(sp, seg === SOCIALS.length - 1) < 0.45) stage = seg + 1;
+            }
+            setSocialStage((prev) => (prev === stage ? prev : stage));
           },
         });
       }
@@ -836,31 +971,79 @@ export default function MindReveal() {
         </div>
       </div>
 
-      {/* Closing CTA — after the brain scatters, this fades in CENTRED over the
-          dispersed cloud of shapes: one Satoshi line + two rectangular buttons
-          (gold + cream, black text). Buttons are click-through-disabled until it
-          actually arrives. */}
+      {/* Closing sequence — fades in once the brain scatters. A persistent
+          invitation up top (Voir le programme · ou), then the social logos
+          reassemble one by one in the centre while the matching contact CTA
+          (Contactez-nous sur … + a brand-coloured "Cliquer ici") cross-fades in
+          below. Buttons are click-through-disabled until they actually arrive. */}
       <div
-        className="absolute inset-0 z-20 flex flex-col items-center justify-center px-6 text-center"
+        className="absolute inset-0 z-20 flex flex-col items-center justify-between px-6 py-[12vh] text-center"
         style={{ ...fade(ended), pointerEvents: ended ? "auto" : "none" }}
       >
-        <p className="max-w-[26ch] font-satoshi text-[clamp(1.5rem,3.2vw,2.6rem)] font-medium leading-snug text-cream">
-          Qu’attendez-vous ? Rejoignez notre programme.
-        </p>
-        <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-          <a
-            href="#briefing"
-            className="rounded-[10px] bg-gold px-8 py-4 font-satoshi text-[13px] font-semibold uppercase tracking-[0.16em] text-void transition-colors duration-300 hover:bg-[#f3c45e]"
-          >
-            Voir le programme
-          </a>
-          <a
-            href="#contact"
-            className="rounded-[10px] bg-cream px-8 py-4 font-satoshi text-[13px] font-semibold uppercase tracking-[0.16em] text-void transition-colors duration-300 hover:bg-white"
-          >
-            Contactez-nous
-          </a>
+        <div className="flex flex-col items-center gap-7">
+          <p className="max-w-[26ch] font-satoshi text-[clamp(1.4rem,3vw,2.4rem)] font-medium leading-snug text-cream">
+            Qu’attendez-vous ? Rejoignez notre programme.
+          </p>
+          <div className="flex items-center justify-center gap-5">
+            <a
+              href="#briefing"
+              className="rounded-[10px] bg-gold px-8 py-4 font-satoshi text-[13px] font-semibold uppercase tracking-[0.16em] text-void transition-colors duration-300 hover:bg-[#f3c45e]"
+            >
+              Voir le programme
+            </a>
+            <span className="font-satoshi text-[13px] font-medium uppercase tracking-[0.3em] text-cream/55">
+              ou
+            </span>
+          </div>
         </div>
+
+        {reduced ? (
+          // Reduced motion: no logo morph — surface all three contact links at once.
+          <div className="flex flex-wrap items-center justify-center gap-8">
+            {SOCIALS.map((s) => (
+              <div key={s.key} className="flex flex-col items-center gap-3">
+                <p className="font-satoshi text-[clamp(1rem,1.6vw,1.25rem)] text-cream/85">
+                  Contactez-nous sur {s.label}
+                </p>
+                <a
+                  href={s.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ background: s.btn }}
+                  className="rounded-[10px] px-8 py-3.5 font-satoshi text-[13px] font-semibold uppercase tracking-[0.16em] text-white shadow-lg transition duration-300 hover:brightness-110"
+                >
+                  Cliquer ici
+                </a>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="relative h-[150px] w-full max-w-[34rem]">
+            {SOCIALS.map((s, i) => (
+              <div
+                key={s.key}
+                className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-4"
+                style={{
+                  ...fade(socialStage === i + 1),
+                  pointerEvents: socialStage === i + 1 ? "auto" : "none",
+                }}
+              >
+                <p className="font-satoshi text-[clamp(1.1rem,2vw,1.6rem)] font-medium text-cream">
+                  Contactez-nous sur {s.label}
+                </p>
+                <a
+                  href={s.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ background: s.btn }}
+                  className="rounded-[11px] px-9 py-4 font-satoshi text-[13px] font-semibold uppercase tracking-[0.18em] text-white shadow-xl transition duration-300 hover:brightness-110"
+                >
+                  Cliquer ici
+                </a>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
