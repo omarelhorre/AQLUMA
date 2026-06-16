@@ -15,11 +15,13 @@ const PAPER = "#ECE7DD";
 // One note per piece, glued to the wall beside it and shown one at a time. The
 // pan centres each object in turn (`fx` = object centre); object 1 is centred at
 // the start, object 3 at the end. Order L→R: feuille · travertin · planches.
+// Anchors recomputed for the dezoomed pan (zoomW 165) so each caption keeps the
+// SAME on-screen position it had — only the scene shrinks and shows more bg.
 const BLOCKS: GalleryBlock[] = [
   {
     n: 1, // feuille griffonnée — caption parked in the empty space to its right
     fx: 0.13,
-    left: "23%",
+    left: "25%",
     v: { top: "33%" },
     title: "La matière brute.",
     note: "Une réponse d’IA, c’est un point de départ. Pas une fin. Ce qui compte, c’est ce que tu en fais.",
@@ -27,16 +29,18 @@ const BLOCKS: GalleryBlock[] = [
   {
     n: 2, // travertin + tablette (centre) — caption parked to its left
     fx: 0.5,
-    left: "28%",
+    left: "23%",
     v: { top: "33%" },
     title: "Le brouillon.",
     note: "La première réponse est un brouillon — surtout quand elle a l’air finie. Vérifie, coupe, reformule.",
   },
   {
-    n: 3, // planches AQLUMA — caption parked to their left (same slot as note 02)
+    n: 3, // planches AQLUMA — caption parked to their left; narrow note so it stays
+    //        clear of the clipped boards
     fx: 0.85,
-    left: "63%",
+    left: "58%",
     v: { top: "33%" },
+    noteClass: "max-w-[20ch]",
     title: "Ta voix, signée.",
     note: "Ton contexte, ton exemple, ton angle. Think with AI : penser avec, pour aller plus loin.",
   },
@@ -51,6 +55,8 @@ export default function StudioReveal() {
       bg={PAPER}
       tone="light"
       blocks={BLOCKS}
+      zoomW={165}
+      frameBlend={40}
     />
   );
 }

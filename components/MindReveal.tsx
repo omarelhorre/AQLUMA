@@ -156,6 +156,7 @@ const VERT = /* glsl */ `
     vec2 toM = center.xy - uMouse;
     float md2 = dot(toM, toM);
     float ptScatter = exp(-md2 * 6.0);          // soft gaussian around the cursor
+    ptScatter *= (1.0 - uScatter);              // no cursor interaction once scattered (CTA field)
     vec3 jitterDir = normalize(aRandom - 0.5 + 0.0001);
     float wob = snoise(aOffset * 5.0 + uTime * 1.6);
     center += jitterDir * ptScatter * 0.14 * (0.7 + 0.3 * wob) * form;
@@ -205,8 +206,14 @@ const VERT = /* glsl */ `
     // while the limb stays full. restEdge is baked from the rest pose → no flicker.
     float restEdge = 1.0 - abs(normalize(aOffset + 0.0001).z);
     float sv = pow(aRandom.y, 1.7);
-    float s = (0.5 + sv * 0.85) * mix(0.10, 1.0, form);
-    s *= mix(0.56, 1.0, smoothstep(0.05, 0.55, restEdge));
+    // BRAIN pose: small, varied shards thinned toward the interior so the PROFILE
+    // reads through the negative space (unchanged).
+    float sBrain = (0.5 + sv * 0.85) * mix(0.56, 1.0, smoothstep(0.05, 0.55, restEdge));
+    // SCATTERED field: a tighter size range with a higher floor so EVERY shard
+    // reads as a clean, detailed triangle (dala-style) — not a few giants among
+    // dots. Blend brain → scatter sizing by uScatter.
+    float sScatter = 0.85 + sv * 0.55;
+    float s = mix(sBrain, sScatter, uScatter) * mix(0.10, 1.0, form);
     s *= 1.0 + ptScatter * 0.9;                 // shimmering shards read a touch larger
     vec3 finalPos = center + (T * q.x + Bt * q.y + N * q.z) * s;
 
@@ -593,12 +600,17 @@ export default function MindReveal() {
           offsets[i * 3] = (pts[i * 3 + aX] - cArr[aX]) / maxR;
           offsets[i * 3 + 1] = (pts[i * 3 + aY] - cArr[aY]) / maxR;
           offsets[i * 3 + 2] = (pts[i * 3 + aZ] - cArr[aZ]) / maxR;
-          const u = Math.random() * Math.PI * 2;
-          const v = Math.acos(2 * Math.random() - 1);
-          const rr = 2.2 + Math.random() * 1.6;
-          scatter[i * 3] = Math.sin(v) * Math.cos(u) * rr;
-          scatter[i * 3 + 1] = Math.cos(v) * rr;
-          scatter[i * 3 + 2] = Math.sin(v) * Math.sin(u) * rr;
+          // Scatter target = a WIDE field with real, but BOUNDED, depth (dala-style):
+          // a broad disc in X/Y plus a controlled Z range so there's a clear sense of
+          // foreground vs background (perspective parallax) — without any shard coming
+          // so close to the lens that it balloons. The near bound (+1.4) sits well in
+          // front of the camera plane (z=5 after the group scale) so the biggest ones
+          // read as foreground, not giants.
+          const ang = Math.random() * Math.PI * 2;
+          const rad = Math.sqrt(Math.random()) * 3.1;
+          scatter[i * 3] = Math.cos(ang) * rad * 1.6; // wider in X to fill the frame
+          scatter[i * 3 + 1] = Math.sin(ang) * rad;
+          scatter[i * 3 + 2] = (Math.random() - 0.5) * 3.2 - 0.2; // depth: ~ -1.8 .. +1.4
           random[i * 3] = Math.random();
           random[i * 3 + 1] = Math.random();
           random[i * 3 + 2] = Math.random();
@@ -669,8 +681,12 @@ export default function MindReveal() {
         const grow = isNarrow ? 0 : baseRadius * (g - 1);
         const sx = startX - grow; // right anchor pulled inward as it grows
         const ex = endX + grow; // left anchor pulled inward as it grows
-        // Ease the brain across only when the swap window opens (held until ~0.5).
-        brainX += (sx + (ex - sx) * scrollShift - brainX) * 0.09;
+        // Ease the brain across only when the swap window opens (held until ~0.5),
+        // then recentre the cloud as it scatters (the closing CTA is centred, so the
+        // dispersed field should fill the frame evenly behind it).
+        const scat = uniforms.uScatter.value as number;
+        const targetX = (sx + (ex - sx) * scrollShift) * (1 - scat);
+        brainX += (targetX - brainX) * 0.09;
         group.position.x = brainX + parX * 0.12;
         group.position.y = baseY + parY * 0.12;
         group.rotation.y = parX * 0.16;
@@ -816,9 +832,6 @@ export default function MindReveal() {
           </p>
           <p className="mt-9 max-w-[36ch] font-satoshi text-[clamp(1rem,1.55vw,1.35rem)] leading-relaxed text-cream/90">
             {THINKER}
-          </p>
-          <p className="mt-5 font-satoshi text-sm uppercase tracking-kicker text-gold">
-            Think with AI.
           </p>
         </div>
       </div>

@@ -37,6 +37,9 @@ export type GalleryBlock = {
   /** Hero treatment: a wider block with larger type, for a caption that sits in a
    *  big open negative space and should dominate the frame. */
   wide?: boolean;
+  /** Optional override for the note's max-width (e.g. "max-w-[50ch]") so a caption
+   *  can read on fewer lines when its pocket is wide enough. */
+  noteClass?: string;
 };
 
 type Props = {
@@ -51,6 +54,9 @@ type Props = {
   /** Image width in viewport-widths. > ~180 fills height and gives travel. */
   zoomW?: number;
   rulePlacement?: "top" | "bottom";
+  /** Inner transparent radius (%) of the edge blend. Lower = the image melts into
+   *  the world bg sooner (more background showing around the scene). */
+  frameBlend?: number;
 };
 
 // A caption owns the stretch of scroll around its object and hands off at a
@@ -70,7 +76,7 @@ const EDGE_FEATHER =
 function Caption({ b, tone, total }: { b: GalleryBlock; tone: "dark" | "light"; total: number }) {
   const light = tone === "light";
   const titleC = light ? "text-ink" : "text-cream";
-  const bodyC = light ? "text-ink/72" : "text-cream/75";
+  const bodyC = light ? "text-ink/85" : "text-cream/75";
   const mutedC = light ? "text-ink/45" : "text-cream/45";
   const wide = b.wide;
 
@@ -99,9 +105,9 @@ function Caption({ b, tone, total }: { b: GalleryBlock; tone: "dark" | "light"; 
       <p
         className={`font-satoshi leading-relaxed ${bodyC} ${
           wide
-            ? "mt-6 max-w-[34ch] text-[clamp(1.15rem,1.55vw,1.72rem)]"
-            : "mt-5 max-w-[28ch] text-[clamp(1.1rem,1.5vw,1.55rem)]"
-        }`}
+            ? "mt-6 text-[clamp(1.15rem,1.55vw,1.72rem)]"
+            : "mt-5 text-[clamp(1.1rem,1.5vw,1.55rem)]"
+        } ${b.noteClass ?? (wide ? "max-w-[34ch]" : "max-w-[28ch]")}`}
       >
         {b.note}
       </p>
@@ -118,6 +124,7 @@ export default function WorldGallery({
   blocks,
   zoomW = 200,
   rulePlacement = "top",
+  frameBlend = 52,
 }: Props) {
   const sectionRef = useRef<HTMLElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
@@ -249,7 +256,7 @@ export default function WorldGallery({
         aria-hidden
         className="pointer-events-none absolute inset-0 z-10"
         style={{
-          background: `radial-gradient(72% 110% at 50% 50%, rgba(0,0,0,0) 52%, ${bg} 100%)`,
+          background: `radial-gradient(72% 110% at 50% 50%, rgba(0,0,0,0) ${frameBlend}%, ${bg} 100%)`,
         }}
       />
 
