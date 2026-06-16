@@ -34,6 +34,9 @@ export type GalleryBlock = {
   v: CSSProperties;
   title: string;
   note: string;
+  /** Hero treatment: a wider block with larger type, for a caption that sits in a
+   *  big open negative space and should dominate the frame. */
+  wide?: boolean;
 };
 
 type Props = {
@@ -69,6 +72,7 @@ function Caption({ b, tone, total }: { b: GalleryBlock; tone: "dark" | "light"; 
   const titleC = light ? "text-ink" : "text-cream";
   const bodyC = light ? "text-ink/72" : "text-cream/75";
   const mutedC = light ? "text-ink/45" : "text-cream/45";
+  const wide = b.wide;
 
   return (
     <div className="relative">
@@ -77,7 +81,7 @@ function Caption({ b, tone, total }: { b: GalleryBlock; tone: "dark" | "light"; 
           {`${String(b.n).padStart(2, "0")} / ${String(total).padStart(2, "0")}`}
         </span>
         <span
-          className="h-px w-12"
+          className={`h-px ${wide ? "w-16" : "w-12"}`}
           style={{
             background: light
               ? "linear-gradient(90deg, rgba(15,20,23,0.5), rgba(15,20,23,0))"
@@ -85,10 +89,20 @@ function Caption({ b, tone, total }: { b: GalleryBlock; tone: "dark" | "light"; 
           }}
         />
       </span>
-      <h2 className={`font-didot text-[clamp(2.6rem,4.4vw,4.9rem)] leading-[1.02] tracking-display ${titleC}`}>
+      <h2
+        className={`font-didot leading-[1.04] tracking-display ${titleC} ${
+          wide ? "text-[clamp(2.8rem,4.6vw,5.4rem)]" : "text-[clamp(2.6rem,4.4vw,4.9rem)]"
+        }`}
+      >
         {b.title}
       </h2>
-      <p className={`mt-5 max-w-[28ch] font-satoshi text-[clamp(1.1rem,1.5vw,1.55rem)] leading-relaxed ${bodyC}`}>
+      <p
+        className={`font-satoshi leading-relaxed ${bodyC} ${
+          wide
+            ? "mt-6 max-w-[34ch] text-[clamp(1.15rem,1.55vw,1.72rem)]"
+            : "mt-5 max-w-[28ch] text-[clamp(1.1rem,1.5vw,1.55rem)]"
+        }`}
+      >
         {b.note}
       </p>
     </div>
@@ -252,7 +266,9 @@ export default function WorldGallery({
             ref={(el) => {
               capRefs.current[i] = el;
             }}
-            className="absolute w-[min(27rem,30vw)] will-change-[opacity,filter]"
+            className={`absolute will-change-[opacity,filter] ${
+              b.wide ? "w-[min(42rem,46vw)]" : "w-[min(27rem,30vw)]"
+            }`}
             style={{ left: b.left, ...b.v, opacity: 0 }}
           >
             <Caption b={b} tone={tone} total={blocks.length} />

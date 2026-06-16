@@ -14,15 +14,28 @@ const TRAITS = [
   { word: "Concentré",  top: "70%", right: "15vw", size: "clamp(1.7rem,3.8vw,3.3rem)" },
 ];
 
-// Right-hand description that scrolls up + reveals while "Bienvenu chez AQLUMA"
-// and the CTA hold — six short lines, distilled from the AQLUMA scripts.
-const DESC = [
-  "Aqluma n’est pas un cours d’informatique.",
-  "C’est une école du jugement.",
-  "On y apprend à lire une réponse sans la croire,",
-  "à vérifier, à reformuler, à garder sa voix.",
-  "Pas à utiliser l’IA — à penser avec elle.",
-  "Une méthode calme, qui tient dans le temps.",
+// Right-hand intro statement, reformatted in the Dala hierarchy (gold kicker →
+// big stacked Didot headline (consistent with the rest of the site) → a calm
+// descriptive paragraph). It scrolls
+// up + reveals line-by-line while "Bienvenu chez AQLUMA" and the CTA hold.
+// Theme: in the AI revolution most people get lost — the tool is everywhere but
+// almost no one knows how to use it; AQLUMA builds the method (professionalism)
+// so nothing ever feels like mere repetition.
+type IntroLine =
+  | { kind: "kicker"; text: string }
+  | { kind: "head"; text: string }
+  | { kind: "body"; text: string };
+
+const DESC: IntroLine[] = [
+  { kind: "kicker", text: "À l’ère de l’IA" },
+  { kind: "head", text: "L’IA partout." },
+  { kind: "head", text: "La méthode," },
+  { kind: "head", text: "nulle part." },
+  {
+    kind: "body",
+    text:
+      "Dans cette révolution, beaucoup se sont perdus — l’outil est partout, sans qu’on sache vraiment l’utiliser. AQLUMA n’est pas un cours d’informatique, mais une école du jugement : lire une réponse sans la croire, vérifier, reformuler, garder sa voix. Une méthode calme, qui tient dans le temps — pour que plus rien ne ressemble à de la simple répétition.",
+  },
 ];
 
 const BLUR_HIDDEN = { opacity: 0, filter: "blur(14px)", y: 22 };
@@ -106,20 +119,22 @@ export default function ActDoor() {
 
       // ── Traits (scattered, right side): fade in one after another while
       //    "à devenir" stays on screen. ──
-      const tStart = 0.45;
-      const tStep  = 0.06;
+      const tStart = 0.40;
+      const tStep  = 0.045;
       items.forEach((it, i) => reveal(it, tStart + i * tStep, 0.05));
 
       // ── …then the whole block ("à devenir" + the 4 traits) fades out together
       //    as one unified block, before the climax. ──
-      dissolve([line2Ref.current, ...items], 0.66, 0.06);
+      dissolve([line2Ref.current, ...items], 0.59, 0.06);
 
-      // ── Climax ──
-      reveal(climaxRef.current, 0.72, 0.05);
-      dissolve(climaxRef.current, 0.92, 0.05);
+      // ── Climax ── "AQLUMA est là pour ça" reads, then clears the moment the
+      //    door video starts opening — handed off cleanly with the CTA so nothing
+      //    lingers over the opening frame.
+      reveal(climaxRef.current, 0.66, 0.05);
+      dissolve(climaxRef.current, DOOR_START, 0.05);
 
       // The CTA is always there — until the door video starts, when everything
-      // clears for the opening.
+      // (CTA + climax) clears together for the opening.
       dissolve(ctaRef.current, DOOR_START, 0.06);
     }, section);
 
@@ -162,20 +177,27 @@ export default function ActDoor() {
           </p>
         </Beat>
 
-        {/* Right-hand description — scrolls up + reveals (6 short lines), then
+        {/* Right-hand intro — Dala hierarchy (gold kicker → stacked Satoshi-black
+            headline → calm paragraph). Scrolls up + reveals line-by-line, then
             fades; only this side moves while the left copy holds. */}
         <div className="absolute inset-y-0 right-[6vw] z-20 flex items-center">
-          <div ref={descRef} className="max-w-[min(82vw,30rem)] text-right will-change-transform">
+          <div ref={descRef} className="ml-auto max-w-[min(88vw,36rem)] text-right will-change-transform">
             {DESC.map((line, i) => (
               <p
                 key={i}
                 ref={(el) => {
                   descLineRefs.current[i] = el;
                 }}
-                className="mb-2.5 font-satoshi text-[clamp(1rem,1.45vw,1.35rem)] leading-relaxed text-cream/75 will-change-[transform,opacity,filter]"
                 style={{ opacity: 0 }}
+                className={
+                  line.kind === "kicker"
+                    ? "mb-5 font-satoshi text-[clamp(0.72rem,0.95vw,0.85rem)] font-bold uppercase tracking-kicker text-gold will-change-[transform,opacity,filter]"
+                    : line.kind === "head"
+                      ? "block font-didot text-[clamp(2.4rem,5.6vw,5rem)] font-normal leading-[1.02] tracking-display text-cream will-change-[transform,opacity,filter]"
+                      : "ml-auto mt-7 max-w-[44ch] font-satoshi text-[clamp(0.95rem,1.3vw,1.2rem)] font-normal leading-relaxed text-cream/70 will-change-[transform,opacity,filter]"
+                }
               >
-                {line}
+                {line.text}
               </p>
             ))}
           </div>
@@ -190,7 +212,7 @@ export default function ActDoor() {
         >
           <a
             href="#contact"
-            className="pointer-events-auto inline-flex items-center rounded-full bg-cream px-7 py-3 font-satoshi text-[12.5px] font-semibold uppercase tracking-[0.18em] text-void shadow-[0_10px_30px_rgba(0,0,0,0.35)] transition-colors duration-300 hover:bg-white"
+            className="pointer-events-auto inline-flex items-center rounded-[10px] bg-cream px-7 py-3.5 font-satoshi text-[12.5px] font-semibold uppercase tracking-[0.18em] text-void shadow-[0_10px_30px_rgba(0,0,0,0.35)] transition-colors duration-300 hover:bg-white"
           >
             Contactez-nous
           </a>

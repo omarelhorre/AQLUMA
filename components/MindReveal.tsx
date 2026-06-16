@@ -62,12 +62,18 @@ const LEAD = "transforme votre adolescent.";
 const LOST =
   "D'un adolescent qui demande une réponse, la recopie et l'oublie le lendemain — un esprit perdu, sans méthode, dont la voix se dissout dans celle de la machine.";
 const THINKER =
-  "…à un esprit qui pense avec l'IA : il interroge, vérifie, reformule et garde sa voix. Même outil, deux trajectoires — la différence, c'est la méthode.";
+  "à un esprit qui pense avec l'IA : il interroge, vérifie, reformule et garde sa voix. Même outil, deux trajectoires — la différence, c'est la méthode.";
 
 const clamp01 = (x: number) => (x < 0 ? 0 : x > 1 ? 1 : x);
 const smooth = (a: number, b: number, x: number) => {
   const t = clamp01((x - a) / (b - a));
   return t * t * (3 - 2 * t);
+};
+// Smootherstep (Ken Perlin) — zero 1st AND 2nd derivative at both ends, so the
+// assemble/scatter and the swap ease in and out with no perceptible snap.
+const smoother = (a: number, b: number, x: number) => {
+  const t = clamp01((x - a) / (b - a));
+  return t * t * t * (t * (t * 6 - 15) + 10);
 };
 
 const VERT = /* glsl */ `
@@ -118,10 +124,18 @@ const VERT = /* glsl */ `
 
   void main(){
     vBary = aBary;
-    float form = smoothstep(0.0, 1.0, uForm);
-    // uScatter (end-of-scroll) disperses the assembled brain back toward its
-    // scatter cloud, so the facets fly apart as you finish scrolling.
-    float assemble = form * (1.0 - uScatter);
+
+    // CONSTRUCT bottom→top, DECONSTRUCT top→bottom. Each facet runs its OWN
+    // assemble window, staggered by its height in the brain (h: 0 = base/stem,
+    // 1 = crown). On uForm the base resolves first and the build climbs upward;
+    // on uScatter (end-of-scroll) the crown lets go first and the dissolve falls
+    // downward — so the brain is laid down from the bottom and peeled off the top.
+    float h = clamp(aOffset.y * 0.5 + 0.5, 0.0, 1.0);
+    const float BAND = 0.55;        // stagger spread (0 = all at once → 1 = fully sequential)
+    float formStag = smoothstep(0.0, 1.0, clamp((uForm     -        h  * BAND) / (1.0 - BAND), 0.0, 1.0));
+    float scatStag = smoothstep(0.0, 1.0, clamp((uScatter  - (1.0 - h) * BAND) / (1.0 - BAND), 0.0, 1.0));
+    float form = formStag;
+    float assemble = formStag * (1.0 - scatStag);
     vec3 center = mix(aScatter, aOffset, assemble);
 
     // Barely-there breathing — keeps the surface alive WITHOUT fluffing the
@@ -163,11 +177,27 @@ const VERT = /* glsl */ `
 
     float spin   = aRandom.x * 6.2831853 + n * 0.3 + uTime * (0.18 + aRandom.y * 0.30);
     float tumble = aRandom.z * 6.2831853 + uTime * (0.14 + aRandom.x * 0.26);
-    vec3 q = vec3(position.x, position.y, 0.0);
+
+    // PER-SHARD SHAPE VARIETY (dala-style geometric marks): reshape each facet's
+    // base triangle per instance so the field reads as a *designed* set of marks —
+    // some equilateral, some slim carets/arrows, some leaning scalenes — instead of
+    // one repeated equilateral. The reshape is AREA-PRESERVING (det = aspect·(1/aspect)
+    // = 1, shear keeps area) and a pure 2D corner edit, so footprint, density, sizes
+    // and the barycentric outline are unchanged — the brain profile never moves.
+    float aspect = mix(0.58, 1.62, aRandom.x);            // tall ↔ wide
+    float lean   = (aRandom.z - 0.5) * 0.8;               // scalene skew / lean
+    // Reshape only the BASE (xy); keep position.z (the apex height) intact so the
+    // tetrahedron stays a 3D pyramid — height + a "head" — not a flattened triangle.
+    vec3 q = vec3(position.x * aspect + position.y * lean, position.y / aspect, position.z);
     float cs = cos(spin), sn = sin(spin);
-    q = vec3(q.x * cs - q.y * sn, q.x * sn + q.y * cs, 0.0);   // spin in-plane
+    q = vec3(q.x * cs - q.y * sn, q.x * sn + q.y * cs, q.z);   // spin around the normal
+    // Tumble on TWO axes so the pyramids constantly turn through 3/4 views (where the
+    // head + side faces read as volume) instead of settling apex-on and looking flat.
     float ct = cos(tumble), st = sin(tumble);
-    q = vec3(q.x, q.y * ct, q.y * st);                        // flip out-of-plane → 3D
+    q = vec3(q.x, q.y * ct - q.z * st, q.y * st + q.z * ct);   // tumble around X
+    float t2 = aRandom.y * 6.2831853 + uTime * (0.11 + aRandom.z * 0.20);
+    float c2 = cos(t2), s2 = sin(t2);
+    q = vec3(q.x * c2 + q.z * s2, q.y, -q.x * s2 + q.z * c2);   // tumble around Y → full 3D
 
     // SMALL shards, strong size variation: most tiny, a few larger accents. Plus an
     // INTERIOR THIN-OUT — shards on the front/back caps (low restEdge) shrink so the
@@ -175,7 +205,7 @@ const VERT = /* glsl */ `
     // while the limb stays full. restEdge is baked from the rest pose → no flicker.
     float restEdge = 1.0 - abs(normalize(aOffset + 0.0001).z);
     float sv = pow(aRandom.y, 1.7);
-    float s = (0.55 + sv * 1.05) * mix(0.10, 1.0, form);
+    float s = (0.5 + sv * 0.85) * mix(0.10, 1.0, form);
     s *= mix(0.56, 1.0, smoothstep(0.05, 0.55, restEdge));
     s *= 1.0 + ptScatter * 0.9;                 // shimmering shards read a touch larger
     vec3 finalPos = center + (T * q.x + Bt * q.y + N * q.z) * s;
@@ -249,25 +279,51 @@ const BG_FRAG = /* glsl */ `
 // pointillist) but textured — so we want many SMALL hollow shards with gaps, not a
 // sparse handful (too sparse and the shape doesn't render). ~5.5k small shards
 // keeps clear negative space between them while the profile still reads.
-const TARGET_COUNT = 5500;
+const TARGET_COUNT = 4000;
 // Facet triangle radius (object space, before per-facet scale). Kept tiny — a
 // shard, not a panel — so even at this count neighbours leave gaps (hollow
-// outlines) and the texture stays airy instead of a solid ball.
-const R = 0.020;
+// outlines) and the texture stays airy instead of a solid ball. Smaller now that
+// each mark is a 3D pyramid (the apex adds bulk), so the brain profile still reads.
+const R = 0.013;
+// Apex height — the "head" that lifts each mark off the surface so it reads as a
+// little 3D pyramid (height + a point), not a flat plate. Tall enough to read as a
+// spike, but kept modest so the apexes don't fluff the silhouette into a ball.
+const H = R * 2.4;
 
-function makeTriangle(): Float32Array {
-  return new Float32Array([0, R * 1.2, 0, R, -R * 0.6, 0, -R, -R * 0.6, 0]);
+// Each facet is a small TETRAHEDRON (triangular pyramid): a triangular base laid
+// on the brain surface (z = 0) plus an APEX raised along +z (the "head"). Drawn as
+// a hollow wireframe — one barycentric set per face — so it reads as a 3D triangle
+// turning in space rather than a flat 2D outline. 4 faces × 3 corners = 12 verts.
+function makeTetra(): Float32Array {
+  const a = [0, R * 1.2, 0];
+  const b = [R, -R * 0.6, 0];
+  const c = [-R, -R * 0.6, 0];
+  const d = [R * 0.4, -R * 0.1, H]; // apex / head — offset so the pyramid leans (reads 3D from more angles)
+  // prettier-ignore
+  return new Float32Array([
+    ...a, ...b, ...c, // base
+    ...a, ...b, ...d, // side
+    ...b, ...c, ...d, // side
+    ...c, ...a, ...d, // side
+  ]);
 }
-// Barycentric coords, one per triangle corner — drives the hollow outline.
-const BARY = new Float32Array([1, 0, 0, 0, 1, 0, 0, 0, 1]);
+// Barycentric coords per corner, repeated for each of the 4 faces — drives the
+// hollow outline so every edge of the tetra is traced (wireframe pyramid).
+// prettier-ignore
+const BARY = new Float32Array([
+  1, 0, 0, 0, 1, 0, 0, 0, 1,
+  1, 0, 0, 0, 1, 0, 0, 0, 1,
+  1, 0, 0, 0, 1, 0, 0, 0, 1,
+  1, 0, 0, 0, 1, 0, 0, 0, 1,
+]);
 
 export default function MindReveal() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const headRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
   const reduced = useReducedMotion();
   const [phase, setPhase] = useState(0); // 0 = lost adolescent, 1 = thinker
+  const [ended, setEnded] = useState(false); // after the scatter: copy out, CTA in
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -355,7 +411,9 @@ export default function MindReveal() {
       let baseY = 0;
       let brainX = 0; // current interpolated base X (no parallax)
       let scrollShift = 0;
-      let isNarrow = false;
+      let baseRadius = 1; // group scale before the transition growth
+      let isNarrow = false; // mobile: brain stays centred, no growth offset
+      let growT = 0; // 0..1 growth driven through the swap
 
       // --- Post-processing: linear render → bloom → FXAA → ACES/sRGB out. ---
       const dbSize = renderer.getDrawingBufferSize(new THREE.Vector2());
@@ -391,9 +449,11 @@ export default function MindReveal() {
         const halfW = halfH * camera.aspect;
         const narrow = w < 760;
         isNarrow = narrow;
-        // Sized so brainX ± radius keeps a margin from the viewport edge on EITHER
-        // side, so the left↔right swap never clips.
-        const radius = narrow ? Math.min(halfW * 0.92, halfH * 0.9) : halfH * 0.9;
+        // BASE size (before growth). Kept a touch smaller than the viewport so the
+        // brain can GROW through the swap and still keep its margin (the outer edge
+        // is anchored in tick → margin stays constant as it scales up).
+        const radius = narrow ? Math.min(halfW * 0.86, halfH * 0.82) : halfH * 0.82;
+        baseRadius = radius;
         group.scale.setScalar(radius);
         startX = narrow ? 0 : halfW * 0.44; // brain on the RIGHT to start
         endX = narrow ? 0 : -halfW * 0.44; // brain on the LEFT after the swap
@@ -523,7 +583,7 @@ export default function MindReveal() {
 
         const palette = BRAND_HEX.map((hx) => new THREE.Color(hx).convertSRGBToLinear());
 
-        const tri = makeTriangle();
+        const tri = makeTetra();
         const offsets = new Float32Array(ptCount * 3);
         const scatter = new Float32Array(ptCount * 3);
         const random = new Float32Array(ptCount * 3);
@@ -600,8 +660,17 @@ export default function MindReveal() {
         // to follow the cursor, so it reads as 3D without spinning off profile.
         parX += (pxTarget - parX) * 0.05;
         parY += (pyTarget - parY) * 0.05;
-        // Ease the brain from its start position toward the right as you scroll.
-        brainX += (startX + (endX - startX) * scrollShift - brainX) * 0.1;
+        // Brain GROWS through the swap (the "lost" brain blooms into the bigger,
+        // colourful "thinker" brain). Its OUTER edge is anchored: as it scales up,
+        // the centre eases inward by exactly what it gained, so the margin to the
+        // viewport side never changes — it grows in place, it doesn't drift off.
+        const g = isNarrow ? 1 : 1 + 0.12 * growT;
+        group.scale.setScalar(baseRadius * g);
+        const grow = isNarrow ? 0 : baseRadius * (g - 1);
+        const sx = startX - grow; // right anchor pulled inward as it grows
+        const ex = endX + grow; // left anchor pulled inward as it grows
+        // Ease the brain across only when the swap window opens (held until ~0.5).
+        brainX += (sx + (ex - sx) * scrollShift - brainX) * 0.09;
         group.position.x = brainX + parX * 0.12;
         group.position.y = baseY + parY * 0.12;
         group.rotation.y = parX * 0.16;
@@ -620,28 +689,29 @@ export default function MindReveal() {
         st = ScrollTrigger.create({
           trigger: section,
           start: "top top",
-          end: "+=320%",
+          end: "+=460%",
           pin: true,
           scrub: true,
           invalidateOnRefresh: true,
           onUpdate(self) {
             const p = self.progress;
-            uniforms.uForm.value = smooth(0, 0.34, p);
+            // Smoother assemble + dissolve (smootherstep over slightly wider windows).
+            uniforms.uForm.value = smoother(0, 0.40, p);
             const flipT = clamp01((p - 0.52) / (0.78 - 0.52));
             uniforms.uFlip.value = flipT * Math.PI;
             uniforms.uColorMix.value = smooth(0.58, 0.7, p);
-            uniforms.uScatter.value = smooth(0.85, 1.0, p);
-            // Brain slides centre → right; text flips lost → thinker just before
-            // the colour transition so the copy leads the visual change.
-            scrollShift = smooth(0.12, 0.5, p);
-            // Text slides LEFT → RIGHT as the brain slides RIGHT → LEFT (they swap).
-            if (textRef.current) {
-              textRef.current.style.transform = isNarrow
-                ? "translateX(0)"
-                : `translateX(${scrollShift * 52}vw)`;
-            }
+            uniforms.uScatter.value = smoother(0.80, 0.93, p);
+            // The brain HOLDS its side until the copy hands off (~0.5), then swaps
+            // sides in step with the text cross-fade and GROWS — they switch
+            // position together rather than the brain drifting across early.
+            scrollShift = smoother(0.42, 0.6, p);
+            growT = smoother(0.4, 0.62, p);
             const ph = p < 0.5 ? 0 : 1;
             setPhase((prev) => (prev === ph ? prev : ph));
+            // Once the brain has scattered, the brain copy fades OUT and the closing
+            // CTA fades IN over the dispersed cloud of shapes.
+            const e = p > 0.9;
+            setEnded((prev) => (prev === e ? prev : e));
           },
         });
       }
@@ -661,10 +731,10 @@ export default function MindReveal() {
       };
     })();
 
-    // Signature wordmark: a slow vertical float keeps it alive (no glass box).
+    // Signature wordmark: a slow vertical float keeps the copy alive (no glass box).
     const ctxGsap = gsap.context(() => {
-      if (headRef.current && !reduced) {
-        gsap.to(headRef.current, {
+      if (textRef.current && !reduced) {
+        gsap.to(textRef.current, {
           y: -10,
           duration: 5,
           ease: "sine.inOut",
@@ -712,37 +782,71 @@ export default function MindReveal() {
         }}
       />
 
-      {/* Left: bare Didot signature wordmark + a Satoshi narrative that cross-fades
-          (luxurious blur) from the "lost" adolescent to the one who thinks with AI. */}
-      <div
-        ref={textRef}
-        className="pointer-events-none absolute inset-y-0 left-0 z-10 flex w-full flex-col justify-center px-[min(7vw,5.5rem)] will-change-transform md:w-[46%]"
-      >
-        <div ref={headRef} className="will-change-transform">
+      {/* The brain swaps RIGHT → LEFT on scroll. The copy does NOT slide across:
+          the "lost" state fades OUT on the left and the "thinker" state fades IN
+          on the right, so the two trajectories hand off without travelling. */}
+      <div ref={textRef} className="pointer-events-none absolute inset-0 z-10 will-change-transform">
+        {/* Phase 0 — the lost adolescent, anchored LEFT (brain sits right). */}
+        <div
+          className="absolute inset-y-0 left-0 flex w-full flex-col justify-center px-[min(7vw,5.5rem)] md:w-[46%]"
+          style={fade(phase === 0 && !ended)}
+        >
           <h2 className="font-didot text-[clamp(3rem,7vw,6.75rem)] font-normal leading-[0.92] tracking-display text-cream">
             AQLUMA
           </h2>
           <p className="mt-3 font-satoshi text-[clamp(1.05rem,1.7vw,1.5rem)] font-medium leading-snug text-cream/65">
             {LEAD}
           </p>
-        </div>
-
-        {/* Cross-fade well — both states absolutely stacked so they dissolve in place. */}
-        <div className="relative mt-9 h-[12rem] max-w-[36ch]">
-          <p
-            className="absolute left-0 top-0 font-satoshi text-[clamp(1rem,1.55vw,1.35rem)] leading-relaxed text-cream/80"
-            style={fade(phase === 0)}
-          >
+          <p className="mt-9 max-w-[36ch] font-satoshi text-[clamp(1rem,1.55vw,1.35rem)] leading-relaxed text-cream/80">
             {LOST}
           </p>
-          <div className="absolute left-0 top-0" style={fade(phase === 1)}>
-            <p className="font-satoshi text-[clamp(1rem,1.55vw,1.35rem)] leading-relaxed text-cream/90">
-              {THINKER}
-            </p>
-            <p className="mt-5 font-satoshi text-sm uppercase tracking-kicker text-gold">
-              Think with AI.
-            </p>
-          </div>
+        </div>
+
+        {/* Phase 1 — the mind that thinks WITH the AI, anchored RIGHT
+            (brain has slid to the left). */}
+        <div
+          className="absolute inset-y-0 right-0 flex w-full flex-col justify-center px-[min(7vw,5.5rem)] md:w-[46%]"
+          style={fade(phase === 1 && !ended)}
+        >
+          <h2 className="font-didot text-[clamp(3rem,7vw,6.75rem)] font-normal leading-[0.92] tracking-display text-cream">
+            AQLUMA
+          </h2>
+          <p className="mt-3 font-satoshi text-[clamp(1.05rem,1.7vw,1.5rem)] font-medium leading-snug text-cream/65">
+            {LEAD}
+          </p>
+          <p className="mt-9 max-w-[36ch] font-satoshi text-[clamp(1rem,1.55vw,1.35rem)] leading-relaxed text-cream/90">
+            {THINKER}
+          </p>
+          <p className="mt-5 font-satoshi text-sm uppercase tracking-kicker text-gold">
+            Think with AI.
+          </p>
+        </div>
+      </div>
+
+      {/* Closing CTA — after the brain scatters, this fades in CENTRED over the
+          dispersed cloud of shapes: one Satoshi line + two rectangular buttons
+          (gold + cream, black text). Buttons are click-through-disabled until it
+          actually arrives. */}
+      <div
+        className="absolute inset-0 z-20 flex flex-col items-center justify-center px-6 text-center"
+        style={{ ...fade(ended), pointerEvents: ended ? "auto" : "none" }}
+      >
+        <p className="max-w-[26ch] font-satoshi text-[clamp(1.5rem,3.2vw,2.6rem)] font-medium leading-snug text-cream">
+          Qu’attendez-vous ? Rejoignez notre programme.
+        </p>
+        <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
+          <a
+            href="#briefing"
+            className="rounded-[10px] bg-gold px-8 py-4 font-satoshi text-[13px] font-semibold uppercase tracking-[0.16em] text-void transition-colors duration-300 hover:bg-[#f3c45e]"
+          >
+            Voir le programme
+          </a>
+          <a
+            href="#contact"
+            className="rounded-[10px] bg-cream px-8 py-4 font-satoshi text-[13px] font-semibold uppercase tracking-[0.16em] text-void transition-colors duration-300 hover:bg-white"
+          >
+            Contactez-nous
+          </a>
         </div>
       </div>
     </section>
