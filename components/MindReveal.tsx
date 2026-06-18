@@ -45,9 +45,11 @@ const GHOST = "rgba(247,244,239,0.07)"; // faint impression before/after writing
 
 // Scroll-progress beats.
 const REVEAL_IN = 0.06;
-const REVEAL_OUT = 0.4; // LOST fully written
-const MORPH_IN = 0.5;
-const MORPH_OUT = 0.7; // THINKER fully written
+const REVEAL_OUT = 0.34; // LOST fully written
+const UNWRITE_IN = 0.46; // LOST starts erasing — from the end, in reverse
+const UNWRITE_OUT = 0.6; // LOST fully erased
+const WRITE_IN = 0.6; // THINKER starts writing itself in
+const WRITE_OUT = 0.78; // THINKER fully written
 const END_AT = 0.9; // copy out, CTA in
 
 const clamp01 = (x: number) => (x < 0 ? 0 : x > 1 ? 1 : x);
@@ -121,38 +123,32 @@ export default function MindReveal() {
     const NL = lostModel.total;
     const NT = thinkerModel.total;
 
-    // Drive the written state of both lines from one scroll progress.
-    //  · LOST writes in L→R (REVEAL), holds, then un-writes L→R as the edge passes.
-    //  · THINKER writes in L→R behind that same edge during the MORPH.
-    // Left of the travelling edge reads as THINKER, right of it as LOST → a rewrite.
+    // Handwriting transition, one line at a time (never two texts at once):
+    //  · LOST writes itself in (REVEAL), holds.
+    //  · LOST un-writes — the ink recedes from the END back to the start (reverse).
+    //  · one empty beat, then THINKER writes itself in.
     const applyText = (p: number) => {
-      const rv = clamp01((p - REVEAL_IN) / (REVEAL_OUT - REVEAL_IN)); // 0→1
-      const m = clamp01((p - MORPH_IN) / (MORPH_OUT - MORPH_IN)); // 0→1 (edge position)
+      const rv = clamp01((p - REVEAL_IN) / (REVEAL_OUT - REVEAL_IN)); // writes in
+      const uw = clamp01((p - UNWRITE_IN) / (UNWRITE_OUT - UNWRITE_IN)); // erases (reverse)
+      const wt = clamp01((p - WRITE_IN) / (WRITE_OUT - WRITE_IN)); // writes in
 
       for (let i = 0; i < lost.length; i++) {
         const el = lost[i];
         if (!el) continue;
-        const written = clamp01(rv * NL - i); // fills in L→R
-        const kept = clamp01(i - m * NL + 1); // un-fills L→R as edge passes
+        const written = clamp01(rv * NL - i); // ink lands in reading order
+        const kept = clamp01((1 - uw) * NL - i); // ink recedes from the end first
         el.style.backgroundImage = fillGradient(Math.min(written, kept));
       }
       for (let j = 0; j < think.length; j++) {
         const el = think[j];
         if (!el) continue;
-        el.style.backgroundImage = fillGradient(clamp01(m * NT - j)); // writes behind edge
+        el.style.backgroundImage = fillGradient(clamp01(wt * NT - j));
       }
 
       if (lostBoxRef.current)
-        lostBoxRef.current.style.opacity = String(1 - sstep(0.66, 0.78, p));
+        lostBoxRef.current.style.opacity = String(1 - sstep(0.58, 0.62, p));
       if (thinkerBoxRef.current)
-        thinkerBoxRef.current.style.opacity = String(sstep(0.46, 0.56, p));
-      if (scanRef.current) {
-        // Soft gold light-pass riding the rewrite edge; only lit during the morph.
-        scanRef.current.style.left = `${m * 100}%`;
-        scanRef.current.style.opacity = String(
-          sstep(0.49, 0.54, p) * (1 - sstep(0.66, 0.72, p)),
-        );
-      }
+        thinkerBoxRef.current.style.opacity = String(sstep(0.6, 0.64, p));
     };
 
     const ctx = gsap.context(() => {

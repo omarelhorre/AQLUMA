@@ -170,7 +170,7 @@ export default function Header() {
             data-cal-config={CAL_CONFIG}
             className="group/cta inline-flex items-center gap-2 rounded-full bg-cream px-5 py-2.5 font-satoshi text-[12.5px] font-semibold tracking-tight text-void outline-none transition-all duration-300 ease-editorial hover:-translate-y-[1px] hover:bg-white hover:shadow-[0_12px_30px_-8px_rgba(247,244,239,0.45)] focus-visible:ring-2 focus-visible:ring-cream/40"
           >
-            Prenez l’initiative
+            Réserver un appel gratuit
             <svg
               width="13"
               height="13"

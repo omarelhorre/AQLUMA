@@ -5,6 +5,7 @@ import SmoothScroll from "@/components/SmoothScroll";
 import Grain from "@/components/Grain";
 import Cursor from "@/components/Cursor";
 import ContactModal from "@/components/ContactModal";
+import ProgramModal from "@/components/ProgramModal";
 import CalInit from "@/components/CalInit";
 
 const DESCRIPTION =
@@ -58,6 +59,7 @@ export default function RootLayout({
         <Grain />
         <Cursor />
         <ContactModal />
+        <ProgramModal />
         <CalInit />
       </body>
     </html>

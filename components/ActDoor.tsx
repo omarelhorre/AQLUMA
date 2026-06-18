@@ -183,17 +183,17 @@ export default function ActDoor() {
 
       <div className="pointer-events-none absolute inset-0 z-20">
 
-        {/* Line 1 — on load (left), with the contact CTA (opens the modal). */}
+        {/* Line 1 — on load (left), with the programme CTA (opens the form modal). */}
         <Beat side="left" innerRef={line1Ref} initialOpacity={reduced ? 0 : 1}>
           <p className="font-didot text-[clamp(1.7rem,3.6vw,3.2rem)] leading-[1.12] tracking-[-0.015em] text-cream">
             Bienvenu chez AQLUMA.
           </p>
           <button
             type="button"
-            onClick={() => window.dispatchEvent(new CustomEvent("aqluma:contact"))}
+            onClick={() => window.dispatchEvent(new CustomEvent("aqluma:program"))}
             className="group/cta pointer-events-auto mt-8 inline-flex items-center gap-2 rounded-full bg-cream px-6 py-3 font-satoshi text-[13px] font-semibold tracking-tight text-void outline-none transition-all duration-300 ease-editorial hover:-translate-y-[1px] hover:bg-white hover:shadow-[0_12px_30px_-8px_rgba(247,244,239,0.45)] focus-visible:ring-2 focus-visible:ring-cream/40"
           >
-            Contactez-nous
+            Demander le programme
             <svg
               width="13"
               height="13"
