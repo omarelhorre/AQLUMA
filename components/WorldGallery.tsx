@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useReducedMotion } from "@/lib/useReducedMotion";
+import { fr } from "@/lib/typo";
 import RunwayRule, { type RunwayRuleHandle } from "./RunwayRule";
 
 /**
@@ -96,11 +97,11 @@ function Caption({ b, tone, total }: { b: GalleryBlock; tone: "dark" | "light"; 
         />
       </span>
       <h2
-        className={`font-didot leading-[1.04] tracking-display ${titleC} ${
+        className={`font-didot leading-[1.08] tracking-[-0.02em] ${titleC} ${
           wide ? "text-[clamp(2.8rem,4.6vw,5.4rem)]" : "text-[clamp(2.6rem,4.4vw,4.9rem)]"
         }`}
       >
-        {b.title}
+        {fr(b.title)}
       </h2>
       <p
         className={`font-satoshi leading-relaxed ${bodyC} ${
@@ -109,7 +110,7 @@ function Caption({ b, tone, total }: { b: GalleryBlock; tone: "dark" | "light"; 
             : "mt-5 text-[clamp(1.1rem,1.5vw,1.55rem)]"
         } ${b.noteClass ?? (wide ? "max-w-[34ch]" : "max-w-[28ch]")}`}
       >
-        {b.note}
+        {fr(b.note)}
       </p>
     </div>
   );

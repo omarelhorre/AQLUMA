@@ -107,7 +107,7 @@ export default function ContactModal() {
         >
           ×
         </button>
-        <h3 className="font-didot text-[clamp(1.6rem,3vw,2.2rem)] font-normal text-cream">
+        <h3 className="font-didot text-[clamp(1.6rem,3vw,2.2rem)] font-normal tracking-[-0.01em] text-cream">
           Suivez-nous
         </h3>
         <p className="mx-auto mt-3 max-w-[28ch] font-satoshi text-[0.95rem] leading-relaxed text-cream/60">

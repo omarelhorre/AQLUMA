@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useReducedMotion } from "@/lib/useReducedMotion";
+import { fr } from "@/lib/typo";
 
 // Descriptive adjectives completing "…apprend à devenir." — scattered on the
 // right with a little jitter in position + scale so they don't read as a list.
@@ -184,7 +185,7 @@ export default function ActDoor() {
 
         {/* Line 1 — on load (left), with the contact CTA (opens the modal). */}
         <Beat side="left" innerRef={line1Ref} initialOpacity={reduced ? 0 : 1}>
-          <p className="font-didot text-[clamp(1.7rem,3.6vw,3.2rem)] leading-[1.12] tracking-display text-cream">
+          <p className="font-didot text-[clamp(1.7rem,3.6vw,3.2rem)] leading-[1.12] tracking-[-0.015em] text-cream">
             Bienvenu chez AQLUMA.
           </p>
           <button
@@ -228,11 +229,11 @@ export default function ActDoor() {
                   line.kind === "kicker"
                     ? "mb-5 font-satoshi text-[clamp(0.72rem,0.95vw,0.85rem)] font-bold uppercase tracking-kicker text-gold will-change-[transform,opacity,filter]"
                     : line.kind === "head"
-                      ? "block font-didot text-[clamp(2.4rem,5.6vw,5rem)] font-normal leading-[1.02] tracking-display text-cream will-change-[transform,opacity,filter]"
+                      ? "block font-didot text-[clamp(2.4rem,5.6vw,5rem)] font-normal leading-[1.06] tracking-[-0.02em] text-cream will-change-[transform,opacity,filter]"
                       : "ml-auto mt-7 max-w-[44ch] font-satoshi text-[clamp(0.95rem,1.3vw,1.2rem)] font-normal leading-relaxed text-cream/70 will-change-[transform,opacity,filter]"
                 }
               >
-                {line.text}
+                {fr(line.text)}
               </p>
             ))}
           </div>
@@ -240,7 +241,7 @@ export default function ActDoor() {
 
         {/* Line 2 — editorial two-line treatment (left) */}
         <Beat side="left" innerRef={line2Ref} initialOpacity={0}>
-          <p className="font-didot leading-[1.12] tracking-display">
+          <p className="font-didot leading-[1.16] tracking-[-0.015em]">
             <span className="block text-[clamp(1rem,2vw,1.6rem)] text-cream/50">
               Ici, votre adolescent
             </span>
@@ -263,7 +264,7 @@ export default function ActDoor() {
               right: t.right,
               fontSize: t.size,
             }}
-            className="absolute font-didot leading-[1.04] tracking-display text-cream will-change-[transform,opacity,filter]"
+            className="absolute font-didot leading-[1.04] tracking-[-0.015em] text-cream will-change-[transform,opacity,filter]"
           >
             {t.word}
           </div>
@@ -272,12 +273,12 @@ export default function ActDoor() {
         {/* Climax — AQLUMA in brand clay/orange (left) */}
         <Beat side="left" innerRef={climaxRef} initialOpacity={reduced ? 1 : 0}>
           <span
-            className="block font-didot text-[clamp(2.9rem,7.4vw,6.2rem)] font-normal leading-[0.96] tracking-display"
+            className="block font-didot text-[clamp(2.9rem,7.4vw,6.2rem)] font-normal leading-[1.0] tracking-[-0.025em]"
             style={{ color: "#C9612E" }}
           >
             AQLUMA
           </span>
-          <span className="mt-3 block font-didot text-[clamp(1.4rem,3vw,2.4rem)] leading-tight tracking-display text-cream/70">
+          <span className="mt-3 block font-didot text-[clamp(1.4rem,3vw,2.4rem)] leading-tight tracking-[-0.01em] text-cream/70">
             est là pour ça.
           </span>
         </Beat>

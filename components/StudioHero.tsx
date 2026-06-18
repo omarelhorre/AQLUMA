@@ -5,6 +5,7 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { lazyPreloadVideo } from "@/lib/lazyVideo";
+import { fr } from "@/lib/typo";
 
 /**
  * LE STUDIO — Hero (the hook before the Studio pan).
@@ -68,7 +69,7 @@ export default function StudioHero() {
   const model = useMemo(() => {
     let idx = 0;
     const lines = LINES.map((line) => {
-      const words = line.split(" ").map((word) => {
+      const words = fr(line).split(" ").map((word) => {
         const fill = ACCENT.test(word) ? FILL_ACCENT : FILL;
         const chars = [...word].map((ch) => ({ ch, fill, i: idx++ }));
         return { chars };
@@ -236,7 +237,7 @@ export default function StudioHero() {
           />
         </div>
 
-        <h2 className="font-didot text-[clamp(1.6rem,3.9vw,3.35rem)] font-normal leading-[1.2] tracking-display">
+        <h2 className="font-didot text-[clamp(1.6rem,3.9vw,3.35rem)] font-normal leading-[1.2] tracking-[-0.018em]">
           {model.lines.map((line, li) => (
             <span
               key={li}

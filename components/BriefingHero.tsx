@@ -5,6 +5,7 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { lazyPreloadVideo } from "@/lib/lazyVideo";
+import { fr } from "@/lib/typo";
 
 /**
  * BRIEFING — Hero (entry to Act II).
@@ -67,7 +68,7 @@ export default function BriefingHero() {
   const model = useMemo(() => {
     let idx = 0;
     const lines = [LINE_A, LINE_B].map((line) => {
-      const words = line.split(" ").map((word) => {
+      const words = fr(line).split(" ").map((word) => {
         const fill = ACCENT.test(word) ? FILL_ACCENT : FILL;
         const chars = [...word].map((ch) => ({ ch, fill, i: idx++ }));
         return { chars };
@@ -243,7 +244,7 @@ export default function BriefingHero() {
           />
         </div>
 
-        <h2 className="font-didot text-[clamp(1.7rem,4.4vw,3.75rem)] font-normal leading-[1.18] tracking-display">
+        <h2 className="font-didot text-[clamp(1.7rem,4.4vw,3.75rem)] font-normal leading-[1.18] tracking-[-0.018em]">
           {model.lines.map((line, li) => (
             <span
               key={li}

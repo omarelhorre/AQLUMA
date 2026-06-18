@@ -5,6 +5,7 @@ import type * as THREE_NS from "three";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useReducedMotion } from "@/lib/useReducedMotion";
+import { fr } from "@/lib/typo";
 
 /**
  * PHASE 4.5 — L'esprit (the reveal after the Musée panorama).
@@ -1075,14 +1076,14 @@ export default function MindReveal() {
           className="absolute inset-y-0 left-0 flex w-full flex-col justify-center px-[min(7vw,5.5rem)] md:w-[46%]"
           style={fade(phase === 0 && !ended)}
         >
-          <h2 className="font-didot text-[clamp(3rem,7vw,6.75rem)] font-normal leading-[0.92] tracking-display text-cream">
+          <h2 className="font-didot text-[clamp(3rem,7vw,6.75rem)] font-normal leading-[0.92] tracking-[-0.02em] text-cream">
             AQLUMA
           </h2>
           <p className="mt-3 font-satoshi text-[clamp(1.05rem,1.7vw,1.5rem)] font-medium leading-snug text-cream/65">
             {LEAD}
           </p>
           <p className="mt-9 max-w-[36ch] font-satoshi text-[clamp(1rem,1.55vw,1.35rem)] leading-relaxed text-cream/80">
-            {LOST}
+            {fr(LOST)}
           </p>
         </div>
 
@@ -1092,14 +1093,14 @@ export default function MindReveal() {
           className="absolute inset-y-0 right-0 flex w-full flex-col justify-center px-[min(7vw,5.5rem)] md:w-[46%]"
           style={fade(phase === 1 && !ended)}
         >
-          <h2 className="font-didot text-[clamp(3rem,7vw,6.75rem)] font-normal leading-[0.92] tracking-display text-cream">
+          <h2 className="font-didot text-[clamp(3rem,7vw,6.75rem)] font-normal leading-[0.92] tracking-[-0.02em] text-cream">
             AQLUMA
           </h2>
           <p className="mt-3 font-satoshi text-[clamp(1.05rem,1.7vw,1.5rem)] font-medium leading-snug text-cream/65">
             {LEAD}
           </p>
           <p className="mt-9 max-w-[36ch] font-satoshi text-[clamp(1rem,1.55vw,1.35rem)] leading-relaxed text-cream/90">
-            {THINKER}
+            {fr(THINKER)}
           </p>
         </div>
       </div>
@@ -1113,7 +1114,7 @@ export default function MindReveal() {
         style={{ ...fade(ended), pointerEvents: ended ? "auto" : "none" }}
       >
         <p className="max-w-[26ch] font-satoshi text-[clamp(1.5rem,3.2vw,2.6rem)] font-medium leading-snug text-cream">
-          Qu’attendez-vous ? Rejoignez notre programme.
+          {fr("Qu’attendez-vous ? Rejoignez notre programme.")}
         </p>
         <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
           <a
