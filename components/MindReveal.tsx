@@ -16,6 +16,15 @@ import { useReducedMotion } from "@/lib/useReducedMotion";
  * kept SMALL with space between them, so the brain's PROFILE reads through the
  * negative space instead of packing into a solid, ball-like clump (the old bug).
  *
+ * SURFACE DETAIL (what makes it read as a BRAIN, not a lump): the model's gyri/sulci
+ * convolutions live in its NORMAL + DIFFUSE maps, NOT its low-poly geometry. At load
+ * we sample those maps per facet (via the point's UV through the mesh's TBN) and bake
+ * a fold-accurate surface normal + luminance into each point; the shader then LIGHTS
+ * that normal with a fixed key light so ridges catch light and the deep sulci fall
+ * into shadow — the convolutions read in relief and the brain is unmistakable. (The
+ * .glb is a surface shell, so there are no internal ventricles to draw — the folded
+ * cortical surface + cerebellum is what carries the anatomy.)
+ *
  * Critical for legibility: the brain is auto-oriented to a PROFILE view from its
  * bounding-box extents (largest extent → horizontal, smallest → vertical, view
  * down the middle axis), so the classic brain silhouette + stem read clearly.
@@ -91,6 +100,8 @@ const VERT = /* glsl */ `
   attribute vec3 aScatter;  // fly-in origin
   attribute vec3 aRandom;   // per-facet seeds
   attribute vec3 aColor;    // per-facet brand colour (linear)
+  attribute vec3 aNormal;   // baked surface normal WITH normal-map fold detail (gyri/sulci)
+  attribute float aLum;     // diffuse-map luminance at this point (painted fold contrast)
 
   varying vec3 vColor;
   varying vec3 vBary;
@@ -221,7 +232,7 @@ const VERT = /* glsl */ `
     float sv = pow(aRandom.y, 1.7);
     // BRAIN pose: small, varied shards thinned toward the interior so the PROFILE
     // reads through the negative space (unchanged).
-    float sBrain = (0.5 + sv * 0.85) * mix(0.56, 1.0, smoothstep(0.05, 0.55, restEdge));
+    float sBrain = (0.5 + sv * 0.85) * mix(0.72, 1.0, smoothstep(0.05, 0.55, restEdge));
     // SCATTERED field: a tighter size range with a higher floor so EVERY shard
     // reads as a clean, detailed triangle (dala-style) — not a few giants among
     // dots. Blend brain → scatter sizing by uScatter.
@@ -245,6 +256,19 @@ const VERT = /* glsl */ `
     float frontW = mix(0.18, 1.0, facing) + rim * 0.35;
     float shade = mix(0.82, 1.14, depthF);
 
+    // FOLD RELIEF — the gyri/sulci that say "brain" live in the model's NORMAL MAP,
+    // baked per facet into aNormal at load (tangent-space map → world via the mesh
+    // TBN). Light that detailed normal with a fixed key light so ridges catch light
+    // and the deep sulci drop into shadow: this is the single lever that turns a
+    // smooth lobe into a convoluted brain. Rotate the baked normal with the SAME
+    // flip+spin as the cloud (ca/sa) so the relief tracks the pose as it turns.
+    vec3 nLit = vec3(ca * aNormal.x + sa * aNormal.z, aNormal.y, -sa * aNormal.x + ca * aNormal.z);
+    float keyL = clamp(dot(nLit, normalize(vec3(-0.35, 0.5, 0.78))), 0.0, 1.0);
+    float foldLight = 0.66 + 0.58 * keyL;       // ambient floor → lit gyri push into bloom
+    foldLight = mix(foldLight, 1.0, uScatter);  // scattered shards aren't surface-shaded
+    // Painted gyri/sulci contrast from the diffuse map (aLum) — kept subtle, brain only.
+    float surf = mix(0.82 + 0.36 * aLum, 1.0, uScatter);
+
     // SCATTERED DEPTH — read the cloud in real 3D: fade + dim each shard by its TRUE
     // camera depth (far shards sit back, gauzy; near shards lead, crisp) and give
     // every shard its own base opacity so the field is a mix of faint and bright —
@@ -254,7 +278,7 @@ const VERT = /* glsl */ `
     float scatterFade = mix(0.16, 1.0, depthCam) * baseAlpha;
     float scatterDim = mix(0.6, 1.18, depthCam);          // far reads darker, near hotter
 
-    float brightness = (0.92 + 0.30 * aRandom.z) * shade * frontW * (1.0 + ptScatter * 0.9);
+    float brightness = (0.92 + 0.30 * aRandom.z) * shade * frontW * foldLight * surf * (1.0 + ptScatter * 0.9);
     brightness = mix(brightness, brightness * scatterDim, uScatter);
     vColor = mix(vec3(0.97, 0.96, 0.94), aColor, uColorMix) * brightness;
 
@@ -309,14 +333,23 @@ const BG_FRAG = /* glsl */ `
 // see below) rather than one-per-face. Decoupling count from the mesh lets us dial
 // density directly. dala reads DENSE (the brain's form comes from point density,
 // pointillist) but textured — so we want many SMALL hollow shards with gaps, not a
-// sparse handful (too sparse and the shape doesn't render). ~5.5k small shards
-// keeps clear negative space between them while the profile still reads.
-const TARGET_COUNT = 4000;
+// sparse handful (too sparse and the shape doesn't render). ~5.4k small shards
+// keeps clear negative space between them while the profile still reads — and gives
+// the fold lighting enough resolution to render the gyri/sulci convolutions.
+const TARGET_COUNT = 5400;
+
+// Fold-detail bake tuning. NORMAL_STRENGTH blends the normal-map-perturbed normal
+// toward the smooth geometry normal (1 = full map detail; lower tempers the sparkle
+// into smoother folds). NORMAL_GREEN flips the map's green channel if the relief
+// reads inverted (glTF authors +Y/OpenGL, so default +1 — set -1 for DirectX maps).
+const NORMAL_STRENGTH = 0.9;
+const NORMAL_GREEN = 1;
 // Facet triangle radius (object space, before per-facet scale). Kept tiny — a
 // shard, not a panel — so even at this count neighbours leave gaps (hollow
 // outlines) and the texture stays airy instead of a solid ball. Smaller now that
 // each mark is a 3D pyramid (the apex adds bulk), so the brain profile still reads.
-const R = 0.013;
+// Trimmed a touch at the higher count so neighbours still leave gaps (airy, not solid).
+const R = 0.0122;
 // Apex height — the "head" that lifts each mark off the surface so it reads as a
 // little 3D pyramid (height + a point), not a flat plate. Tall enough to read as a
 // spike, but kept modest so the apexes don't fluff the silhouette into a ball.
@@ -493,45 +526,160 @@ export default function MindReveal() {
       };
 
       const loader = new GLTFLoader();
-      loader.load("/models/brain.glb", (gltf) => {
+      loader.load("/models/brain.glb", async (gltf) => {
         if (disposed) return;
         gltf.scene.updateMatrixWorld(true);
 
         // Collect EVERY mesh, bake each one's world transform into its verts, and
-        // concatenate into one position buffer. Robust to multi-mesh models AND node
+        // concatenate into parallel buffers. Robust to multi-mesh models AND node
         // transforms — so ANY brain .glb dropped in at /models/brain.glb resamples
         // correctly (e.g. a different Sketchfab/Poly model), not just this one.
-        const chunks: Float32Array[] = [];
-        let total = 0;
+        // Alongside POSITION we carry NORMAL, TANGENT and TEXCOORD_0 so the brain's
+        // surface FOLD detail (gyri/sulci — which live in the model's normal map, NOT
+        // its low-poly geometry) can be baked per facet for the relief lighting below.
+        const posChunks: Float32Array[] = [];
+        const nrmChunks: Float32Array[] = [];
+        const uvChunks: Float32Array[] = [];
+        const tanChunks: Float32Array[] = [];
+        let hasNrm = true;
+        let hasUV = true;
+        let hasTan = true;
+        let vtot = 0;
         const tmpV = new THREE.Vector3();
+        const nrmMat = new THREE.Matrix3();
         gltf.scene.traverse((o) => {
           const m = o as THREE_NS.Mesh;
           if (!m.isMesh || !m.geometry) return;
           const ng = m.geometry.index ? m.geometry.toNonIndexed() : m.geometry;
           const p = ng.attributes.position;
-          const arr = new Float32Array(p.count * 3);
+          const nA = ng.attributes.normal;
+          const uA = ng.attributes.uv;
+          const tA = ng.attributes.tangent;
+          nrmMat.getNormalMatrix(m.matrixWorld);
+          const pa = new Float32Array(p.count * 3);
           for (let i = 0; i < p.count; i++) {
             tmpV.set(p.getX(i), p.getY(i), p.getZ(i)).applyMatrix4(m.matrixWorld);
-            arr[i * 3] = tmpV.x;
-            arr[i * 3 + 1] = tmpV.y;
-            arr[i * 3 + 2] = tmpV.z;
+            pa[i * 3] = tmpV.x;
+            pa[i * 3 + 1] = tmpV.y;
+            pa[i * 3 + 2] = tmpV.z;
           }
-          chunks.push(arr);
-          total += arr.length;
+          posChunks.push(pa);
+          if (nA) {
+            const na = new Float32Array(p.count * 3);
+            for (let i = 0; i < p.count; i++) {
+              tmpV.set(nA.getX(i), nA.getY(i), nA.getZ(i)).applyMatrix3(nrmMat).normalize();
+              na[i * 3] = tmpV.x;
+              na[i * 3 + 1] = tmpV.y;
+              na[i * 3 + 2] = tmpV.z;
+            }
+            nrmChunks.push(na);
+          } else hasNrm = false;
+          if (uA) {
+            const ua = new Float32Array(p.count * 2);
+            for (let i = 0; i < p.count; i++) {
+              ua[i * 2] = uA.getX(i);
+              ua[i * 2 + 1] = uA.getY(i);
+            }
+            uvChunks.push(ua);
+          } else hasUV = false;
+          if (tA) {
+            const ta = new Float32Array(p.count * 4);
+            for (let i = 0; i < p.count; i++) {
+              tmpV.set(tA.getX(i), tA.getY(i), tA.getZ(i)).applyMatrix3(nrmMat).normalize();
+              ta[i * 4] = tmpV.x;
+              ta[i * 4 + 1] = tmpV.y;
+              ta[i * 4 + 2] = tmpV.z;
+              ta[i * 4 + 3] = tA.getW(i) || 1;
+            }
+            tanChunks.push(ta);
+          } else hasTan = false;
+          vtot += p.count;
           if (ng !== m.geometry) ng.dispose();
         });
-        if (total === 0) return;
+        if (vtot === 0) return;
 
         // The brain's OWN surface is the particle source. Walk every face once to
         // build an area table, then draw TARGET_COUNT samples weighted by face area
         // so facets land EVENLY across the shell — independent of the mesh's uneven
         // tessellation. Even + sparse spacing is what makes the profile read.
-        const posArr = new Float32Array(total);
-        for (let off = 0, k = 0; k < chunks.length; k++) {
-          posArr.set(chunks[k], off);
-          off += chunks[k].length;
+        const posArr = new Float32Array(vtot * 3);
+        for (let off = 0, k = 0; k < posChunks.length; k++) {
+          posArr.set(posChunks[k], off);
+          off += posChunks[k].length;
         }
+        const nrmArr = hasNrm ? new Float32Array(vtot * 3) : null;
+        if (nrmArr)
+          for (let off = 0, k = 0; k < nrmChunks.length; k++) {
+            nrmArr.set(nrmChunks[k], off);
+            off += nrmChunks[k].length;
+          }
+        const uvArr = hasUV ? new Float32Array(vtot * 2) : null;
+        if (uvArr)
+          for (let off = 0, k = 0; k < uvChunks.length; k++) {
+            uvArr.set(uvChunks[k], off);
+            off += uvChunks[k].length;
+          }
+        const tanArr = hasTan ? new Float32Array(vtot * 4) : null;
+        if (tanArr)
+          for (let off = 0, k = 0; k < tanChunks.length; k++) {
+            tanArr.set(tanChunks[k], off);
+            off += tanChunks[k].length;
+          }
         const faceCount = Math.floor(posArr.length / 9);
+
+        // Decode the model's NORMAL + DIFFUSE textures to CPU pixel buffers so the
+        // surface fold detail can be baked per sampled point (the gyri/sulci are
+        // painted into these maps, not the geometry). getDependency loads textures by
+        // index regardless of material wiring — needed here because this model uses
+        // the legacy KHR_materials_pbrSpecularGlossiness ext, so the diffuse is never
+        // auto-assigned to material.map. Indices per the GLB: 0 = diffuse, 2 = normal.
+        // Any missing piece (texture/UV/tangent) degrades gracefully to geometry-only.
+        const decode = (tex: THREE_NS.Texture | null) => {
+          const img = tex?.image as (CanvasImageSource & { width: number; height: number }) | undefined;
+          if (!img || !img.width) return null;
+          const cv = document.createElement("canvas");
+          cv.width = img.width;
+          cv.height = img.height;
+          const cx = cv.getContext("2d", { willReadFrequently: true });
+          if (!cx) return null;
+          cx.drawImage(img, 0, 0);
+          return { d: cx.getImageData(0, 0, img.width, img.height).data, w: img.width, h: img.height };
+        };
+        const getTex = async (i: number) => {
+          try {
+            return (await gltf.parser.getDependency("texture", i)) as THREE_NS.Texture;
+          } catch {
+            return null;
+          }
+        };
+        const [nrmTex, difTex] = await Promise.all([getTex(2), getTex(0)]);
+        if (disposed) return;
+        const NMAP = hasUV && hasTan && hasNrm ? decode(nrmTex) : null;
+        const DMAP = hasUV ? decode(difTex) : null;
+        type PixMap = { d: Uint8ClampedArray; w: number; h: number };
+        // Bilinear sample → [0,1] rgb into `out`. UVs follow glTF convention (origin
+        // top-left, matching canvas getImageData rows) so no V flip is needed.
+        const sampleTex = (map: PixMap, u: number, v: number, out: number[]) => {
+          u -= Math.floor(u);
+          v -= Math.floor(v);
+          const x = u * (map.w - 1);
+          const y = v * (map.h - 1);
+          const x0 = x | 0;
+          const y0 = y | 0;
+          const x1 = x0 + 1 < map.w ? x0 + 1 : x0;
+          const y1 = y0 + 1 < map.h ? y0 + 1 : y0;
+          const fx = x - x0;
+          const fy = y - y0;
+          const i00 = (y0 * map.w + x0) * 4;
+          const i10 = (y0 * map.w + x1) * 4;
+          const i01 = (y1 * map.w + x0) * 4;
+          const i11 = (y1 * map.w + x1) * 4;
+          for (let c = 0; c < 3; c++) {
+            const top = map.d[i00 + c] * (1 - fx) + map.d[i10 + c] * fx;
+            const bot = map.d[i01 + c] * (1 - fx) + map.d[i11 + c] * fx;
+            out[c] = (top * (1 - fy) + bot * fy) / 255;
+          }
+        };
 
         // Cumulative face-area table → weighted face picking via binary search.
         const cumArea = new Float32Array(faceCount + 1);
@@ -559,15 +707,20 @@ export default function MindReveal() {
         };
 
         const pts: number[] = [];
+        const nrmDetail: number[] = []; // per-point surface normal WITH baked fold detail (model space)
+        const lums: number[] = []; // per-point diffuse luminance (painted fold contrast)
         const cc = new THREE.Vector3();
+        const texRGB = [0, 0, 0];
         for (let i = 0; i < TARGET_COUNT; i++) {
-          const o = pickFace(Math.random()) * 9;
+          const f = pickFace(Math.random());
+          const o = f * 9;
           let a = Math.random();
           let b = Math.random();
           if (a + b > 1) {
             a = 1 - a;
             b = 1 - b;
           }
+          const w0 = 1 - a - b; // barycentric weight of corner 0
           const x = posArr[o] + a * (posArr[o + 3] - posArr[o]) + b * (posArr[o + 6] - posArr[o]);
           const y = posArr[o + 1] + a * (posArr[o + 4] - posArr[o + 1]) + b * (posArr[o + 7] - posArr[o + 1]);
           const z = posArr[o + 2] + a * (posArr[o + 5] - posArr[o + 2]) + b * (posArr[o + 8] - posArr[o + 2]);
@@ -575,6 +728,75 @@ export default function MindReveal() {
           cc.x += x;
           cc.y += y;
           cc.z += z;
+
+          // Interpolated geometry normal at this point (smooth, low-frequency).
+          let gnx = 0;
+          let gny = 0;
+          let gnz = 1;
+          if (nrmArr) {
+            gnx = w0 * nrmArr[o] + a * nrmArr[o + 3] + b * nrmArr[o + 6];
+            gny = w0 * nrmArr[o + 1] + a * nrmArr[o + 4] + b * nrmArr[o + 7];
+            gnz = w0 * nrmArr[o + 2] + a * nrmArr[o + 5] + b * nrmArr[o + 8];
+            const gl = Math.hypot(gnx, gny, gnz) || 1;
+            gnx /= gl;
+            gny /= gl;
+            gnz /= gl;
+          }
+          let nx = gnx;
+          let ny = gny;
+          let nz = gnz;
+          // Perturb the geometry normal by the NORMAL MAP (tangent space → world via
+          // the interpolated TBN) so each facet carries the brain's fine gyri/sulci.
+          if (NMAP && uvArr && tanArr) {
+            const uo = f * 6;
+            const uu = w0 * uvArr[uo] + a * uvArr[uo + 2] + b * uvArr[uo + 4];
+            const vv = w0 * uvArr[uo + 1] + a * uvArr[uo + 3] + b * uvArr[uo + 5];
+            const to = f * 12;
+            let tx = w0 * tanArr[to] + a * tanArr[to + 4] + b * tanArr[to + 8];
+            let ty = w0 * tanArr[to + 1] + a * tanArr[to + 5] + b * tanArr[to + 9];
+            let tz = w0 * tanArr[to + 2] + a * tanArr[to + 6] + b * tanArr[to + 10];
+            const tw = tanArr[to + 3] < 0 ? -1 : 1;
+            // Gram–Schmidt: orthonormalise T against N, then B = (N × T) · handedness.
+            const dNT = gnx * tx + gny * ty + gnz * tz;
+            tx -= gnx * dNT;
+            ty -= gny * dNT;
+            tz -= gnz * dNT;
+            const tl = Math.hypot(tx, ty, tz) || 1;
+            tx /= tl;
+            ty /= tl;
+            tz /= tl;
+            const bx = (gny * tz - gnz * ty) * tw;
+            const by = (gnz * tx - gnx * tz) * tw;
+            const bz = (gnx * ty - gny * tx) * tw;
+            sampleTex(NMAP, uu, vv, texRGB);
+            const sx = texRGB[0] * 2 - 1;
+            const sy = (texRGB[1] * 2 - 1) * NORMAL_GREEN;
+            const sz = texRGB[2] * 2 - 1;
+            const pnx = tx * sx + bx * sy + gnx * sz;
+            const pny = ty * sx + by * sy + gny * sz;
+            const pnz = tz * sx + bz * sy + gnz * sz;
+            const pl = Math.hypot(pnx, pny, pnz) || 1;
+            // Blend back toward the geometry normal so the relief reads as folds, not
+            // per-facet sparkle (NORMAL_STRENGTH = 1 → full map detail).
+            nx = gnx + (pnx / pl - gnx) * NORMAL_STRENGTH;
+            ny = gny + (pny / pl - gny) * NORMAL_STRENGTH;
+            nz = gnz + (pnz / pl - gnz) * NORMAL_STRENGTH;
+            const fl = Math.hypot(nx, ny, nz) || 1;
+            nx /= fl;
+            ny /= fl;
+            nz /= fl;
+          }
+          nrmDetail.push(nx, ny, nz);
+
+          let lum = 0.5;
+          if (DMAP && uvArr) {
+            const uo = f * 6;
+            const uu = w0 * uvArr[uo] + a * uvArr[uo + 2] + b * uvArr[uo + 4];
+            const vv = w0 * uvArr[uo + 1] + a * uvArr[uo + 3] + b * uvArr[uo + 5];
+            sampleTex(DMAP, uu, vv, texRGB);
+            lum = 0.299 * texRGB[0] + 0.587 * texRGB[1] + 0.114 * texRGB[2];
+          }
+          lums.push(lum);
         }
         const ptCount = pts.length / 3;
         cc.multiplyScalar(1 / ptCount);
@@ -616,6 +838,8 @@ export default function MindReveal() {
 
         const tri = makeTetra();
         const offsets = new Float32Array(ptCount * 3);
+        const normals = new Float32Array(ptCount * 3);
+        const lumArr = new Float32Array(ptCount);
         const scatter = new Float32Array(ptCount * 3);
         const random = new Float32Array(ptCount * 3);
         const colors = new Float32Array(ptCount * 3);
@@ -624,6 +848,22 @@ export default function MindReveal() {
           offsets[i * 3] = (pts[i * 3 + aX] - cArr[aX]) / maxR;
           offsets[i * 3 + 1] = (pts[i * 3 + aY] - cArr[aY]) / maxR;
           offsets[i * 3 + 2] = (pts[i * 3 + aZ] - cArr[aZ]) / maxR;
+          // Reorient the baked fold-normal with the SAME axis permutation (it's a
+          // direction → permute components, no centering/scale). Fall back to the
+          // radial direction if the model carried no usable normals.
+          let nX = nrmDetail[i * 3 + aX];
+          let nY = nrmDetail[i * 3 + aY];
+          let nZ = nrmDetail[i * 3 + aZ];
+          if (!hasNrm) {
+            nX = offsets[i * 3];
+            nY = offsets[i * 3 + 1];
+            nZ = offsets[i * 3 + 2];
+          }
+          const nl = Math.hypot(nX, nY, nZ) || 1;
+          normals[i * 3] = nX / nl;
+          normals[i * 3 + 1] = nY / nl;
+          normals[i * 3 + 2] = nZ / nl;
+          lumArr[i] = lums[i];
           // Scatter target = a WIDE field with real, but BOUNDED, depth (dala-style):
           // a broad disc in X/Y plus a controlled Z range so there's a clear sense of
           // foreground vs background (perspective parallax) — without any shard coming
@@ -648,6 +888,8 @@ export default function MindReveal() {
         ibg.setAttribute("position", new THREE.BufferAttribute(tri, 3));
         ibg.setAttribute("aBary", new THREE.BufferAttribute(BARY, 3));
         ibg.setAttribute("aOffset", new THREE.InstancedBufferAttribute(offsets, 3));
+        ibg.setAttribute("aNormal", new THREE.InstancedBufferAttribute(normals, 3));
+        ibg.setAttribute("aLum", new THREE.InstancedBufferAttribute(lumArr, 1));
         ibg.setAttribute("aScatter", new THREE.InstancedBufferAttribute(scatter, 3));
         ibg.setAttribute("aRandom", new THREE.InstancedBufferAttribute(random, 3));
         ibg.setAttribute("aColor", new THREE.InstancedBufferAttribute(colors, 3));
