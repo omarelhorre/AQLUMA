@@ -5,6 +5,7 @@ import SmoothScroll from "@/components/SmoothScroll";
 import Grain from "@/components/Grain";
 import Cursor from "@/components/Cursor";
 import ContactModal from "@/components/ContactModal";
+import CalInit from "@/components/CalInit";
 
 const DESCRIPTION =
   "AQLUMA — méthode, pas outil. Une littératie de l'IA, en français et darija.";
@@ -57,6 +58,7 @@ export default function RootLayout({
         <Grain />
         <Cursor />
         <ContactModal />
+        <CalInit />
       </body>
     </html>
   );

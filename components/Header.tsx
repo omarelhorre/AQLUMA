@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { worlds } from "@/lib/worlds";
 import { smoothScrollTo } from "@/lib/lenis";
+import { CAL_LINK, CAL_CONFIG } from "@/lib/cal";
 
 /**
  * Fixed, ALWAYS-VISIBLE header for the whole journey. It is never transparent:
@@ -49,13 +50,6 @@ export default function Header() {
     if (!enabled) return;
     setOpen(false);
     smoothScrollTo(`#${id}`, { offset: 0 });
-  };
-
-  const goContact = () => {
-    setOpen(false);
-    // Open the contact modal (lives in MindReveal) — broadcast so it works from
-    // anywhere on the page without scrolling to a section.
-    window.dispatchEvent(new CustomEvent("aqluma:contact"));
   };
 
   return (
@@ -167,11 +161,13 @@ export default function Header() {
             </div>
           </div>
 
-          {/* CTA — solid white pill, opens the contact modal. The arrow slides on
-              hover and the button lifts a touch (quiet, premium). */}
+          {/* CTA — solid white pill that opens the cal.com booking popup
+              (data-cal-link, themed in CalInit). The arrow slides on hover and
+              the button lifts a touch (quiet, premium). */}
           <button
             type="button"
-            onClick={goContact}
+            data-cal-link={CAL_LINK}
+            data-cal-config={CAL_CONFIG}
             className="group/cta inline-flex items-center gap-2 rounded-full bg-cream px-5 py-2.5 font-satoshi text-[12.5px] font-semibold tracking-tight text-void outline-none transition-all duration-300 ease-editorial hover:-translate-y-[1px] hover:bg-white hover:shadow-[0_12px_30px_-8px_rgba(247,244,239,0.45)] focus-visible:ring-2 focus-visible:ring-cream/40"
           >
             Prenez l’initiative
