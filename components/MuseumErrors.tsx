@@ -21,28 +21,27 @@ const VOID = "#080A0C";
 // tied to its object, so they stay put on screen regardless of pan direction.
 const BLOCKS: GalleryBlock[] = [
   {
-    n: 1, // tableau encadré (centré en premier) — texte (taille normale) dans le vide sombre à GAUCHE du cadre
-    fx: 0.12,
-    left: "-4%",
-    v: { top: "48%" },
-    noteClass: "max-w-[50ch]", // wider pocket → reads on ~2 lines, not 4
+    n: 1, // tableau encadré (à gauche, fx≈0.19) — texte dans le grand vide sombre à DROITE du cadre
+    fx: 0.19,
+    left: "26%",
+    v: { top: "38%" },
     title: "La source qui n’existe pas.",
     note: "Une référence parfaite en apparence — un titre, un auteur, une année — sans jamais en avoir la réalité.",
   },
   {
-    n: 2, // socle + tablette — texte en grand dans le grand vide sombre à gauche de l’écran
+    n: 2, // socle + tablette (centre, fx≈0.50) — texte sur le mur vide À GAUCHE du socle
     fx: 0.50,
-    left: "22%",
-    v: { top: "24%" },
+    left: "25%",
+    v: { top: "26%" },
     wide: true,
     title: "Le ton ne tremble jamais.",
     note: "Juste ou faux, la réponse garde exactement la même voix : posée, assurée, sans la moindre hésitation. Le ton sûr n’est pas une preuve — la fluidité n’est pas la fiabilité.",
   },
   {
-    n: 3, // livre + théière (centré en dernier) — texte en grand, fully on-screen, dans le vide sombre en haut à gauche
-    fx: 0.87,
-    left: "62%",
-    v: { top: "22%" },
+    n: 3, // table + théière (à droite, fx≈0.83) — texte sur le mur vide À GAUCHE de la table
+    fx: 0.83,
+    left: "57%",
+    v: { top: "26%" },
     wide: true,
     title: "Le calcul élégant et faux.",
     note: "Des étapes claires, une présentation propre, une conclusion nette — et une seule erreur glissée au milieu, que l’élégance rend presque invisible. La beauté d’une démonstration ne prouve rien.",

@@ -41,8 +41,11 @@ const DESC: IntroLine[] = [
 const BLUR_HIDDEN = { opacity: 0, filter: "blur(14px)", y: 22 };
 const BLUR_SHOWN  = { opacity: 1, filter: "blur(0px)",  y: 0  };
 
-// Door stays frozen on frame 0 for the whole text sequence, then opens here.
+// Timeline position (seconds) where the climax dissolve completes.
 const DOOR_START = 0.78;
+// Timeline position where the video begins — a clear beat AFTER the climax text
+// has fully dissolved, so the screen is empty before the clip plays.
+const VIDEO_START = 0.86;
 
 export default function ActDoor() {
   const sectionRef = useRef<HTMLDivElement>(null);
@@ -63,6 +66,8 @@ export default function ActDoor() {
     if (!section) return;
 
     gsap.registerPlugin(ScrollTrigger);
+    // Scroll drives the video: it's paused and SEEKED per frame. The clip is encoded
+    // all-intra (every frame a keyframe) so this scrubbing stays smooth at full quality.
     if (video) video.pause();
 
     const items = itemsRef.current.filter(Boolean) as HTMLDivElement[];
@@ -89,12 +94,6 @@ export default function ActDoor() {
           pin: true,
           scrub: true,
           invalidateOnRefresh: true,
-          onUpdate(self) {
-            if (!seek || !video || !video.duration) return;
-            const p  = self.progress;
-            const vp = p <= DOOR_START ? 0 : (p - DOOR_START) / (1 - DOOR_START);
-            seek(vp * video.duration);
-          },
         },
       });
 
@@ -130,6 +129,25 @@ export default function ActDoor() {
       //    DOOR_START so nothing lingers over the very first opening frame.
       reveal(climaxRef.current, 0.64, 0.05);
       dissolve(climaxRef.current, DOOR_START - 0.06, 0.06);
+
+      // ── The opening video ── scrubbed ON THE TIMELINE (same clock as the text),
+      //    so it can only begin once the climax dissolve has fully completed
+      //    (VIDEO_START, a beat past DOOR_START). A proxy carries the playhead.
+      if (seek && video) {
+        const proxy = { t: 0 };
+        tl.to(
+          proxy,
+          {
+            t: 1,
+            duration: 0.7,
+            ease: "none",
+            onUpdate: () => {
+              if (video.duration) seek(proxy.t * video.duration);
+            },
+          },
+          VIDEO_START
+        );
+      }
     }, section);
 
     return () => ctx.revert();
@@ -144,8 +162,8 @@ export default function ActDoor() {
       <video
         ref={videoRef}
         className="absolute inset-0 h-full w-full object-cover"
-        src="/video/door.mp4"
-        poster="/video/door-poster.jpg"
+        src="/video/opening.mp4"
+        poster="/video/opening-poster.jpg"
         muted
         playsInline
         preload="auto"
@@ -164,11 +182,34 @@ export default function ActDoor() {
 
       <div className="pointer-events-none absolute inset-0 z-20">
 
-        {/* Line 1 — on load (left) */}
+        {/* Line 1 — on load (left), with the contact CTA (opens the modal). */}
         <Beat side="left" innerRef={line1Ref} initialOpacity={reduced ? 0 : 1}>
           <p className="font-didot text-[clamp(1.7rem,3.6vw,3.2rem)] leading-[1.12] tracking-display text-cream">
             Bienvenu chez AQLUMA.
           </p>
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent("aqluma:contact"))}
+            className="group/cta pointer-events-auto mt-8 inline-flex items-center gap-2 rounded-full bg-cream px-6 py-3 font-satoshi text-[13px] font-semibold tracking-tight text-void outline-none transition-all duration-300 ease-editorial hover:-translate-y-[1px] hover:bg-white hover:shadow-[0_12px_30px_-8px_rgba(247,244,239,0.45)] focus-visible:ring-2 focus-visible:ring-cream/40"
+          >
+            Contactez-nous
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 14 14"
+              aria-hidden
+              className="translate-x-0 transition-transform duration-300 ease-editorial group-hover/cta:translate-x-[3px]"
+            >
+              <path
+                d="M2.5 7h9M8 3.5L11.5 7 8 10.5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
         </Beat>
 
         {/* Right-hand intro — Dala hierarchy (gold kicker → stacked Satoshi-black

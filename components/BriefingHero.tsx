@@ -4,6 +4,7 @@ import { useMemo, useRef, useEffect } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useReducedMotion } from "@/lib/useReducedMotion";
+import { lazyPreloadVideo } from "@/lib/lazyVideo";
 
 /**
  * BRIEFING — Hero (entry to Act II).
@@ -89,6 +90,7 @@ export default function BriefingHero() {
     gsap.registerPlugin(ScrollTrigger);
     const video = videoRef.current;
     if (video) video.pause();
+    const stopLazy = lazyPreloadVideo(section, video);
 
     const total = model.total;
     const applyFill = (g: number) => {
@@ -151,7 +153,10 @@ export default function BriefingHero() {
       tl.to(washRef.current, { yPercent: 0, ease: "power3.inOut", duration: 0.2 }, 0.8);
     }, section);
 
-    return () => ctx.revert();
+    return () => {
+      stopLazy();
+      ctx.revert();
+    };
   }, [reduced, model, fills]);
 
   return (
@@ -175,7 +180,7 @@ export default function BriefingHero() {
           poster="/video/briefing-hook-poster.jpg"
           muted
           playsInline
-          preload="auto"
+          preload="metadata"
           tabIndex={-1}
         />
       </div>

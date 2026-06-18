@@ -33,11 +33,6 @@ export default function Home() {
         <StudioHero />
         <StudioReveal />
         <MindReveal />
-        <footer id="contact" className="flex h-[34vh] items-center justify-center bg-void">
-          <p className="font-satoshi text-[11px] tracking-tight text-cream/35">
-            AQLUMA — © {new Date().getFullYear()}
-          </p>
-        </footer>
       </main>
     </>
   );

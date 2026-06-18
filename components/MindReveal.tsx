@@ -143,6 +143,19 @@ const VERT = /* glsl */ `
     float spread = snoise(aOffset * 3.5 + uTime * 0.06) * 0.005;
     center += normalize(aOffset + 0.001) * spread * form;
 
+    // SCATTERED FIELD — keep it ALIVE: a slow, per-shard 3D drift (noise-driven),
+    // strongest in Z so the cloud floats through DEPTH (foreground/background
+    // parallax) instead of sitting frozen. Each shard rides its own low-frequency
+    // current. Gated by uScatter so the assembled brain is never disturbed.
+    float dT = uTime * 0.10;
+    vec3 dSeed = aScatter * 0.5 + aRandom * 9.0;
+    vec3 drift = vec3(
+      snoise(dSeed + vec3(dT, 0.0, 4.0)),
+      snoise(dSeed + vec3(0.0, dT * 0.8, 8.0)),
+      snoise(dSeed + vec3(0.0, 0.0, dT * 1.3))
+    );
+    center += drift * vec3(0.22, 0.20, 0.65) * uScatter;
+
     // Y-axis rotation of the whole cloud: scroll flip + slow perpetual idle spin.
     // Done here (not on the group) so uMouse stays valid in local space.
     float ang = uFlip + uSpin;
@@ -231,10 +244,22 @@ const VERT = /* glsl */ `
     float depthF = clamp(center.z * 0.5 + 0.5, 0.0, 1.0);
     float frontW = mix(0.18, 1.0, facing) + rim * 0.35;
     float shade = mix(0.82, 1.14, depthF);
+
+    // SCATTERED DEPTH — read the cloud in real 3D: fade + dim each shard by its TRUE
+    // camera depth (far shards sit back, gauzy; near shards lead, crisp) and give
+    // every shard its own base opacity so the field is a mix of faint and bright —
+    // never a flat, evenly-lit wall. Only engaged as the field scatters (uScatter).
+    float depthCam = smoothstep(-2.8, 2.2, center.z);     // 0 far → 1 near
+    float baseAlpha = 0.40 + 0.60 * aRandom.x;            // per-shard density
+    float scatterFade = mix(0.16, 1.0, depthCam) * baseAlpha;
+    float scatterDim = mix(0.6, 1.18, depthCam);          // far reads darker, near hotter
+
     float brightness = (0.92 + 0.30 * aRandom.z) * shade * frontW * (1.0 + ptScatter * 0.9);
+    brightness = mix(brightness, brightness * scatterDim, uScatter);
     vColor = mix(vec3(0.97, 0.96, 0.94), aColor, uColorMix) * brightness;
 
-    vFade = (0.30 + 0.70 * form) * (mix(0.32, 1.0, facing) + rim * 0.3);
+    float assembledFade = (0.30 + 0.70 * form) * (mix(0.32, 1.0, facing) + rim * 0.3);
+    vFade = mix(assembledFade, scatterFade, uScatter);
 
     gl_Position = projectionMatrix * modelViewMatrix * vec4(finalPos, 1.0);
   }
@@ -331,7 +356,6 @@ export default function MindReveal() {
   const reduced = useReducedMotion();
   const [phase, setPhase] = useState(0); // 0 = lost adolescent, 1 = thinker
   const [ended, setEnded] = useState(false); // after the scatter: copy out, CTA in
-
   useEffect(() => {
     const canvas = canvasRef.current;
     const section = sectionRef.current;
@@ -607,10 +631,10 @@ export default function MindReveal() {
           // front of the camera plane (z=5 after the group scale) so the biggest ones
           // read as foreground, not giants.
           const ang = Math.random() * Math.PI * 2;
-          const rad = Math.sqrt(Math.random()) * 3.1;
-          scatter[i * 3] = Math.cos(ang) * rad * 1.6; // wider in X to fill the frame
+          const rad = Math.sqrt(Math.random()) * 4.1; // wider field → more air between shards
+          scatter[i * 3] = Math.cos(ang) * rad * 1.7; // wider in X to fill the frame
           scatter[i * 3 + 1] = Math.sin(ang) * rad;
-          scatter[i * 3 + 2] = (Math.random() - 0.5) * 3.2 - 0.2; // depth: ~ -1.8 .. +1.4
+          scatter[i * 3 + 2] = (Math.random() - 0.5) * 4.8 - 0.2; // deeper Z spread for parallax
           random[i * 3] = Math.random();
           random[i * 3 + 1] = Math.random();
           random[i * 3 + 2] = Math.random();
@@ -681,16 +705,18 @@ export default function MindReveal() {
         const grow = isNarrow ? 0 : baseRadius * (g - 1);
         const sx = startX - grow; // right anchor pulled inward as it grows
         const ex = endX + grow; // left anchor pulled inward as it grows
-        // Ease the brain across only when the swap window opens (held until ~0.5),
-        // then recentre the cloud as it scatters (the closing CTA is centred, so the
-        // dispersed field should fill the frame evenly behind it).
-        const scat = uniforms.uScatter.value as number;
-        const targetX = (sx + (ex - sx) * scrollShift) * (1 - scat);
+        // Ease the brain across only when the swap window opens (held until ~0.5).
+        // It then scatters IN PLACE — no recentring — so at the final transition it
+        // never slides back toward the middle; the field disperses where the brain sat.
+        const targetX = sx + (ex - sx) * scrollShift;
         brainX += (targetX - brainX) * 0.09;
-        group.position.x = brainX + parX * 0.12;
-        group.position.y = baseY + parY * 0.12;
-        group.rotation.y = parX * 0.16;
-        group.rotation.x = -parY * 0.12;
+        // Ease the pointer parallax DOWN as the field scatters — once dispersed the
+        // closing CTA leads, so the cloud should drift only faintly behind it.
+        const par = 1 - 0.8 * (uniforms.uScatter.value as number);
+        group.position.x = brainX + parX * 0.12 * par;
+        group.position.y = baseY + parY * 0.12 * par;
+        group.rotation.y = parX * 0.16 * par;
+        group.rotation.x = -parY * 0.12 * par;
         (uniforms.uMouse.value as THREE_NS.Vector2).lerp(mouseTarget, 0.08);
         composer.render();
         raf = requestAnimationFrame(tick);
@@ -854,12 +880,13 @@ export default function MindReveal() {
           >
             Voir le programme
           </a>
-          <a
-            href="#contact"
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent("aqluma:contact"))}
             className="rounded-[10px] bg-cream px-8 py-4 font-satoshi text-[13px] font-semibold uppercase tracking-[0.16em] text-void transition-colors duration-300 hover:bg-white"
           >
             Contactez-nous
-          </a>
+          </button>
         </div>
       </div>
     </section>
