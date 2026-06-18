@@ -7,6 +7,7 @@ import MuseumErrors from "@/components/MuseumErrors";
 import StudioHero from "@/components/StudioHero";
 import StudioReveal from "@/components/StudioReveal";
 import MindReveal from "@/components/MindReveal";
+import FAQ from "@/components/FAQ";
 
 /**
  * AQLUMA landing — one shared scroll journey (§0).
@@ -19,6 +20,7 @@ import MindReveal from "@/components/MindReveal";
  *   Phase 4.5· L'esprit         — particle brain (white → colour), Dala-style copy
  * A "growth line" (glowing dot) threads through phases 2–4.
  * (Phase 5 / climax removed — that closing beat is being reworked.)
+ *   FAQ      · Questions fréquentes — closing accordion after the MindReveal CTA
  */
 export default function Home() {
   return (
@@ -33,6 +35,7 @@ export default function Home() {
         <StudioHero />
         <StudioReveal />
         <MindReveal />
+        <FAQ />
       </main>
     </>
   );
