@@ -68,6 +68,116 @@
     background-color: theme("colors.gold");
   }
 
+  /* ── Loupe cursor (see Loupe.tsx) ─────────────────────────────────────────
+     A glass magnifying lens replaces the native cursor; it truly zooms the
+     opted-in static sections and stays an elegant glass disc elsewhere. */
+  .loupe-on,
+  .loupe-on * {
+    cursor: none !important;
+  }
+  .loupe-on input,
+  .loupe-on textarea,
+  .loupe-on select,
+  .loupe-on [contenteditable] {
+    cursor: auto !important;
+  }
+
+  .loupe {
+    transition: opacity 0.22s ease;
+    will-change: transform;
+  }
+  .loupe--hidden {
+    opacity: 0;
+  }
+  .loupe__glass {
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    overflow: hidden;
+    background: rgba(247, 244, 239, 0.015);
+    -webkit-backdrop-filter: blur(0.4px) brightness(1.05) saturate(1.05);
+    backdrop-filter: blur(0.4px) brightness(1.05) saturate(1.05);
+    /* outer drop + inner vignette so the disc reads as a real glass element */
+    box-shadow:
+      0 10px 26px -6px rgba(0, 0, 0, 0.55),
+      inset 0 0 14px rgba(0, 0, 0, 0.5);
+  }
+  .loupe__mirror {
+    position: absolute;
+    top: 0;
+    left: 0;
+    transform-origin: 0 0;
+    opacity: 0;
+    transition: opacity 0.18s ease;
+  }
+  .loupe--active .loupe__mirror {
+    opacity: 1;
+  }
+  /* Chrome/brass bezel — a conic gradient masked to a thin ring (annulus). The
+     alternating light/dark stops read as a polished, reflective metal rim. The
+     px-based mask keeps the metal thickness constant at any lens size. */
+  .loupe__rim {
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    pointer-events: none;
+    background: conic-gradient(
+      from 135deg,
+      #fbf3df,
+      #c79a4e,
+      #6e4e22,
+      #2c1e0e,
+      #ead6a4,
+      #9a7636,
+      #3a2913,
+      #d8bd7c,
+      #fbf3df
+    );
+    -webkit-mask: radial-gradient(
+      circle,
+      transparent calc(50% - 4px),
+      #000 calc(50% - 3px)
+    );
+    mask: radial-gradient(
+      circle,
+      transparent calc(50% - 4px),
+      #000 calc(50% - 3px)
+    );
+    transition: filter 0.22s ease;
+  }
+  .loupe--active .loupe__rim {
+    filter: brightness(1.12) drop-shadow(0 0 5px rgba(232, 178, 58, 0.5));
+  }
+  .loupe__glint {
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    pointer-events: none;
+    mix-blend-mode: screen;
+    background:
+      radial-gradient(
+        36% 28% at 30% 24%,
+        rgba(255, 255, 255, 0.4),
+        rgba(255, 255, 255, 0) 60%
+      ),
+      radial-gradient(
+        60% 50% at 72% 82%,
+        rgba(232, 178, 58, 0.1),
+        rgba(0, 0, 0, 0) 70%
+      );
+  }
+  .loupe__dot {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 4px;
+    height: 4px;
+    margin: -2px 0 0 -2px;
+    border-radius: 9999px;
+    background: rgba(232, 178, 58, 0.9);
+    box-shadow: 0 0 6px rgba(232, 178, 58, 0.7);
+  }
+
   /* Pulsing "browse the collection" hint (panorama museum). */
   .animate-hint {
     animation: hint-pulse 2s ease-in-out infinite;

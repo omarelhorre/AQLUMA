@@ -3,13 +3,13 @@ import { didot } from "./fonts";
 import "./globals.css";
 import SmoothScroll from "@/components/SmoothScroll";
 import Grain from "@/components/Grain";
-import Cursor from "@/components/Cursor";
+import Loupe from "@/components/Loupe";
 import ContactModal from "@/components/ContactModal";
 import ProgramModal from "@/components/ProgramModal";
 import CalInit from "@/components/CalInit";
 
 const DESCRIPTION =
-  "AQLUMA — méthode, pas outil. Une littératie de l'IA, en français et darija.";
+  "AQLUMA : méthode, pas outil. Une littératie de l'IA, en français et darija.";
 
 export const metadata: Metadata = {
   // TODO: set to the real production domain so OG/Twitter image URLs resolve.
@@ -54,7 +54,7 @@ export default function RootLayout({
         <SmoothScroll />
         {children}
         <Grain />
-        <Cursor />
+        <Loupe />
         <ContactModal />
         <ProgramModal />
         <CalInit />

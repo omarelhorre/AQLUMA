@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { fr } from "@/lib/typo";
+import Parallax from "@/components/Parallax";
 
 /**
  * QUESTIONS FRÉQUENTES — closing FAQ, after the MindReveal CTA.
@@ -73,19 +74,25 @@ export default function FAQ() {
     <section
       ref={sectionRef}
       id="faq"
+      data-loupe
       aria-label="Questions fréquentes"
-      className="relative w-full border-t border-cream/[0.06] bg-void px-6 py-28 md:py-40"
+      className="relative w-full overflow-hidden border-t border-cream/[0.06] bg-void px-6 py-28 md:py-40"
     >
       {/* Warm Rembrandt key from the upper-left, very faint — keeps the dark FAQ
-          part of the same film as everything above it. */}
-      <div
+          part of the same film as everything above it. Drifts on a slow plane. */}
+      <Parallax
         aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(58% 68% at 22% 6%, rgba(201,97,46,0.10), rgba(8,10,12,0) 60%)",
-        }}
-      />
+        speed={0.1}
+        className="pointer-events-none absolute inset-x-0 -inset-y-[20%]"
+      >
+        <div
+          className="h-full w-full"
+          style={{
+            background:
+              "radial-gradient(58% 68% at 22% 6%, rgba(201,97,46,0.10), rgba(8,10,12,0) 60%)",
+          }}
+        />
+      </Parallax>
 
       <div className="relative mx-auto max-w-[860px]">
         {/* Section header — gold diamond + kicker, then the Didot display line. */}

@@ -41,6 +41,14 @@ export type GalleryBlock = {
   /** Optional override for the note's max-width (e.g. "max-w-[50ch]") so a caption
    *  can read on fewer lines when its pocket is wide enough. */
   noteClass?: string;
+  /** Horizontal alignment of the caption block. Default "left" (text sits to the
+   *  right of its object). "center" centres the block over an isolated object. */
+  align?: "left" | "center";
+  /** Override the caption block's width (e.g. "w-[min(96rem,88vw)]") — useful for a
+   *  wall-spanning caption whose paragraph should read on fewer lines. */
+  widthClass?: string;
+  /** Override the title's responsive font-size classes for a single block. */
+  titleClass?: string;
 };
 
 type Props = {
@@ -80,9 +88,10 @@ function Caption({ b, tone, total }: { b: GalleryBlock; tone: "dark" | "light"; 
   const bodyC = light ? "text-ink/85" : "text-cream/75";
   const mutedC = light ? "text-ink/45" : "text-cream/45";
   const wide = b.wide;
+  const center = b.align === "center";
 
   return (
-    <div className="relative">
+    <div className={`relative ${center ? "flex flex-col items-center text-center" : ""}`}>
       <span className="mb-4 flex items-center gap-3">
         <span className={`font-satoshi text-[12px] font-medium tabular-nums tracking-tight ${mutedC}`}>
           {`${String(b.n).padStart(2, "0")} / ${String(total).padStart(2, "0")}`}
@@ -98,7 +107,8 @@ function Caption({ b, tone, total }: { b: GalleryBlock; tone: "dark" | "light"; 
       </span>
       <h2
         className={`font-didot leading-[1.08] tracking-[-0.02em] ${titleC} ${
-          wide ? "text-[clamp(2.8rem,4.6vw,5.4rem)]" : "text-[clamp(2.6rem,4.4vw,4.9rem)]"
+          b.titleClass ??
+          (wide ? "text-[clamp(2.8rem,4.6vw,5.4rem)]" : "text-[clamp(2.6rem,4.4vw,4.9rem)]")
         }`}
       >
         {fr(b.title)}
@@ -124,7 +134,7 @@ export default function WorldGallery({
   tone,
   blocks,
   zoomW = 200,
-  rulePlacement = "top",
+  rulePlacement = "bottom",
   frameBlend = 52,
 }: Props) {
   const sectionRef = useRef<HTMLElement>(null);
@@ -275,7 +285,7 @@ export default function WorldGallery({
               capRefs.current[i] = el;
             }}
             className={`absolute will-change-[opacity,filter] ${
-              b.wide ? "w-[min(42rem,46vw)]" : "w-[min(27rem,30vw)]"
+              b.widthClass ?? (b.wide ? "w-[min(42rem,46vw)]" : "w-[min(27rem,30vw)]")
             }`}
             style={{ left: b.left, ...b.v, opacity: 0 }}
           >

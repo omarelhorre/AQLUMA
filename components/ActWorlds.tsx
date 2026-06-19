@@ -158,7 +158,7 @@ export default function ActWorlds() {
         id="mondes"
         className="relative w-full"
         style={{ backgroundColor: TERRACOTTA }}
-        aria-label="AQLUMA — Le Briefing"
+        aria-label="AQLUMA, Le Briefing"
       >
         {SETUPS.map((s, i) => (
           <div
@@ -186,7 +186,7 @@ export default function ActWorlds() {
       id="mondes"
       className="relative h-screen w-full overflow-hidden"
       style={{ backgroundColor: TERRACOTTA }}
-      aria-label="AQLUMA — Le Briefing"
+      aria-label="AQLUMA, Le Briefing"
     >
       {/* The panning master canvas. The track defines a fallback width so the
           pan works before the real asset is dropped in. */}

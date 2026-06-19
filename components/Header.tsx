@@ -66,7 +66,7 @@ export default function Header() {
         <button
           type="button"
           onClick={goTop}
-          aria-label="AQLUMA — haut de page"
+          aria-label="AQLUMA, haut de page"
           className="group inline-flex items-center rounded-sm outline-none transition-transform duration-300 ease-editorial hover:-translate-y-[2px] focus-visible:ring-1 focus-visible:ring-cream/30"
         >
           <Image

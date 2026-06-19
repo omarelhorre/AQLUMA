@@ -27,20 +27,22 @@ const BLOCKS: GalleryBlock[] = [
     note: "Une réponse d’IA, c’est un point de départ. Pas une fin. Ce qui compte, c’est ce que tu en fais.",
   },
   {
-    n: 2, // travertin + tablette (centre) — caption parked to its left
+    n: 2, // travertin + tablette (centre) — caption to its RIGHT; title sized down so
+    //        it clears the clipped floor-plan board to the right
     fx: 0.5,
-    left: "23%",
+    left: "57%",
     v: { top: "33%" },
+    titleClass: "text-[clamp(1.7rem,2.7vw,3rem)]",
+    noteClass: "max-w-[22ch]",
     title: "Le brouillon.",
-    note: "La première réponse est un brouillon — surtout quand elle a l’air finie. Vérifie, coupe, reformule.",
+    note: "La première réponse est un brouillon, surtout quand elle a l’air finie. Vérifie, coupe, reformule.",
   },
   {
-    n: 3, // planches AQLUMA — caption parked to their left; narrow note so it stays
-    //        clear of the clipped boards
+    n: 3, // planches AQLUMA — caption to their RIGHT; narrow note so it stays clear
     fx: 0.85,
-    left: "58%",
+    left: "97%",
     v: { top: "33%" },
-    noteClass: "max-w-[20ch]",
+    noteClass: "max-w-[18ch]",
     title: "Ta voix, signée.",
     note: "Ton contexte, ton exemple, ton angle. Think with AI : penser avec, pour aller plus loin.",
   },

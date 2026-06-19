@@ -24,20 +24,23 @@ const BLOCKS: GalleryBlock[] = [
     note: "Recopier une réponse n’apprend rien. Le même geste, avec un cadre, fait comprendre.",
   },
   {
-    n: 2, // loupe — caption parked to its left
+    n: 2, // loupe — caption to its RIGHT, with a little breathing room off the object
     fx: 0.58,
-    left: "36%",
-    v: { top: "33%" },
-    title: "L’œil critique.",
-    note: "Lire sans croire trop vite. Vérifier, reformuler — le geste d’après que personne ne montre.",
-  },
-  {
-    n: 3, // boussole — caption parked in the empty space left of the compass
-    fx: 0.84,
     left: "68%",
     v: { top: "33%" },
+    title: "L’œil critique.",
+    note: "Lire sans croire trop vite. Vérifier, reformuler : le geste d’après que personne ne montre.",
+  },
+  {
+    n: 3, // boussole — caption to its RIGHT, past the carnet; title sized down so it
+    //        keeps a margin off the frame edge instead of jamming against it
+    fx: 0.84,
+    left: "97%",
+    v: { top: "33%" },
+    noteClass: "max-w-[18ch]",
+    titleClass: "text-[clamp(1.8rem,3vw,3.3rem)]",
     title: "La boussole.",
-    note: "Un outil doit guider, non transporter. La méthode décide de ce qu’on en fait — et se transmet.",
+    note: "Un outil doit guider, non transporter. La méthode décide de ce qu’on en fait, et se transmet.",
   },
 ];
 

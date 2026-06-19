@@ -26,25 +26,33 @@ const BLOCKS: GalleryBlock[] = [
     left: "26%",
     v: { top: "38%" },
     title: "La source qui n’existe pas.",
-    note: "Une référence parfaite en apparence — un titre, un auteur, une année — sans jamais en avoir la réalité.",
+    note: "Une référence parfaite en apparence : un titre, un auteur, une année, sans jamais en avoir la réalité.",
   },
   {
-    n: 2, // socle + tablette (centre, fx≈0.50) — texte sur le mur vide À GAUCHE du socle
+    n: 2, // socle + tablette (centre, fx≈0.50) — même traitement que « Le calcul » :
+    //        légende centrée qui occupe le mur, paragraphe large (2 lignes) au-dessus.
     fx: 0.50,
-    left: "25%",
-    v: { top: "26%" },
+    left: "28%",
+    v: { top: "16%" },
     wide: true,
+    align: "center",
+    widthClass: "w-[min(96rem,88vw)]",
+    noteClass: "max-w-[58ch]",
     title: "Le ton ne tremble jamais.",
-    note: "Juste ou faux, la réponse garde exactement la même voix : posée, assurée, sans la moindre hésitation. Le ton sûr n’est pas une preuve — la fluidité n’est pas la fiabilité.",
+    note: "Juste ou faux, la réponse garde exactement la même voix : posée, assurée, sans la moindre hésitation. Le ton sûr n’est pas une preuve : la fluidité n’est pas la fiabilité.",
   },
   {
-    n: 3, // table + théière (à droite, fx≈0.83) — texte sur le mur vide À GAUCHE de la table
+    n: 3, // table + théière (fx≈0.83) — légende qui OCCUPE LE MUR : centrée, haute,
+    //        paragraphe large (2 lignes) au-dessus de l’objet isolé.
     fx: 0.83,
-    left: "57%",
-    v: { top: "26%" },
+    left: "61%",
+    v: { top: "16%" },
     wide: true,
+    align: "center",
+    widthClass: "w-[min(96rem,88vw)]",
+    noteClass: "max-w-[58ch]",
     title: "Le calcul élégant et faux.",
-    note: "Des étapes claires, une présentation propre, une conclusion nette — et une seule erreur glissée au milieu, que l’élégance rend presque invisible. La beauté d’une démonstration ne prouve rien.",
+    note: "Des étapes claires, une présentation propre, une conclusion nette, et une seule erreur glissée au milieu, que l’élégance rend presque invisible. La beauté d’une démonstration ne prouve rien.",
   },
 ];
 

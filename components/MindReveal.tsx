@@ -35,9 +35,9 @@ import { fr } from "@/lib/typo";
 
 const LEAD = "transforme votre adolescent.";
 const LOST =
-  "D'un adolescent qui demande une réponse, la recopie et l'oublie le lendemain — un esprit perdu, sans méthode, dont la voix se dissout dans celle de la machine.";
+  "D'un adolescent qui demande une réponse, la recopie et l'oublie le lendemain : un esprit perdu, sans méthode, dont la voix se dissout dans celle de la machine.";
 const THINKER =
-  "à un esprit qui pense avec l'IA : il interroge, vérifie, reformule et garde sa voix. Même outil, deux trajectoires — la différence, c'est la méthode.";
+  "à un esprit qui pense avec l'IA : il interroge, vérifie, reformule et garde sa voix. Même outil, deux trajectoires : la différence, c'est la méthode.";
 
 const VOID = "#080A0C";
 const FILL = "#F7F4EF"; // cream — the written ink
@@ -219,7 +219,7 @@ export default function MindReveal() {
       id="mind-reveal"
       className="relative flex h-screen w-full items-center overflow-hidden"
       style={{ backgroundColor: VOID }}
-      aria-label="AQLUMA — l'esprit"
+      aria-label="AQLUMA, l'esprit"
     >
       {/* Comparison clip — a left|right split (left half = methodical/creative,
           right half = messy/passive). Fits the panel height; we slide between

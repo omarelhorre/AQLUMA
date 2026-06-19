@@ -22,7 +22,7 @@ import { fr } from "@/lib/typo";
 
 const LINES = [
   "Recopier, c’est trois secondes.",
-  "Créer, c’est tout le reste —",
+  "Créer, c’est tout le reste,",
   "ce que toi seul peux signer.",
 ];
 const ACCENT = /signer/i; // the payoff lands in clay
@@ -164,7 +164,7 @@ export default function StudioHero() {
       id="studio"
       className="relative flex h-screen w-full items-center overflow-hidden"
       style={{ backgroundColor: WALL }}
-      aria-label="AQLUMA — Le Studio"
+      aria-label="AQLUMA, Le Studio"
     >
       {/* Full-height support clip — bleeds off the right edge, scrubs on scroll,
           left side melts into the paper. Hidden on narrow screens. */}
@@ -224,9 +224,10 @@ export default function StudioHero() {
         <div className="mb-9 flex items-center gap-3.5">
           <span
             aria-hidden
-            className="h-[7px] w-[7px] rotate-45 bg-gold"
-            style={{ boxShadow: "0 0 9px 1px rgba(232,178,58,0.55)" }}
-          />
+            className="font-didot text-[1.15rem] font-normal leading-none text-clay"
+          >
+            III
+          </span>
           <span className="font-satoshi text-[12.5px] font-semibold uppercase tracking-[0.2em] text-ink">
             Le Studio
           </span>

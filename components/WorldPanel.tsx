@@ -64,7 +64,7 @@ export default function WorldPanel({
             role="presentation"
           >
             <span className="kicker text-[10px] text-cream/40">
-              [ {panel.placeholderLabel ?? "contenu — à venir"} ]
+              [ {panel.placeholderLabel ?? "contenu à venir"} ]
             </span>
             <span className="mt-2 font-satoshi text-[10px] text-cream/25">
               {world.label} · {index + 1}/{total}

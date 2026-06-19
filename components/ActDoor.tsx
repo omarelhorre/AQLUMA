@@ -35,7 +35,7 @@ const DESC: IntroLine[] = [
   {
     kind: "body",
     text:
-      "Dans cette révolution, beaucoup se sont perdus — l’outil est partout, sans qu’on sache vraiment l’utiliser. AQLUMA n’est pas un cours d’informatique, mais une école du jugement : lire une réponse sans la croire, vérifier, reformuler, garder sa voix. Une méthode calme, qui tient dans le temps — pour que plus rien ne ressemble à de la simple répétition.",
+      "Dans cette révolution, beaucoup se sont perdus : l’outil est partout, sans qu’on sache vraiment l’utiliser. AQLUMA n’est pas un cours d’informatique, mais une école du jugement : lire une réponse sans la croire, vérifier, reformuler, garder sa voix. Une méthode calme, qui tient dans le temps, pour que plus rien ne ressemble à de la simple répétition.",
   },
 ];
 
@@ -55,6 +55,7 @@ export default function ActDoor() {
   const line2Ref   = useRef<HTMLDivElement>(null);
   const itemsRef   = useRef<(HTMLDivElement | null)[]>([]);
   const climaxRef  = useRef<HTMLDivElement>(null);
+  const veilRef    = useRef<HTMLDivElement>(null);
   const descRef    = useRef<HTMLDivElement>(null);
   const descLineRefs = useRef<(HTMLParagraphElement | null)[]>([]);
   const reduced    = useReducedMotion();
@@ -149,6 +150,20 @@ export default function ActDoor() {
           VIDEO_START
         );
       }
+
+      // ── Parallax handoff into the Briefing ──────────────────────────────────
+      // Once the door has mostly opened, the corridor drifts up + pushes in on a
+      // slower plane while a void veil rises over it, so the corridor RECEDES into
+      // depth and the cut to the dark Briefing hero becomes a soft parallax
+      // dissolve instead of a hard horizontal edge. Ends exactly as the pin
+      // releases, so ActDoor hands off on black → Briefing opens on black.
+      tl.fromTo(
+        videoRef.current,
+        { yPercent: 0, scale: 1 },
+        { yPercent: -12, scale: 1.06, ease: "none", duration: 0.2 },
+        1.36
+      );
+      tl.to(veilRef.current, { opacity: 1, ease: "power1.in", duration: 0.18 }, 1.38);
     }, section);
 
     return () => ctx.revert();
@@ -158,11 +173,11 @@ export default function ActDoor() {
     <section
       ref={sectionRef}
       className="relative h-screen w-full overflow-hidden bg-void"
-      aria-label="AQLUMA — introduction"
+      aria-label="AQLUMA, introduction"
     >
       <video
         ref={videoRef}
-        className="absolute inset-0 h-full w-full object-cover"
+        className="absolute inset-0 h-full w-full object-cover will-change-transform"
         src="/video/opening.mp4"
         poster="/video/opening-poster.jpg"
         muted
@@ -187,6 +202,9 @@ export default function ActDoor() {
         <Beat side="left" innerRef={line1Ref} initialOpacity={reduced ? 0 : 1}>
           <p className="font-didot text-[clamp(1.7rem,3.6vw,3.2rem)] leading-[1.12] tracking-[-0.015em] text-cream">
             Bienvenu chez AQLUMA.
+          </p>
+          <p className="mt-5 max-w-[34ch] font-satoshi text-[clamp(0.92rem,1.15vw,1.05rem)] leading-relaxed text-cream/60">
+            {fr("Places limitées à chaque session. Recevez le programme avant qu’il ne soit complet.")}
           </p>
           <button
             type="button"
@@ -284,6 +302,15 @@ export default function ActDoor() {
         </Beat>
 
       </div>
+
+      {/* Parallax handoff veil — the corridor melts into the void as the door
+          finishes opening, dissolving the hard cut to the dark Briefing hero. */}
+      <div
+        ref={veilRef}
+        aria-hidden
+        className="pointer-events-none absolute inset-0 z-40 bg-void"
+        style={{ opacity: 0 }}
+      />
     </section>
   );
 }

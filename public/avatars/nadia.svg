@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Nadia">
+  <defs>
+    <linearGradient id="ng" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9a7b45"/>
+      <stop offset="1" stop-color="#5f4b29"/>
+    </linearGradient>
+  </defs>
+  <rect width="120" height="120" fill="url(#ng)"/>
+  <path d="M40 52a20 20 0 0 1 40 0v8a20 20 0 0 1-40 0z" fill="#e7c4a0"/>
+  <path d="M36 54c0-17 10-27 24-27s24 10 24 27c0 5-2 8-2 8-3-8-8-12-8-12-4 6-24 9-32 4 0 0-2 3-4 8 0 0-2-3-2-8z" fill="#3a2418"/>
+  <path d="M26 104c2-17 16-27 34-27s32 10 34 27z" fill="#efd8bd"/>
+</svg>

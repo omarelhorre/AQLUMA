@@ -134,7 +134,7 @@ export default function ProgramManifesto() {
     return (
       <section
         className="flex min-h-screen w-full items-center justify-center bg-void px-8 py-32"
-        aria-label="AQLUMA — le programme en une phrase"
+        aria-label="AQLUMA, le programme en une phrase"
       >
         <p className="max-w-[60ch] text-center font-satoshi text-[clamp(1.6rem,4vw,3rem)] font-medium leading-tight text-cream">
           {words.map((w, i) => {
@@ -162,7 +162,7 @@ export default function ProgramManifesto() {
       ref={sectionRef}
       className="relative h-screen w-full overflow-hidden"
       style={{ backgroundColor: rgb(PAPER) }}
-      aria-label="AQLUMA — le programme en une phrase"
+      aria-label="AQLUMA, le programme en une phrase"
     >
       <div className="absolute inset-0 flex items-center">
         <div

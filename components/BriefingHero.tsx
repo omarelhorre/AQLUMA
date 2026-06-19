@@ -61,6 +61,7 @@ export default function BriefingHero() {
   const mediaRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const washRef = useRef<HTMLDivElement>(null);
+  const keyLightRef = useRef<HTMLDivElement>(null);
   const reduced = useReducedMotion();
 
   // Flatten the two lines into words (kept unbreakable) of characters, each
@@ -109,6 +110,7 @@ export default function BriefingHero() {
       gsap.set(columnRef.current, { opacity: 0, y: 28 });
       gsap.set(mediaRef.current, { opacity: 0, scale: 1.05 });
       gsap.set(washRef.current, { yPercent: 100 });
+      gsap.set(keyLightRef.current, { opacity: 0 });
       applyFill(0);
 
       // Eased scrub of the support clip toward scroll progress.
@@ -132,7 +134,9 @@ export default function BriefingHero() {
         },
       });
 
-      // Enter: statement rises + fades in; video mists out of the background.
+      // Enter: the warm key light blooms up from black (0 → full) so the hero
+      // glows ON rather than cutting in; statement rises + fades; video mists in.
+      tl.to(keyLightRef.current, { opacity: 1, ease: "power1.out", duration: 0.2 }, 0);
       tl.to(columnRef.current, { opacity: 1, y: 0, ease: "power3.out", duration: 0.12 }, 0);
       tl.to(mediaRef.current, { opacity: 1, scale: 1, ease: "power4.out", duration: 0.55 }, 0.02);
 
@@ -165,7 +169,7 @@ export default function BriefingHero() {
       ref={sectionRef}
       id="briefing"
       className="relative flex h-screen w-full items-center overflow-hidden bg-void"
-      aria-label="AQLUMA — Le Briefing"
+      aria-label="AQLUMA, Le Briefing"
     >
       {/* Full-height support video — bleeds off the right edge, scrubs on
           scroll, left side melts into the canvas. Hidden on narrow screens. */}
@@ -186,8 +190,10 @@ export default function BriefingHero() {
         />
       </div>
 
-      {/* Warm key light on black — Rembrandt from the upper-left. */}
+      {/* Warm key light on black — Rembrandt from the upper-left. Blooms in from
+          black on enter (see timeline) so the glow never hard-cuts. */}
       <div
+        ref={keyLightRef}
         aria-hidden
         className="pointer-events-none absolute inset-0 z-[1]"
         style={{
@@ -228,9 +234,10 @@ export default function BriefingHero() {
         <div className="mb-9 flex items-center gap-3.5">
           <span
             aria-hidden
-            className="h-[7px] w-[7px] rotate-45 bg-gold"
-            style={{ boxShadow: "0 0 9px 1px rgba(232,178,58,0.55)" }}
-          />
+            className="font-didot text-[1.15rem] font-normal leading-none text-gold"
+          >
+            I
+          </span>
           <span className="font-satoshi text-[12.5px] font-semibold uppercase tracking-[0.2em] text-cream">
             Le Briefing
           </span>

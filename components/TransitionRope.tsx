@@ -173,7 +173,7 @@ export default function TransitionRope() {
       id="transition-rope"
       className="relative flex h-screen w-full items-center overflow-hidden"
       style={{ backgroundColor: WALL }}
-      aria-label="AQLUMA — le seuil du Musée"
+      aria-label="AQLUMA, le seuil du Musée"
     >
       {/* Full-height support clip — bleeds off the right edge, scrubs on scroll,
           left side melts into the wall. Hidden on narrow screens. */}
@@ -234,9 +234,10 @@ export default function TransitionRope() {
         <div className="mb-9 flex items-center gap-3.5">
           <span
             aria-hidden
-            className="h-[7px] w-[7px] rotate-45 bg-gold"
-            style={{ boxShadow: "0 0 9px 1px rgba(232,178,58,0.55)" }}
-          />
+            className="font-didot text-[1.15rem] font-normal leading-none text-gold"
+          >
+            II
+          </span>
           <span className="font-satoshi text-[12.5px] font-semibold uppercase tracking-[0.2em] text-cream">
             Le Musée
           </span>
