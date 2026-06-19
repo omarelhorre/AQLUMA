@@ -198,20 +198,16 @@ export default function Reviews() {
           </div>
         </div>
 
-        {/* RIGHT — four wide comments scattered across two columns: grouped on
-            soft panels with varied offsets so the wall feels alive, not gridded. */}
-        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-10">
-          <div className="flex flex-col gap-10">
+        {/* RIGHT — four wide comments on soft panels, two columns with a light
+            stagger (second column dropped a touch) so it reads alive, not gridded. */}
+        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-8">
+          <div className="flex flex-col gap-8">
             <Card r={SHOWN[0]} />
-            <div className="lg:mt-8">
-              <Card r={SHOWN[2]} />
-            </div>
+            <Card r={SHOWN[2]} />
           </div>
-          <div className="flex flex-col gap-10 sm:mt-28">
+          <div className="flex flex-col gap-8 sm:mt-14">
             <Card r={SHOWN[1]} />
-            <div className="lg:mt-12">
-              <Card r={SHOWN[3]} />
-            </div>
+            <Card r={SHOWN[3]} />
           </div>
         </div>
       </div>

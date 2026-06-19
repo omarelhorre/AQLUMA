@@ -94,9 +94,9 @@ export default function FAQ() {
         />
       </Parallax>
 
-      <div className="relative mx-auto max-w-[860px]">
-        {/* Section header — gold diamond + kicker, then the Didot display line. */}
-        <header className="mb-14 md:mb-20" style={enter(0, 16)}>
+      <div className="relative mx-auto grid max-w-[1340px] gap-12 lg:grid-cols-[0.66fr_1.34fr] lg:gap-16">
+        {/* LEFT — section header, sticky beside the questions like the act intros. */}
+        <header className="lg:sticky lg:top-28 lg:self-start" style={enter(0, 16)}>
           <div className="mb-6 flex items-center gap-3.5">
             <span
               aria-hidden
@@ -107,12 +107,15 @@ export default function FAQ() {
               FAQ
             </span>
           </div>
-          <h2 className="font-didot text-[clamp(2.4rem,5.4vw,4.6rem)] font-normal leading-[1.06] tracking-[-0.02em] text-cream">
+          <h2 className="font-didot text-[clamp(2.2rem,4.4vw,3.8rem)] font-normal leading-[1.06] tracking-[-0.02em] text-cream">
             Questions fréquentes
           </h2>
+          <p className="mt-6 max-w-[32ch] font-satoshi text-[clamp(0.98rem,1.2vw,1.12rem)] leading-relaxed text-cream/55">
+            {fr("Tout ce qu'il faut savoir avant de commencer.")}
+          </p>
         </header>
 
-        {/* Accordion — hairline-separated rows, no boxes. */}
+        {/* RIGHT — accordion: hairline-separated rows, no boxes. */}
         <ul className="border-b border-cream/[0.09]">
           {ITEMS.map((item, i) => {
             const isOpen = open === i;
