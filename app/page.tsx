@@ -6,8 +6,12 @@ import TransitionRope from "@/components/TransitionRope";
 import MuseumErrors from "@/components/MuseumErrors";
 import StudioHero from "@/components/StudioHero";
 import StudioReveal from "@/components/StudioReveal";
-import MindReveal from "@/components/MindReveal";
+import ProgramManifesto from "@/components/ProgramManifesto";
+import ProgramHighlights from "@/components/ProgramHighlights";
+import Reviews from "@/components/Reviews";
 import FAQ from "@/components/FAQ";
+import MindReveal from "@/components/MindReveal";
+import ContactClose from "@/components/ContactClose";
 
 /**
  * AQLUMA landing — one shared scroll journey (§0).
@@ -17,10 +21,13 @@ import FAQ from "@/components/FAQ";
  *   Phase 3  · La Descente      — vertical rope transition (terracotta → black)
  *   Phase 4  · Musée des Erreurs — inverted horizontal R→L gallery
  *   Phase 4.3· Le Studio         — hook clip + pale-wall L→R gallery (Think with AI)
- *   Phase 4.5· L'esprit         — particle brain (white → colour), Dala-style copy
+ *   Manifesto · horizontal word-pan — one enthusiastic sentence on the programme
+ *   Programme · key points distilled from the macro programme (vertical)
+ *   Avis     · testimonials from families
+ *   FAQ      · Questions fréquentes
+ *   L'esprit · the comparison shock (lost adolescent → thinker)
+ *   Contact  · simple closing call to action
  * A "growth line" (glowing dot) threads through phases 2–4.
- * (Phase 5 / climax removed — that closing beat is being reworked.)
- *   FAQ      · Questions fréquentes — closing accordion after the MindReveal CTA
  */
 export default function Home() {
   return (
@@ -34,8 +41,12 @@ export default function Home() {
         <MuseumErrors />
         <StudioHero />
         <StudioReveal />
-        <MindReveal />
+        <ProgramManifesto />
+        <ProgramHighlights />
+        <Reviews />
         <FAQ />
+        <MindReveal />
+        <ContactClose />
       </main>
     </>
   );

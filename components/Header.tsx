@@ -70,9 +70,9 @@ export default function Header() {
           className="group inline-flex items-center rounded-sm outline-none transition-transform duration-300 ease-editorial hover:-translate-y-[2px] focus-visible:ring-1 focus-visible:ring-cream/30"
         >
           <Image
-            src="/brand/aqluma-logo.svg"
+            src="/brand/aqluma-mark.png"
             alt="AQLUMA"
-            width={34}
+            width={35}
             height={28}
             priority
             className="h-[28px] w-auto opacity-90 transition-opacity duration-300 group-hover:opacity-100"
@@ -170,7 +170,7 @@ export default function Header() {
             data-cal-config={CAL_CONFIG}
             className="group/cta inline-flex items-center gap-2 rounded-full bg-cream px-5 py-2.5 font-satoshi text-[12.5px] font-semibold tracking-tight text-void outline-none transition-all duration-300 ease-editorial hover:-translate-y-[1px] hover:bg-white hover:shadow-[0_12px_30px_-8px_rgba(247,244,239,0.45)] focus-visible:ring-2 focus-visible:ring-cream/40"
           >
-            Réserver un appel gratuit
+            Réserver un appel gratuit de 15 minutes.
             <svg
               width="13"
               height="13"

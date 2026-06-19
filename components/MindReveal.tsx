@@ -50,7 +50,6 @@ const UNWRITE_IN = 0.46; // LOST starts erasing — from the end, in reverse
 const UNWRITE_OUT = 0.6; // LOST fully erased
 const WRITE_IN = 0.6; // THINKER starts writing itself in
 const WRITE_OUT = 0.78; // THINKER fully written
-const END_AT = 0.9; // copy out, CTA in
 
 const clamp01 = (x: number) => (x < 0 ? 0 : x > 1 ? 1 : x);
 const sstep = (a: number, b: number, x: number) => {
@@ -100,7 +99,6 @@ export default function MindReveal() {
   const thinkerRefs = useRef<(HTMLSpanElement | null)[]>([]);
   const reduced = useReducedMotion();
   const [phase, setPhase] = useState(0); // 0 = lost adolescent, 1 = thinker
-  const [ended, setEnded] = useState(false); // after the read: copy out, CTA in
 
   const lostModel = useMemo(() => buildModel(LOST), []);
   const thinkerModel = useMemo(() => buildModel(THINKER), []);
@@ -170,8 +168,6 @@ export default function MindReveal() {
           applyText(p);
           const ph = p < 0.5 ? 0 : 1;
           setPhase((prev) => (prev === ph ? prev : ph));
-          const e = p > END_AT;
-          setEnded((prev) => (prev === e ? prev : e));
         },
       });
     }, section);
@@ -277,17 +273,10 @@ export default function MindReveal() {
         }}
       />
 
-      {/* Left column — AQLUMA + lead line are STATIC; only the paragraph rewrites.
-          The whole column fades once, at the very end, to hand off to the CTA. */}
+      {/* Left column — AQLUMA + lead line are STATIC; only the paragraph rewrites. */}
       <div
         ref={columnRef}
         className="absolute inset-y-0 left-0 z-10 flex w-full flex-col justify-center px-[min(7vw,5.5rem)] md:w-[52%]"
-        style={{
-          opacity: ended ? 0 : 1,
-          transform: ended ? "translateY(-10px)" : "translateY(0)",
-          transition:
-            "opacity 0.9s cubic-bezier(0.16,1,0.3,1), transform 0.9s cubic-bezier(0.16,1,0.3,1)",
-        }}
       >
         <h2 className="font-didot text-[clamp(3rem,7vw,6.75rem)] font-normal leading-[0.92] tracking-[-0.02em] text-cream">
           AQLUMA
@@ -328,38 +317,6 @@ export default function MindReveal() {
               />
             </>
           )}
-        </div>
-      </div>
-
-      {/* Closing CTA — fades in centred after the read. */}
-      <div
-        className="absolute inset-0 z-20 flex flex-col items-center justify-center px-6 text-center"
-        style={{
-          opacity: ended ? 1 : 0,
-          filter: ended ? "blur(0px)" : "blur(16px)",
-          transform: ended ? "translateY(0)" : "translateY(14px)",
-          transition:
-            "opacity 1.2s cubic-bezier(0.16,1,0.3,1), filter 1.2s cubic-bezier(0.16,1,0.3,1), transform 1.2s cubic-bezier(0.16,1,0.3,1)",
-          pointerEvents: ended ? "auto" : "none",
-        }}
-      >
-        <p className="max-w-[26ch] font-satoshi text-[clamp(1.5rem,3.2vw,2.6rem)] font-medium leading-snug text-cream">
-          {fr("Qu’attendez-vous ? Rejoignez notre programme.")}
-        </p>
-        <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-          <a
-            href="#briefing"
-            className="rounded-[10px] bg-gold px-8 py-4 font-satoshi text-[13px] font-semibold uppercase tracking-[0.16em] text-void transition-colors duration-300 hover:bg-[#f3c45e]"
-          >
-            Voir le programme
-          </a>
-          <button
-            type="button"
-            onClick={() => window.dispatchEvent(new CustomEvent("aqluma:contact"))}
-            className="rounded-[10px] bg-cream px-8 py-4 font-satoshi text-[13px] font-semibold uppercase tracking-[0.16em] text-void transition-colors duration-300 hover:bg-white"
-          >
-            Contactez-nous
-          </button>
         </div>
       </div>
     </section>

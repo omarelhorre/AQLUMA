@@ -21,11 +21,8 @@ export const metadata: Metadata = {
   description: DESCRIPTION,
   applicationName: "AQLUMA",
   icons: {
-    icon: [
-      { url: "/brand/aqluma-logo.svg", type: "image/svg+xml" },
-      { url: "/brand/aqluma-logo.png", type: "image/png" },
-    ],
-    apple: "/brand/aqluma-logo.png",
+    icon: [{ url: "/brand/aqluma-mark.png", type: "image/png" }],
+    apple: "/brand/aqluma-mark.png",
   },
   openGraph: {
     type: "website",
