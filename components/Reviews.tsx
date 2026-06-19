@@ -125,6 +125,28 @@ function Avatar({ src, name }: { src?: string; name: string }) {
   );
 }
 
+/** One testimonial — grouped on a soft gradient panel (no hard borders). */
+function Card({ r }: { r: Review }) {
+  return (
+    <figure className="rounded-[1.4rem] bg-gradient-to-b from-cream/[0.055] to-cream/[0.008] p-7 md:p-8">
+      <Stars rating={r.rating} />
+      <blockquote className="mt-4 font-satoshi text-[1.02rem] leading-relaxed text-cream/80">
+        {fr(`« ${r.quote} »`)}
+      </blockquote>
+      <figcaption className="mt-6 flex items-center gap-3.5">
+        <Avatar src={r.avatar} name={r.name} />
+        <span className="font-satoshi text-[0.86rem] leading-snug">
+          <span className="block font-semibold text-cream">{r.name}</span>
+          <span className="block text-cream/40">{fr(r.role)}</span>
+        </span>
+      </figcaption>
+    </figure>
+  );
+}
+
+// Show a curated four (the full six still back the average + family count).
+const SHOWN = REVIEWS.slice(0, 4);
+
 export default function Reviews() {
   return (
     <section
@@ -148,50 +170,49 @@ export default function Reviews() {
         />
       </Parallax>
 
-      <div className="relative mx-auto max-w-[1180px]">
-        <Parallax speed={0.1} className="flex flex-col items-center text-center">
+      <div className="relative mx-auto grid max-w-[1340px] gap-14 lg:grid-cols-[0.66fr_1.34fr] lg:gap-16">
+        {/* LEFT — the section title + aggregate. Sticky on desktop so it holds
+            beside the comments, like the act intros. */}
+        <div className="text-center lg:sticky lg:top-28 lg:self-start lg:text-left">
           <p className="font-satoshi text-[0.8rem] font-bold uppercase tracking-kicker text-gold">
             Ils ont vécu AQLUMA
           </p>
-          <h2 className="mt-5 max-w-[20ch] font-didot text-[clamp(2.2rem,5vw,4rem)] font-normal leading-[1.05] tracking-[-0.02em] text-cream">
+          <h2 className="mx-auto mt-5 max-w-[14ch] font-didot text-[clamp(2.2rem,4.4vw,3.8rem)] font-normal leading-[1.05] tracking-[-0.02em] text-cream lg:mx-0">
             {fr("Ce qu'en disent les familles.")}
           </h2>
 
-          {/* Aggregate rating — Apple-style: the figure, the stars, the basis. */}
-          <div className="mt-10 flex items-baseline gap-2.5">
-            <span className="font-didot text-[clamp(2.8rem,6vw,4.2rem)] font-normal leading-none text-cream">
-              {AVG}
-            </span>
-            <span className="font-satoshi text-[1.1rem] font-medium text-cream/35">
-              / 5
-            </span>
-          </div>
-          <div className="mt-3.5">
+          {/* Aggregate rating — the figure, the stars, the basis. */}
+          <div className="mt-9 flex flex-col items-center gap-3 lg:items-start">
+            <div className="flex items-baseline gap-2.5">
+              <span className="font-didot text-[clamp(2.8rem,6vw,4.4rem)] font-normal leading-none text-cream">
+                {AVG}
+              </span>
+              <span className="font-satoshi text-[1.1rem] font-medium text-cream/35">
+                / 5
+              </span>
+            </div>
             <Stars rating={AVG_NUM} size="lg" />
+            <p className="font-satoshi text-[0.82rem] uppercase tracking-[0.18em] text-cream/40">
+              {fr(`Note moyenne · ${REVIEWS.length} familles accompagnées`)}
+            </p>
           </div>
-          <p className="mt-3 font-satoshi text-[0.82rem] uppercase tracking-[0.18em] text-cream/40">
-            {fr(`Note moyenne · ${REVIEWS.length} familles accompagnées`)}
-          </p>
-        </Parallax>
+        </div>
 
-        {/* Testimonials — minimalist editorial quotes, hairline-separated, no
-            boxes: lots of air, the words carry the weight. */}
-        <div className="mt-20 grid gap-x-12 gap-y-12 sm:grid-cols-2 lg:grid-cols-3 lg:gap-y-14">
-          {REVIEWS.map((r) => (
-            <figure key={r.name} className="flex flex-col border-t border-cream/[0.09] pt-6">
-              <Stars rating={r.rating} />
-              <blockquote className="mt-4 flex-1 font-satoshi text-[1.02rem] leading-relaxed text-cream/80">
-                {fr(`« ${r.quote} »`)}
-              </blockquote>
-              <figcaption className="mt-6 flex items-center gap-3.5">
-                <Avatar src={r.avatar} name={r.name} />
-                <span className="font-satoshi text-[0.86rem] leading-snug">
-                  <span className="block font-semibold text-cream">{r.name}</span>
-                  <span className="block text-cream/40">{fr(r.role)}</span>
-                </span>
-              </figcaption>
-            </figure>
-          ))}
+        {/* RIGHT — four wide comments scattered across two columns: grouped on
+            soft panels with varied offsets so the wall feels alive, not gridded. */}
+        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-10">
+          <div className="flex flex-col gap-10">
+            <Card r={SHOWN[0]} />
+            <div className="lg:mt-8">
+              <Card r={SHOWN[2]} />
+            </div>
+          </div>
+          <div className="flex flex-col gap-10 sm:mt-28">
+            <Card r={SHOWN[1]} />
+            <div className="lg:mt-12">
+              <Card r={SHOWN[3]} />
+            </div>
+          </div>
         </div>
       </div>
     </section>
