@@ -172,7 +172,7 @@ export default function BriefingHero() {
     <section
       ref={sectionRef}
       id="briefing"
-      className="relative flex h-screen w-full items-center overflow-hidden bg-void"
+      className="relative flex h-screen w-full items-center overflow-hidden"
       aria-label="AQLUMA, Le Briefing"
     >
       {/* Full-height support video — bleeds off the right edge, scrubs on

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { didot } from "./fonts";
 import "./globals.css";
 import SmoothScroll from "@/components/SmoothScroll";
+import Grid from "@/components/Grid";
 import Grain from "@/components/Grain";
 import Loupe from "@/components/Loupe";
 import ContactModal from "@/components/ContactModal";
@@ -52,6 +53,9 @@ export default function RootLayout({
     <html lang="fr" className={didot.variable}>
       <body className="bg-void text-cream antialiased">
         <SmoothScroll />
+        {/* Blueprint grid — a true backdrop: paints behind <main> (which is
+            transparent) over the body's void, so media occludes it. */}
+        <Grid />
         {children}
         <Grain />
         <Loupe />

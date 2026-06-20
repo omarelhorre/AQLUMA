@@ -34,7 +34,7 @@ export default function ContactClose() {
     <section
       id="contact"
       data-loupe
-      className="relative flex w-full flex-col items-center justify-center overflow-hidden bg-void px-6 py-24 text-center md:py-28"
+      className="relative flex w-full flex-col items-center justify-center overflow-hidden px-6 py-24 text-center md:py-28"
       aria-label="AQLUMA, contact"
     >
       <a

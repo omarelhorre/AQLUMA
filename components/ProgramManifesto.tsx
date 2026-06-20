@@ -133,7 +133,7 @@ export default function ProgramManifesto() {
   if (reduced) {
     return (
       <section
-        className="flex min-h-screen w-full items-center justify-center bg-void px-8 py-32"
+        className="flex min-h-screen w-full items-center justify-center px-8 py-32"
         aria-label="AQLUMA, le programme en une phrase"
       >
         <p className="max-w-[60ch] text-center font-satoshi text-[clamp(1.6rem,4vw,3rem)] font-medium leading-tight text-cream">

@@ -75,7 +75,7 @@ export default function FAQ() {
       id="faq"
       data-loupe
       aria-label="Questions fréquentes"
-      className="relative w-full overflow-hidden border-t border-cream/[0.06] bg-void px-[min(6vw,5rem)] py-28 md:py-40"
+      className="relative w-full overflow-hidden border-t border-cream/[0.06] px-[min(6vw,5rem)] py-28 md:py-40"
     >
       <div className="relative grid gap-12 lg:grid-cols-[0.6fr_1.4fr] lg:gap-20">
         {/* LEFT — section header, sticky beside the questions like the act intros. */}

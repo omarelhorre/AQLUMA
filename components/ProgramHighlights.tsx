@@ -184,7 +184,7 @@ export default function ProgramHighlights() {
   return (
     <section
       id="programme"
-      className="relative w-full bg-void"
+      className="relative w-full"
       aria-label="AQLUMA, le programme"
     >
       <ProgramReels />

@@ -33,7 +33,7 @@ export default function Home() {
   return (
     <>
       <Header />
-      <main id="top" className="relative bg-void">
+      <main id="top" className="relative">
         <ActDoor />
         <BriefingHero />
         <BriefingStudio />
