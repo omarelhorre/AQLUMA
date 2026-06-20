@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  Fragment,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useReducedMotion } from "@/lib/useReducedMotion";
@@ -211,62 +218,162 @@ function IntroHeader() {
   );
 }
 
+// ── closing cards (certificate + exposition) ────────────────────────────────
+// Cream headline + dim-cream body; both WRITE THEMSELVES IN with the same
+// per-character fill sweep as the act/hero headlines, driven by scroll while the
+// programme block holds pinned (stage-3 timing lives in ProgramReels.render).
+const FILL_BODY = "rgba(247,244,239,0.72)"; // dim cream — matches text-cream/70
+
+const CERT_LEFT = {
+  kicker: "La certification",
+  align: "left" as const,
+  head: "Un socle de compétences, certifié.",
+  body: "Le Certificat AQLUMA · IA Créative atteste d'un niveau de haut vol, structuré autour de cinq axes cardinaux : compréhension technique et culturelle de l'IA, esprit critique appliqué, usage responsable et éthique, créativité augmentée, et conception de projets assistés par l'IA.",
+};
+const CERT_RIGHT = {
+  kicker: "La cérémonie de clôture",
+  align: "right" as const,
+  head: "L'Exposition AQLUMA.",
+  body: "Un événement public où chaque participant présente son projet final devant familles, enseignants et partenaires. Le fruit d'une vraie synergie entre l'esprit humain et la puissance des algorithmes. Découvrir le monde de l'IA, questionner ses réponses, créer le futur.",
+};
+
+/** Split a card's headline + body into one continuous index of fillable chars
+ *  (headline cream, body dim cream), so a single sweep writes head → body. */
+function buildCertModel(head: string, body: string) {
+  let idx = 0;
+  const seg = (text: string, fill: string) =>
+    fr(text)
+      .split(" ")
+      .map((word) => ({
+        chars: [...word].map((ch) => ({ ch, fill, i: idx++ })),
+      }));
+  return { head: seg(head, FILL), body: seg(body, FILL_BODY), total: idx };
+}
+type CertModel = ReturnType<typeof buildCertModel>;
+type CertWords = CertModel["head"];
+
 /**
- * Closing — the finale of the pinned sequence, distilled from the certificate +
- * exposition into two STANDING editorial blocks (Didot display + Satoshi body).
- * In the pinned run they arrive one after the other: the first is anchored left
- * and slides in from the left, then the second is anchored right and slides in
- * from the right. The static fallback just renders them in place.
+ * Closing — the finale of the pinned sequence: two STANDING editorial blocks
+ * (Didot display + Satoshi body). The first is anchored left and the second
+ * right; each rises in, then its copy WRITES ITSELF IN character-by-character on
+ * scroll (same sweep as the heroes). The static fallback renders them solid.
  */
 function CertClosing({
+  animated = false,
   leftRef,
   rightRef,
-  animated = false,
+  models,
+  registerChar,
 }: {
+  animated?: boolean;
   leftRef?: (el: HTMLDivElement | null) => void;
   rightRef?: (el: HTMLDivElement | null) => void;
-  animated?: boolean;
+  models?: { left: CertModel; right: CertModel };
+  registerChar?: (
+    which: "left" | "right",
+    i: number,
+    el: HTMLSpanElement | null,
+  ) => void;
 }) {
-  const hide = animated ? { opacity: 0 } : undefined;
+  const local = useMemo(
+    () => ({
+      left: buildCertModel(CERT_LEFT.head, CERT_LEFT.body),
+      right: buildCertModel(CERT_RIGHT.head, CERT_RIGHT.body),
+    }),
+    [],
+  );
+  const m = models ?? local;
   return (
     <div className="flex w-full flex-col gap-14 md:gap-20">
-      {/* La certification — anchored left, reveals first. */}
-      <div
-        ref={leftRef}
-        style={hide}
-        className="max-w-[46rem] self-start text-left will-change-[opacity,transform]"
-      >
-        <p className="font-satoshi text-[0.95rem] font-bold text-gold">
-          La certification
-        </p>
-        <h3 className="mt-5 font-didot text-[clamp(2.3rem,4vw,4rem)] font-normal leading-[1.06] tracking-[-0.02em] text-cream">
-          {fr("Un socle de compétences, certifié.")}
-        </h3>
-        <p className="mt-6 max-w-[48ch] font-satoshi text-[clamp(1.3rem,1.75vw,1.75rem)] leading-relaxed text-cream/70">
-          {fr(
-            "Le Certificat AQLUMA · IA Créative atteste d'un niveau de haut vol, structuré autour de cinq axes cardinaux : compréhension technique et culturelle de l'IA, esprit critique appliqué, usage responsable et éthique, créativité augmentée, et conception de projets assistés par l'IA.",
-          )}
-        </p>
-      </div>
+      <CertBlock
+        data={CERT_LEFT}
+        model={m.left}
+        animated={animated}
+        blockRef={leftRef}
+        registerChar={
+          registerChar ? (i, el) => registerChar("left", i, el) : undefined
+        }
+      />
+      <CertBlock
+        data={CERT_RIGHT}
+        model={m.right}
+        animated={animated}
+        blockRef={rightRef}
+        registerChar={
+          registerChar ? (i, el) => registerChar("right", i, el) : undefined
+        }
+      />
+    </div>
+  );
+}
 
-      {/* L'Exposition — anchored right, reveals second. */}
-      <div
-        ref={rightRef}
-        style={hide}
-        className="max-w-[46rem] self-end text-right will-change-[opacity,transform]"
+/** One closing block — kicker, fillable Didot headline, fillable body. */
+function CertBlock({
+  data,
+  model,
+  animated,
+  blockRef,
+  registerChar,
+}: {
+  data: { kicker: string; align: "left" | "right"; head: string; body: string };
+  model: CertModel;
+  animated: boolean;
+  blockRef?: (el: HTMLDivElement | null) => void;
+  registerChar?: (i: number, el: HTMLSpanElement | null) => void;
+}) {
+  const right = data.align === "right";
+  const charStyle = (fill: string): React.CSSProperties =>
+    animated
+      ? {
+          backgroundImage: fillGradient(fill, 0),
+          WebkitBackgroundClip: "text",
+          backgroundClip: "text",
+          color: "transparent",
+          WebkitTextFillColor: "transparent",
+        }
+      : { color: fill };
+  // Words stay unbreakable; a real space between them lets the line wrap.
+  const renderWords = (words: CertWords) =>
+    words.map((word, wi) => (
+      <Fragment key={wi}>
+        <span className="inline-block whitespace-nowrap">
+          {word.chars.map((c) => (
+            <span
+              key={c.i}
+              ref={
+                animated && registerChar
+                  ? (el) => registerChar(c.i, el)
+                  : undefined
+              }
+              style={charStyle(c.fill)}
+            >
+              {c.ch}
+            </span>
+          ))}
+        </span>{" "}
+      </Fragment>
+    ));
+  return (
+    <div
+      ref={blockRef}
+      style={animated ? { opacity: 0 } : undefined}
+      className={`max-w-[46rem] will-change-[opacity,transform] ${
+        right ? "self-end text-right" : "self-start text-left"
+      }`}
+    >
+      <p className="font-satoshi text-[0.95rem] font-bold text-gold">
+        {data.kicker}
+      </p>
+      <h3 className="mt-5 font-didot text-[clamp(2.3rem,4vw,4rem)] font-normal leading-[1.06] tracking-[-0.02em]">
+        {renderWords(model.head)}
+      </h3>
+      <p
+        className={`mt-6 max-w-[48ch] font-satoshi text-[clamp(1.3rem,1.75vw,1.75rem)] leading-relaxed ${
+          right ? "ml-auto" : ""
+        }`}
       >
-        <p className="font-satoshi text-[0.95rem] font-bold text-gold">
-          La cérémonie de clôture
-        </p>
-        <h3 className="mt-5 font-didot text-[clamp(2.3rem,4vw,4rem)] font-normal leading-[1.06] tracking-[-0.02em] text-cream">
-          {fr("L'Exposition AQLUMA.")}
-        </h3>
-        <p className="ml-auto mt-6 max-w-[48ch] font-satoshi text-[clamp(1.3rem,1.75vw,1.75rem)] leading-relaxed text-cream/70">
-          {fr(
-            "Un événement public où chaque participant présente son projet final devant familles, enseignants et partenaires. Le fruit d'une vraie synergie entre l'esprit humain et la puissance des algorithmes. Découvrir le monde de l'IA, questionner ses réponses, créer le futur.",
-          )}
-        </p>
-      </div>
+        {renderWords(model.body)}
+      </p>
     </div>
   );
 }
@@ -322,10 +429,35 @@ function ProgramReels() {
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
   // char spans grouped by act: charRefs.current[actIndex][charIndex]
   const charRefs = useRef<(HTMLSpanElement | null)[][]>([[], [], []]);
+  // char spans for the two closing cards: certCharRefs.current[which][charIndex]
+  const certCharRefs = useRef<{
+    left: (HTMLSpanElement | null)[];
+    right: (HTMLSpanElement | null)[];
+  }>({ left: [], right: [] });
 
   const models = useMemo(
     () => ACTS.map((a) => buildModel(a.question, a.accent)),
     [],
+  );
+
+  const certModels = useMemo(
+    () => ({
+      left: buildCertModel(CERT_LEFT.head, CERT_LEFT.body),
+      right: buildCertModel(CERT_RIGHT.head, CERT_RIGHT.body),
+    }),
+    [],
+  );
+  // per-char fill colours flattened in index order (head → body) for each card.
+  const certFills = useMemo(
+    () => ({
+      left: [...certModels.left.head, ...certModels.left.body].flatMap((w) =>
+        w.chars.map((c) => c.fill),
+      ),
+      right: [...certModels.right.head, ...certModels.right.body].flatMap((w) =>
+        w.chars.map((c) => c.fill),
+      ),
+    }),
+    [certModels],
   );
 
   useEffect(() => {
@@ -366,6 +498,22 @@ function ProgramReels() {
         el.style.backgroundImage = fillGradient(fills[i], f);
       }
     };
+
+    // Apply the fill sweep for one closing card (g: 0..1), head → body.
+    const applyCertFill = (which: "left" | "right", g: number) => {
+      const els = certCharRefs.current[which];
+      const fills = certFills[which];
+      const sweep = g * certModels[which].total;
+      for (let i = 0; i < els.length; i++) {
+        const el = els[i];
+        if (!el) continue;
+        const f = Math.min(1, Math.max(0, sweep - i));
+        el.style.backgroundImage = fillGradient(fills[i], f);
+      }
+    };
+    // Only touch the (long) closing copy while stage 3 is on screen; reset once
+    // on the way out so a scroll-back doesn't leave it stuck half-written.
+    let certActive = false;
 
     let activeVideo = -1;
     const setActiveVideo = (idx: number) => {
@@ -470,21 +618,32 @@ function ProgramReels() {
       setActiveVideo(reelsVis > 0.35 ? Math.round(feedIndex) : -1);
 
       // ── STAGE 3 · closing — arrives only after the reels have fully gone, so
-      //    nothing overlaps; then the two blocks rise in turn ─────────────────
-      const stageIn = smoothstep(0.87, 0.91, p);
+      //    nothing overlaps. Each block rises in (showing its ghost copy), then
+      //    WRITES ITSELF IN head → body with the per-character sweep; the left
+      //    finishes before the right begins. ──────────────────────────────────
+      const stageIn = smoothstep(0.86, 0.9, p);
       if (certRef.current) {
         certRef.current.style.opacity = String(stageIn);
         certRef.current.style.pointerEvents = stageIn > 0.5 ? "auto" : "none";
       }
-      const leftIn = smoothstep(0.88, 0.94, p);
+      const leftIn = smoothstep(0.85, 0.89, p);
       if (leftCertRef.current) {
         leftCertRef.current.style.opacity = String(leftIn);
         leftCertRef.current.style.transform = `translateY(${(1 - leftIn) * 70}px)`;
       }
-      const rightIn = smoothstep(0.94, 0.995, p);
+      const rightIn = smoothstep(0.9, 0.94, p);
       if (rightCertRef.current) {
         rightCertRef.current.style.opacity = String(rightIn);
         rightCertRef.current.style.transform = `translateY(${(1 - rightIn) * 70}px)`;
+      }
+      if (p > 0.84) {
+        certActive = true;
+        applyCertFill("left", smoothstep(0.88, 0.95, p));
+        applyCertFill("right", smoothstep(0.935, 0.999, p));
+      } else if (certActive) {
+        certActive = false;
+        applyCertFill("left", 0);
+        applyCertFill("right", 0);
       }
     };
 
@@ -506,7 +665,7 @@ function ProgramReels() {
     }, pin);
 
     return () => ctx.revert();
-  }, [animated, models]);
+  }, [animated, models, certModels, certFills]);
 
   if (!animated) return <StaticProgram />;
 
@@ -590,6 +749,10 @@ function ProgramReels() {
       >
         <CertClosing
           animated
+          models={certModels}
+          registerChar={(which, i, el) => {
+            certCharRefs.current[which][i] = el;
+          }}
           leftRef={(el) => {
             leftCertRef.current = el;
           }}
