@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { fr } from "@/lib/typo";
-import Parallax from "@/components/Parallax";
 
 /**
  * QUESTIONS FRÉQUENTES — closing FAQ, after the MindReveal CTA.
@@ -78,32 +77,11 @@ export default function FAQ() {
       aria-label="Questions fréquentes"
       className="relative w-full overflow-hidden border-t border-cream/[0.06] bg-void px-[min(6vw,5rem)] py-28 md:py-40"
     >
-      {/* Warm Rembrandt key from the upper-left, very faint — keeps the dark FAQ
-          part of the same film as everything above it. Drifts on a slow plane. */}
-      <Parallax
-        aria-hidden
-        speed={0.1}
-        className="pointer-events-none absolute inset-x-0 -inset-y-[20%]"
-      >
-        <div
-          className="h-full w-full"
-          style={{
-            background:
-              "radial-gradient(58% 68% at 22% 6%, rgba(201,97,46,0.10), rgba(8,10,12,0) 60%)",
-          }}
-        />
-      </Parallax>
-
       <div className="relative grid gap-12 lg:grid-cols-[0.6fr_1.4fr] lg:gap-20">
         {/* LEFT — section header, sticky beside the questions like the act intros. */}
         <header className="lg:sticky lg:top-28 lg:self-start" style={enter(0, 16)}>
           <div className="mb-6 flex items-center gap-3.5">
-            <span
-              aria-hidden
-              className="h-[7px] w-[7px] rotate-45 bg-gold"
-              style={{ boxShadow: "0 0 9px 1px rgba(232,178,58,0.55)" }}
-            />
-            <span className="font-satoshi text-[12.5px] font-semibold uppercase tracking-[0.2em] text-cream/70">
+            <span className="font-satoshi text-[0.95rem] font-bold text-gold">
               FAQ
             </span>
           </div>
@@ -161,7 +139,7 @@ export default function FAQ() {
                   }}
                 >
                   <div className="overflow-hidden">
-                    <p className="max-w-[62ch] pb-9 pl-9 pr-6 font-satoshi text-[clamp(0.98rem,1.25vw,1.12rem)] leading-relaxed text-cream/60 md:pl-[3.25rem] md:pr-8">
+                    <p className="pb-9 pl-9 pr-6 font-satoshi text-[clamp(0.98rem,1.25vw,1.12rem)] leading-relaxed text-cream/60 md:pl-[3.25rem] md:pr-16">
                       {fr(item.a)}
                     </p>
                   </div>

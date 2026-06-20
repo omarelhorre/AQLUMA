@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { fr } from "@/lib/typo";
 import { useReducedMotion } from "@/lib/useReducedMotion";
-import Parallax from "@/components/Parallax";
 
 /**
  * AVIS — social proof between the programme and the FAQ. A premium, minimalist
@@ -23,8 +24,8 @@ const DEFAULT_AVATAR = "/avatars/default.svg";
 // The signature AQLUMA reveal: each glyph goes from a faint impression to solid
 // as a left→right sweep crosses it. Reused for the chosen testimonial so a picked
 // review writes itself in like the hero statements (per-character fill).
-const Q_FILL = "#F7F4EF"; // cream ink
-const Q_GHOST = "rgba(247,244,239,0.12)"; // faint impression before the sweep
+const Q_FILL = "#14110C"; // near-black ink, written onto the light card
+const Q_GHOST = "rgba(20,17,12,0.16)"; // faint impression before the sweep
 function quoteFill(f: number): string {
   if (f >= 1) return `linear-gradient(90deg, ${Q_FILL}, ${Q_FILL})`;
   if (f <= 0) return `linear-gradient(90deg, ${Q_GHOST}, ${Q_GHOST})`;
@@ -145,7 +146,7 @@ function Avatar({
   const show = src && !failed ? src : DEFAULT_AVATAR;
   return (
     <span
-      className={`block shrink-0 overflow-hidden rounded-full bg-cream/[0.04] ring-1 ring-cream/10 ${className}`}
+      className={`block shrink-0 overflow-hidden rounded-full bg-void/[0.06] ring-1 ring-void/15 ${className}`}
     >
       {/* eslint-disable-next-line @next/next/no-img-element -- tiny avatar with
           runtime onError fallback; next/image's wrapper fights the circular crop */}
@@ -185,7 +186,7 @@ function Bubble({
       type="button"
       role="tab"
       aria-selected={active}
-      aria-label={`${r.name} — ${r.role}`}
+      aria-label={`${r.name}, ${r.role}`}
       tabIndex={active ? 0 : -1}
       onClick={onClick}
       onKeyDown={onKeyDown}
@@ -193,12 +194,15 @@ function Bubble({
         "relative h-[3.4rem] w-[3.4rem] shrink-0 overflow-hidden rounded-full outline-none transition-all duration-300 ease-editorial md:h-[3.75rem] md:w-[3.75rem]",
         "focus-visible:ring-2 focus-visible:ring-gold/60 focus-visible:ring-offset-2 focus-visible:ring-offset-void",
         active
-          ? "scale-[1.06] ring-2 ring-gold"
-          : "opacity-50 ring-1 ring-cream/10 grayscale hover:scale-[1.03] hover:opacity-100 hover:grayscale-0",
+          ? "z-10 scale-[1.28] ring-2 ring-gold"
+          : "opacity-50 ring-1 ring-cream/10 grayscale hover:scale-[1.08] hover:opacity-100 hover:grayscale-0",
       ].join(" ")}
       style={
         active
-          ? { boxShadow: "0 0 0 4px rgba(232,178,58,0.12)" }
+          ? {
+              boxShadow:
+                "0 0 0 5px rgba(232,178,58,0.14), 0 10px 24px -8px rgba(0,0,0,0.7)",
+            }
           : undefined
       }
     >
@@ -220,36 +224,55 @@ export default function Reviews() {
   const reduced = useReducedMotion();
   const r = REVIEWS[active];
 
-  // The chosen quote writes itself in with the per-character fill sweep each time
-  // a reviewer is picked. Reduced motion shows it solid at once.
+  // The chosen quote writes itself in with the per-character fill — but driven by
+  // SCROLL (like the world heroes), not a timer: as the section crosses the
+  // viewport the active quote fills in. Picking another reviewer shows the new
+  // quote at the current scroll level.
   const quoteModel = useMemo(() => buildQuote(r.quote), [r.quote]);
   const charRefs = useRef<(HTMLSpanElement | null)[]>([]);
-  useEffect(() => {
+  const sectionRef = useRef<HTMLElement>(null);
+  const fillRef = useRef(0); // current scroll-fill progress (0..1)
+  const totalRef = useRef(quoteModel.total);
+  totalRef.current = quoteModel.total;
+
+  const applyFill = useCallback((progress: number) => {
     const els = charRefs.current;
-    const total = quoteModel.total;
+    const total = totalRef.current;
+    const sweep = progress * total;
+    for (let i = 0; i < total; i++) {
+      const el = els[i];
+      if (!el) continue;
+      el.style.backgroundImage = quoteFill(Math.min(1, Math.max(0, sweep - i)));
+    }
+  }, []);
+
+  // scroll drives the fill of the active quote
+  useEffect(() => {
     if (reduced) {
-      for (let i = 0; i < total; i++)
-        if (els[i]) els[i]!.style.backgroundImage = quoteFill(1);
+      applyFill(1);
       return;
     }
-    for (let i = 0; i < total; i++)
-      if (els[i]) els[i]!.style.backgroundImage = quoteFill(0);
-    let raf = 0;
-    const DURATION = 680;
-    const t0 = performance.now();
-    const tick = (now: number) => {
-      const p = Math.min(1, (now - t0) / DURATION);
-      const sweep = p * total;
-      for (let i = 0; i < total; i++) {
-        const el = els[i];
-        if (!el) continue;
-        el.style.backgroundImage = quoteFill(Math.min(1, Math.max(0, sweep - i)));
-      }
-      if (p < 1) raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [active, reduced, quoteModel]);
+    const section = sectionRef.current;
+    if (!section) return;
+    gsap.registerPlugin(ScrollTrigger);
+    const st = ScrollTrigger.create({
+      trigger: section,
+      start: "top 80%",
+      end: "top 35%",
+      scrub: true,
+      onUpdate: (self) => {
+        fillRef.current = self.progress;
+        applyFill(self.progress);
+      },
+    });
+    applyFill(fillRef.current);
+    return () => st.kill();
+  }, [reduced, applyFill]);
+
+  // re-apply at the current scroll level when the reviewer changes
+  useEffect(() => {
+    applyFill(reduced ? 1 : fillRef.current);
+  }, [active, reduced, applyFill]);
 
   // Roving keyboard nav across the bubble row (proper tablist behaviour).
   function onKeyDown(e: React.KeyboardEvent<HTMLButtonElement>, i: number) {
@@ -267,31 +290,17 @@ export default function Reviews() {
 
   return (
     <section
+      ref={sectionRef}
       id="avis"
       data-loupe
       className="relative w-full overflow-hidden bg-void px-[min(6vw,5rem)] py-32 md:py-48"
       aria-label="AQLUMA, avis"
     >
-      {/* Decorative glow on a slow plane — drifts behind the panel for depth. */}
-      <Parallax
-        aria-hidden
-        speed={0.06}
-        className="pointer-events-none absolute inset-x-0 -inset-y-[22%] -z-0"
-      >
-        <div
-          className="h-full w-full"
-          style={{
-            background:
-              "radial-gradient(50% 40% at 50% 30%, rgba(232,178,58,0.08), rgba(8,10,12,0) 70%)",
-          }}
-        />
-      </Parallax>
-
       <div className="relative grid gap-16 lg:grid-cols-2 lg:gap-24">
         {/* LEFT — the section title + aggregate. Sticky on desktop so it holds
             beside the testimonial, like the act intros. */}
         <div className="lg:sticky lg:top-28 lg:self-start">
-          <p className="font-satoshi text-[0.8rem] font-bold uppercase tracking-kicker text-gold">
+          <p className="font-satoshi text-[0.95rem] font-bold text-gold">
             Ils ont vécu AQLUMA
           </p>
           <h2 className="mt-5 max-w-[15ch] font-didot text-[clamp(2.6rem,5vw,4.6rem)] font-normal leading-[1.04] tracking-[-0.02em] text-cream">
@@ -309,7 +318,7 @@ export default function Reviews() {
               </span>
             </div>
             <Stars rating={AVG_NUM} size="lg" />
-            <p className="font-satoshi text-[0.82rem] uppercase tracking-[0.18em] text-cream/40">
+            <p className="font-satoshi text-[0.9rem] text-cream/45">
               {fr(`Note moyenne · ${REVIEWS.length} familles accompagnées`)}
             </p>
           </div>
@@ -317,12 +326,12 @@ export default function Reviews() {
 
         {/* RIGHT — the testimonial, held to the right: a row of reviewer bubbles
             over the chosen quote, which writes itself in with the scroll-fill. */}
-        <div className="flex flex-col items-start gap-12 md:gap-16">
+        <div className="flex flex-col items-start gap-6 md:gap-7">
           <div
             role="tablist"
             aria-label="Choisir un témoignage"
             aria-orientation="horizontal"
-            className="flex flex-wrap items-center justify-start gap-3.5 md:gap-4"
+            className="flex flex-wrap items-center justify-start gap-4 pl-2 md:gap-5"
           >
             {REVIEWS.map((rev, i) => (
               <Bubble
@@ -338,18 +347,22 @@ export default function Reviews() {
             ))}
           </div>
 
-          {/* The chosen testimonial — a big quote mark, the quote written in with
-              the per-character fill sweep, then the reviewer with their rating. */}
-          <figure role="tabpanel" className="w-full max-w-[46rem]">
+          {/* The chosen testimonial — on a soft raised panel so it stands off the
+              void; a big quote mark, the quote written in with the scroll-fill,
+              then the reviewer with their rating. */}
+          <figure
+            role="tabpanel"
+            className="w-full max-w-[46rem] rounded-[1.75rem] bg-white p-8 shadow-[0_30px_70px_-24px_rgba(0,0,0,0.7)] md:p-10"
+          >
             <span
               aria-hidden
-              className="block font-didot text-[clamp(3.5rem,5vw,5rem)] leading-[0.5] text-gold/70"
+              className="block font-didot text-[clamp(3.5rem,5vw,5rem)] leading-[0.5] text-clay"
             >
               “
             </span>
             <blockquote
               key={active}
-              className="mt-4 font-didot text-[clamp(1.6rem,2.7vw,2.3rem)] font-normal leading-[1.42] text-cream/90"
+              className="mt-4 font-didot text-[clamp(1.6rem,2.7vw,2.3rem)] font-normal leading-[1.42] text-void/90"
             >
               {quoteModel.words.map((word, wi) => (
                 <span key={wi} className="mr-[0.26em] inline-block whitespace-nowrap">
@@ -363,7 +376,15 @@ export default function Reviews() {
                         reduced
                           ? { color: Q_FILL }
                           : {
-                              backgroundImage: quoteFill(0),
+                              backgroundImage: quoteFill(
+                                Math.min(
+                                  1,
+                                  Math.max(
+                                    0,
+                                    fillRef.current * quoteModel.total - c.i,
+                                  ),
+                                ),
+                              ),
                               WebkitBackgroundClip: "text",
                               backgroundClip: "text",
                               color: "transparent",
@@ -378,11 +399,11 @@ export default function Reviews() {
               ))}
               <span className="sr-only">{fr(r.quote)}</span>
             </blockquote>
-            <figcaption className="mt-10 flex items-center gap-4">
+            <figcaption className="mt-9 flex items-center gap-4">
               <Avatar src={r.avatar} name={r.name} className="h-12 w-12" />
               <span className="font-satoshi text-[0.92rem] leading-snug">
-                <span className="block font-semibold text-cream">{r.name}</span>
-                <span className="block text-cream/45">{fr(r.role)}</span>
+                <span className="block font-semibold text-void">{r.name}</span>
+                <span className="block text-void/55">{fr(r.role)}</span>
               </span>
               <span className="ml-auto self-start">
                 <Stars rating={r.rating} />

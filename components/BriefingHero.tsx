@@ -238,7 +238,7 @@ export default function BriefingHero() {
           >
             I
           </span>
-          <span className="font-satoshi text-[12.5px] font-semibold uppercase tracking-[0.2em] text-cream">
+          <span className="font-satoshi text-[0.95rem] font-semibold text-cream">
             Le Briefing
           </span>
           <span

@@ -127,7 +127,7 @@ export default function ContactModal() {
               <span className="flex h-16 w-16 items-center justify-center rounded-full border border-cream/15 text-2xl text-cream transition-all duration-300 group-hover:scale-110 group-hover:border-[var(--brand)] group-hover:bg-[var(--brand)] group-hover:text-white">
                 <FontAwesomeIcon icon={s.icon} />
               </span>
-              <span className="font-satoshi text-[11px] font-medium uppercase tracking-[0.16em] text-cream/55 transition-colors duration-300 group-hover:text-cream/90">
+              <span className="font-satoshi text-[0.85rem] font-medium text-cream/55 transition-colors duration-300 group-hover:text-cream/90">
                 {s.label}
               </span>
             </a>

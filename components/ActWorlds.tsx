@@ -216,7 +216,7 @@ export default function ActWorlds() {
               className="absolute top-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-3 text-center"
               style={{ left: `${((i + 0.5) / SETUPS.length) * 100}%` }}
             >
-              <span className="flex h-28 w-28 items-center justify-center rounded-full border border-dashed border-cream/20 font-satoshi text-[10px] uppercase tracking-[0.18em] text-cream/40">
+              <span className="flex h-28 w-28 items-center justify-center rounded-full border border-dashed border-cream/20 font-satoshi text-[11px] text-cream/40">
                 Setup {String(i + 1).padStart(2, "0")}
               </span>
             </div>

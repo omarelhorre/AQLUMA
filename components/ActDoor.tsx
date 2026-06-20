@@ -245,7 +245,7 @@ export default function ActDoor() {
                 style={{ opacity: 0 }}
                 className={
                   line.kind === "kicker"
-                    ? "mb-5 font-satoshi text-[clamp(0.72rem,0.95vw,0.85rem)] font-bold uppercase tracking-kicker text-gold will-change-[transform,opacity,filter]"
+                    ? "mb-5 font-satoshi text-[clamp(0.9rem,1.1vw,1.05rem)] font-bold text-gold will-change-[transform,opacity,filter]"
                     : line.kind === "head"
                       ? "block font-didot text-[clamp(2.4rem,5.6vw,5rem)] font-normal leading-[1.06] tracking-[-0.02em] text-cream will-change-[transform,opacity,filter]"
                       : "ml-auto mt-7 max-w-[44ch] font-satoshi text-[clamp(0.95rem,1.3vw,1.2rem)] font-normal leading-relaxed text-cream/70 will-change-[transform,opacity,filter]"

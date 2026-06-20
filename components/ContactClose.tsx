@@ -4,7 +4,6 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFacebookF, faInstagram, faLinkedinIn } from "@fortawesome/free-brands-svg-icons";
 import { config } from "@fortawesome/fontawesome-svg-core";
 import "@fortawesome/fontawesome-svg-core/styles.css";
-import Parallax from "@/components/Parallax";
 
 // We import the Font Awesome CSS ourselves, so disable its runtime auto-injection
 // (prevents the icons flashing oversized before the stylesheet loads).
@@ -38,21 +37,6 @@ export default function ContactClose() {
       className="relative flex w-full flex-col items-center justify-center overflow-hidden bg-void px-6 py-24 text-center md:py-28"
       aria-label="AQLUMA, contact"
     >
-      {/* Closing glow — drifts up slowly behind the footer. */}
-      <Parallax
-        aria-hidden
-        speed={0.08}
-        className="pointer-events-none absolute inset-x-0 -inset-y-[40%] -z-10"
-      >
-        <div
-          className="h-full w-full"
-          style={{
-            background:
-              "radial-gradient(45% 45% at 50% 60%, rgba(232,178,58,0.1), rgba(8,10,12,0) 70%)",
-          }}
-        />
-      </Parallax>
-
       <a
         href="mailto:hello@aqluma.com"
         className="relative font-satoshi text-[1.05rem] text-cream/70 underline-offset-4 transition-colors duration-200 hover:text-cream hover:underline"

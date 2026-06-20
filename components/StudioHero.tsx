@@ -228,7 +228,7 @@ export default function StudioHero() {
           >
             III
           </span>
-          <span className="font-satoshi text-[12.5px] font-semibold uppercase tracking-[0.2em] text-ink">
+          <span className="font-satoshi text-[0.95rem] font-semibold text-ink">
             Le Studio
           </span>
           <span

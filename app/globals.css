@@ -53,11 +53,9 @@
     display: none;
   }
 
-  /* uppercase, letter-spaced kicker / nav label */
+  /* sentence-case Satoshi kicker / nav label (no caps, no letter-spacing) */
   .kicker {
     font-family: theme("fontFamily.satoshi");
-    text-transform: uppercase;
-    letter-spacing: theme("letterSpacing.kicker");
     font-weight: 500;
   }
 

@@ -34,9 +34,9 @@ import { fr } from "@/lib/typo";
  * Reduced motion: static thinker statement, clip at poster, no pin/scrub.
  */
 
-const LEAD = "transforme votre adolescent.";
+const LEAD = "transforme votre adolescent,";
 const LOST =
-  "D'un adolescent qui demande une réponse, la recopie et l'oublie le lendemain : un esprit perdu, sans méthode, dont la voix se dissout dans celle de la machine.";
+  "d'un adolescent qui demande une réponse, la recopie et l'oublie le lendemain : un esprit perdu, sans méthode, dont la voix se dissout dans celle de la machine.";
 const THINKER =
   "à un esprit qui pense avec l'IA : il interroge, vérifie, reformule et garde sa voix. Même outil, deux trajectoires : la différence, c'est la méthode.";
 
@@ -280,7 +280,7 @@ export default function MindReveal() {
         ));
 
   const btnClass =
-    "whitespace-nowrap rounded-full border border-cream/20 bg-cream/[0.06] px-8 py-3.5 font-satoshi text-[12.5px] font-semibold uppercase tracking-[0.14em] text-cream/90 outline-none backdrop-blur-md transition-all duration-300 ease-editorial hover:-translate-y-[1px] hover:border-cream/40 hover:bg-cream/[0.12] focus-visible:ring-2 focus-visible:ring-gold/50";
+    "whitespace-nowrap rounded-full border border-cream/20 bg-cream/[0.06] px-8 py-3.5 font-satoshi text-[0.95rem] font-semibold text-cream/90 outline-none backdrop-blur-md transition-all duration-300 ease-editorial hover:-translate-y-[1px] hover:border-cream/40 hover:bg-cream/[0.12] focus-visible:ring-2 focus-visible:ring-gold/50";
 
   const paraClass =
     "font-satoshi text-[clamp(1.6rem,3.3vw,3rem)] leading-[1.35]";
@@ -398,7 +398,7 @@ export default function MindReveal() {
           className="mt-11 will-change-[opacity,transform]"
           style={{ opacity: reduced ? 1 : 0 }}
         >
-          <p className="font-satoshi text-[0.78rem] font-bold uppercase tracking-kicker text-gold/90">
+          <p className="font-satoshi text-[0.95rem] font-bold text-gold">
             {fr(CTA_KICKER)}
           </p>
           <div className="mt-5 flex flex-wrap gap-3.5">

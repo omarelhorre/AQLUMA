@@ -103,7 +103,7 @@ export default function ProgramModal() {
   const fieldClass =
     "w-full rounded-lg border border-cream/12 bg-cream/[0.03] px-3.5 py-2.5 font-satoshi text-[0.95rem] text-cream placeholder:text-cream/35 outline-none transition-colors duration-200 focus:border-gold/60 focus:bg-cream/[0.05]";
   const labelClass =
-    "mb-1.5 block text-left font-satoshi text-[11px] font-medium uppercase tracking-[0.14em] text-cream/50";
+    "mb-1.5 block text-left font-satoshi text-[0.85rem] font-medium text-cream/55";
 
   return (
     <div

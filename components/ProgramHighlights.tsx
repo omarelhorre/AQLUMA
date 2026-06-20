@@ -190,15 +190,15 @@ export default function ProgramHighlights() {
 function IntroHeader() {
   return (
     <header className="max-w-[44ch] text-left">
-      <p className="font-satoshi text-[0.8rem] font-bold uppercase tracking-kicker text-gold">
-        Le programme · 3 mois · 12 semaines
+      <p className="font-satoshi text-[clamp(1rem,1.25vw,1.15rem)] font-bold text-gold">
+        {fr("Un programme de trois mois pour apprendre à créer avec l'IA.")}
       </p>
       <h2 className="mt-5 font-didot text-[clamp(2.4rem,5.5vw,4.5rem)] font-normal leading-[1.04] tracking-[-0.02em] text-cream">
         {fr("Comprendre, questionner, créer.")}
       </h2>
       <p className="mt-6 max-w-[52ch] font-satoshi text-[clamp(1rem,1.4vw,1.2rem)] leading-relaxed text-cream/65">
         {fr(
-          "Une aventure immersive en trois actes qui transforme un consommateur passif d'outils en véritable acteur de l'innovation.",
+          "De ses premières questions sur l'IA jusqu'à ses propres créations, votre adolescent apprend à penser avec elle, sans jamais lui céder sa voix.",
         )}
       </p>
     </header>
@@ -230,7 +230,7 @@ function CertClosing({
         style={hide}
         className="max-w-[46rem] self-start text-left will-change-[opacity,transform]"
       >
-        <p className="font-satoshi text-[11px] font-bold uppercase tracking-kicker text-gold">
+        <p className="font-satoshi text-[0.95rem] font-bold text-gold">
           La certification
         </p>
         <h3 className="mt-5 font-didot text-[clamp(2.3rem,4vw,4rem)] font-normal leading-[1.06] tracking-[-0.02em] text-cream">
@@ -249,7 +249,7 @@ function CertClosing({
         style={hide}
         className="max-w-[46rem] self-end text-right will-change-[opacity,transform]"
       >
-        <p className="font-satoshi text-[11px] font-bold uppercase tracking-kicker text-gold">
+        <p className="font-satoshi text-[0.95rem] font-bold text-gold">
           La cérémonie de clôture
         </p>
         <h3 className="mt-5 font-didot text-[clamp(2.3rem,4vw,4rem)] font-normal leading-[1.06] tracking-[-0.02em] text-cream">
@@ -257,7 +257,7 @@ function CertClosing({
         </h3>
         <p className="ml-auto mt-6 max-w-[48ch] font-satoshi text-[clamp(1.3rem,1.75vw,1.75rem)] leading-relaxed text-cream/70">
           {fr(
-            "Un événement public où chaque participant présente son projet final devant familles, enseignants et partenaires — le fruit d'une synergie entre l'esprit humain et la puissance algorithmique : découvrir le monde de l'IA, questionner ses réponses, créer le futur.",
+            "Un événement public où chaque participant présente son projet final devant familles, enseignants et partenaires. Le fruit d'une vraie synergie entre l'esprit humain et la puissance des algorithmes. Découvrir le monde de l'IA, questionner ses réponses, créer le futur.",
           )}
         </p>
       </div>
@@ -303,6 +303,7 @@ function ProgramReels() {
   const rightCertRef = useRef<HTMLDivElement>(null);
   const phoneRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
+  const textTrackRef = useRef<HTMLDivElement>(null);
   const panelRefs = useRef<(HTMLDivElement | null)[]>([]);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
   // char spans grouped by act: charRefs.current[actIndex][charIndex]
@@ -323,6 +324,21 @@ function ProgramReels() {
 
     const videos = videoRefs.current;
     videos.forEach((v) => v && (v.currentTime = 0));
+
+    // Cache each act's unlock cells (Compétences · Expériences · Livrable) + their
+    // lock badges, so the scroll loop can drive the unlock sequence cheaply.
+    const cellEls = panelRefs.current.map((panel) =>
+      panel ? Array.from(panel.querySelectorAll<HTMLElement>("[data-cell]")) : [],
+    );
+    const lockEls = cellEls.map((cells) =>
+      cells.map((c) => c.querySelector<HTMLElement>("[data-lock]")),
+    );
+    const bodyEls = cellEls.map((cells) =>
+      cells.map((c) => c.querySelector<HTMLElement>("[data-cellbody]")),
+    );
+    const shackleEls = lockEls.map((locks) =>
+      locks.map((l) => l?.querySelector<SVGPathElement>("[data-shackle]") ?? null),
+    );
 
     // Apply the fill sweep for one act's headline (g: 0..1).
     const applyFill = (act: number, g: number) => {
@@ -353,17 +369,19 @@ function ProgramReels() {
     };
 
     const render = (p: number) => {
-      // ── STAGE 1 · intro headline — holds, then lifts away ──────────────────
-      const introOut = smoothstep(0.04, 0.14, p);
+      // ── STAGE 1 · intro headline — holds, then lifts FULLY away before the
+      //    reels arrive (sequential, never overlapping the first act) ──────────
+      const introOut = smoothstep(0.03, 0.11, p);
       if (introRef.current) {
         introRef.current.style.opacity = String(1 - introOut);
         introRef.current.style.transform = `translateY(${-introOut * 80}px)`;
         introRef.current.style.pointerEvents = introOut < 0.5 ? "auto" : "none";
       }
 
-      // ── STAGE 2 · reels — arrive, run the 3 acts, then lift away ───────────
-      const reelsIn = smoothstep(0.06, 0.16, p);
-      const reelsOut = smoothstep(REELS_SEQ_END, 0.9, p);
+      // ── STAGE 2 · reels — arrive only once the intro is gone, run the 3 acts,
+      //    then lift away before the closing stage ───────────────────────────
+      const reelsIn = smoothstep(0.12, 0.2, p);
+      const reelsOut = smoothstep(REELS_SEQ_END, 0.86, p);
       const reelsVis = reelsIn * (1 - reelsOut);
       if (reelsRef.current) {
         reelsRef.current.style.opacity = String(reelsVis);
@@ -386,41 +404,70 @@ function ProgramReels() {
       let feedIndex = 0;
       for (let b = 1; b < N; b++) feedIndex += smoothstep(b - 0.16, b + 0.04, phase);
 
+      // The text column and the phone slide as ONE vertical reel — same offset —
+      // so the acts scroll THROUGH a clipped window instead of cross-fading. No
+      // opacity blending, so two acts never overlap.
       if (trackRef.current) {
         gsap.set(trackRef.current, { yPercent: -feedIndex * (100 / N) });
       }
+      if (textTrackRef.current) {
+        gsap.set(textTrackRef.current, { yPercent: -feedIndex * (100 / N) });
+      }
 
       for (let k = 0; k < N; k++) {
-        const panel = panelRefs.current[k];
-        if (panel) {
-          const d = feedIndex - k; // 0 when active; <0 upcoming, >0 past
-          const o = 1 - Math.min(1, Math.abs(d));
-          panel.style.opacity = String(o);
-          // upcoming acts wait just below and rise into place; past acts lift
-          // away — so each act reads as ARRIVING, not as us scrolling to it.
-          panel.style.transform = `translateY(${-d * 38}px)`;
-          panel.style.pointerEvents =
-            o > 0.55 && reelsVis > 0.5 ? "auto" : "none";
-        }
         // Headline fills FAST as its act takes the stage, then holds solid for
         // the rest of the act so it reads crisp (no lingering half-filled state).
         applyFill(k, smoothstep(0.02, 0.3, phase - k));
+
+        // Unlock sequence — once the headline has landed, the three cells open in
+        // turn as the act holds the stage: Compétences, then Expériences, then the
+        // Livrable blooms in. Each de-blurs with a gold glow and sheds its lock.
+        const local = phase - k; // 0 at this act's entry, ~0.84 as it hands off
+        const steps = [
+          smoothstep(0.3, 0.48, local), // Compétences
+          smoothstep(0.48, 0.64, local), // Expériences
+          smoothstep(0.64, 0.82, local), // Livrable
+        ];
+        const cells = cellEls[k];
+        for (let c = 0; c < cells.length; c++) {
+          const u = steps[Math.min(c, 2)];
+          // the CONTENT de-blurs + rises in (the label + lock stay crisp)
+          const body = bodyEls[k][c];
+          if (body) {
+            body.style.opacity = String(u);
+            body.style.filter = `blur(${(1 - u) * 8}px)`;
+            body.style.transform = `translateY(${(1 - u) * 12}px)`;
+          }
+          // the lock UNLOCKS first — the shackle swings open — then it fades + blurs away
+          const lock = lockEls[k][c];
+          if (lock) {
+            const open = smoothstep(0.06, 0.46, u); // shackle swings open
+            const gone = smoothstep(0.48, 0.9, u); // then the lock leaves
+            const shackle = shackleEls[k][c];
+            if (shackle)
+              shackle.style.transform = `rotate(${-open * 44}deg) translateY(${-open * 2.5}px)`;
+            lock.style.opacity = String(1 - gone);
+            lock.style.transform = `scale(${1 + gone * 0.45}) translateY(${-gone * 4}px)`;
+            lock.style.filter = `blur(${gone * 6}px)`;
+          }
+        }
       }
 
       setActiveVideo(reelsVis > 0.35 ? Math.round(feedIndex) : -1);
 
-      // ── STAGE 3 · closing — two blocks arrive in turn, left then right ─────
-      const stageIn = smoothstep(0.84, 0.88, p);
+      // ── STAGE 3 · closing — arrives only after the reels have fully gone, so
+      //    nothing overlaps; then the two blocks rise in turn ─────────────────
+      const stageIn = smoothstep(0.87, 0.91, p);
       if (certRef.current) {
         certRef.current.style.opacity = String(stageIn);
         certRef.current.style.pointerEvents = stageIn > 0.5 ? "auto" : "none";
       }
-      const leftIn = smoothstep(0.85, 0.93, p);
+      const leftIn = smoothstep(0.88, 0.94, p);
       if (leftCertRef.current) {
         leftCertRef.current.style.opacity = String(leftIn);
         leftCertRef.current.style.transform = `translateY(${(1 - leftIn) * 70}px)`;
       }
-      const rightIn = smoothstep(0.93, 0.995, p);
+      const rightIn = smoothstep(0.94, 0.995, p);
       if (rightCertRef.current) {
         rightCertRef.current.style.opacity = String(rightIn);
         rightCertRef.current.style.transform = `translateY(${(1 - rightIn) * 70}px)`;
@@ -466,20 +513,30 @@ function ProgramReels() {
         style={{ opacity: 0 }}
       >
         <div className="grid w-full items-center gap-10 lg:grid-cols-[1fr_auto] lg:gap-16">
-          {/* LEFT — cross-fading act panels, stacked (overlap absolutely). */}
-          <div className="relative min-h-[30rem] lg:min-h-[34rem]">
-            {ACTS.map((a, k) => (
-              <div
-                key={a.act}
-                ref={(el) => {
-                  panelRefs.current[k] = el;
-                }}
-                className="absolute inset-0 flex flex-col justify-center will-change-[opacity,transform]"
-                style={{ opacity: k === 0 ? 1 : 0 }}
-              >
-                <ActText act={a} model={models[k]} charRefs={charRefs} index={k} />
-              </div>
-            ))}
+          {/* LEFT — a clipped window; the three acts stack in a vertical track and
+              slide through it in lock-step with the phone (one act at a time). */}
+          <div className="relative h-[clamp(30rem,76vh,42rem)] overflow-hidden">
+            <div
+              ref={textTrackRef}
+              className="absolute inset-x-0 top-0 h-[300%] will-change-transform"
+            >
+              {ACTS.map((a, k) => (
+                <div
+                  key={a.act}
+                  ref={(el) => {
+                    panelRefs.current[k] = el;
+                  }}
+                  className="flex h-1/3 flex-col justify-center"
+                >
+                  <ActText
+                    act={a}
+                    model={models[k]}
+                    charRefs={charRefs}
+                    index={k}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* RIGHT — one phone; its feed flicks between the three reels. */}
@@ -604,7 +661,7 @@ function ActText({
           <p className="font-didot text-[clamp(1.2rem,1.7vw,1.55rem)] font-normal leading-none text-cream">
             {fr(name)}
           </p>
-          <p className="mt-2.5 font-satoshi text-[11px] font-semibold uppercase tracking-[0.22em] text-cream/40">
+          <p className="mt-2.5 font-satoshi text-[0.82rem] font-medium text-cream/50">
             {act.month} · {act.title}
           </p>
         </div>
@@ -647,31 +704,114 @@ function ActText({
         {fr(act.objective)}
       </p>
 
-      {/* Compétences · Expériences · Livrable — three columns that spread across
-          the full width up to the phone, so the row fills what would otherwise be
-          dead space rather than huddling on the left. */}
-      <div className="mt-12 grid gap-x-12 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
-        <SpecList label="Compétences" items={act.skills} />
-        <SpecList label="Expériences" items={act.experiences} />
-
-        {/* livrable — same column rhythm as the spec lists, deliverables in gold */}
-        <div className="border-t border-cream/15 pt-4">
-          <p className="mb-1 font-satoshi text-[10px] font-bold uppercase tracking-[0.22em] text-gold/80">
-            Livrable
-          </p>
-          <div className="space-y-0.5 pt-2.5">
+      {/* Compétences · Expériences · Livrable — three cells that unlock in turn as
+          the act holds the stage (driven by the scroll loop). Each sheds a lock
+          and de-blurs with a gold glow; the Livrable blooms in last. */}
+      <div className="mt-12 grid gap-x-12 gap-y-9 sm:grid-cols-2 lg:grid-cols-3">
+        <UnlockCell label="Compétences" reduced={reduced} lock>
+          <SpecItems items={act.skills} />
+        </UnlockCell>
+        <UnlockCell label="Expériences" reduced={reduced} lock>
+          <SpecItems items={act.experiences} />
+        </UnlockCell>
+        <UnlockCell label="Livrable" reduced={reduced}>
+          <div className="space-y-1 pt-0.5">
             {act.livrables.map((l) => (
               <p
                 key={l}
-                className="font-didot text-[clamp(1.05rem,1.35vw,1.25rem)] italic leading-snug text-gold/90"
+                className="font-didot text-[clamp(1.1rem,1.4vw,1.35rem)] italic leading-snug text-gold/90"
               >
                 {fr(l)}
               </p>
             ))}
           </div>
-        </div>
+        </UnlockCell>
       </div>
     </div>
+  );
+}
+
+/** A spare padlock. Its shackle (`data-shackle`) swings open on its lower-left
+ * pivot as the cell unlocks, then the whole lock fades + blurs away. */
+function LockIcon() {
+  return (
+    <svg
+      width="15"
+      height="17"
+      viewBox="0 0 24 28"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ overflow: "visible" }}
+    >
+      <rect x="3.5" y="12" width="17" height="13.5" rx="2.6" />
+      <path
+        data-shackle
+        d="M7 12V8a5 5 0 0 1 10 0v4"
+        style={{ transformBox: "fill-box", transformOrigin: "bottom left" }}
+      />
+    </svg>
+  );
+}
+
+/**
+ * One spec cell. In the animated runway the scroll loop drives its `[data-cell]`
+ * (blur → clear + a gold bloom via `--glow`) and its `[data-lock]` badge (fades +
+ * scales away). Under reduced motion it's just a plain, fully-open block.
+ */
+function UnlockCell({
+  label,
+  children,
+  reduced = false,
+  lock = false,
+}: {
+  label: string;
+  children: React.ReactNode;
+  reduced?: boolean;
+  lock?: boolean;
+}) {
+  return (
+    <div data-cell className="relative">
+      <div className="relative flex items-center gap-3">
+        <p className="font-satoshi text-[0.88rem] font-bold leading-none text-gold">
+          {label}
+        </p>
+        {lock && !reduced && (
+          <span
+            data-lock
+            aria-hidden
+            className="ml-auto text-gold/65 will-change-[opacity,transform,filter]"
+          >
+            <LockIcon />
+          </span>
+        )}
+      </div>
+      <div
+        data-cellbody
+        className="relative mt-3"
+        style={reduced ? undefined : { opacity: 0, willChange: "opacity, filter, transform" }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/** Hairline-separated list of spec items (Compétences / Expériences). */
+function SpecItems({ items }: { items: string[] }) {
+  return (
+    <ul className="space-y-2.5">
+      {items.map((it) => (
+        <li
+          key={it}
+          className="font-satoshi text-[0.95rem] leading-snug text-cream/75"
+        >
+          {fr(it)}
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -841,22 +981,3 @@ function ReelAction({
   );
 }
 
-function SpecList({ label, items }: { label: string; items: string[] }) {
-  return (
-    <div className="border-t border-cream/15 pt-4">
-      <p className="mb-1 font-satoshi text-[10px] font-bold uppercase tracking-[0.22em] text-gold/80">
-        {label}
-      </p>
-      <ul className="divide-y divide-cream/[0.07]">
-        {items.map((it) => (
-          <li
-            key={it}
-            className="py-2.5 font-satoshi text-[0.9rem] leading-snug text-cream/75"
-          >
-            {fr(it)}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
