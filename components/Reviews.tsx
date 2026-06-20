@@ -60,7 +60,7 @@ const REVIEWS: Review[] = [
     name: "Salma B.",
     role: "Maman d'une participante, 15 ans",
     rating: 5,
-    avatar: "/avatars/salma.svg",
+    avatar: "/avatars/salma.jpeg",
   },
   {
     quote:
@@ -68,7 +68,7 @@ const REVIEWS: Review[] = [
     name: "Yassine",
     role: "Participant, 16 ans",
     rating: 4.5,
-    avatar: "/avatars/yassine.svg",
+    avatar: "/avatars/yassine.jpeg",
   },
   {
     quote:
@@ -83,7 +83,7 @@ const REVIEWS: Review[] = [
     name: "Nadia R.",
     role: "Maman d'un participant, 17 ans",
     rating: 5,
-    avatar: "/avatars/nadia.svg",
+    avatar: "/avatars/nadia.jpeg",
   },
   {
     quote:

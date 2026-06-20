@@ -1,10 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { fr } from "@/lib/typo";
+
+// Layout effect on the client (runs before paint), plain effect on the server
+// (where useLayoutEffect is a no-op and only warns). Used to resolve the
+// viewport BEFORE the pinning passive-effect runs — see ProgramReels.
+const useIsoLayoutEffect =
+  typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 /**
  * LE PROGRAMME — distils the macro programme (assets/aqluma_macro_programme.txt)
@@ -285,8 +291,16 @@ function ProgramReels() {
   const reduced = useReducedMotion();
   // The pinned, stacked layout only fits a wide viewport; narrower screens get
   // the static stack so the tall phone + text never overflow a pinned screen.
+  //
+  // Default TRUE so DESKTOP renders the pinned layout from the first paint and
+  // NEVER flips — a late flip would add the pin-spacer after neighbouring
+  // ScrollTriggers measured, jumping the scroll past Reviews/FAQ. The resolve
+  // runs in a LAYOUT effect: on a narrow viewport it flips to the static stack
+  // synchronously, before paint AND before the pinning passive-effect below
+  // runs — so a phone never pins (and never hits the GSAP-pin/React `removeChild`
+  // crash that a post-pin structure swap caused).
   const [isLg, setIsLg] = useState(true);
-  useEffect(() => {
+  useIsoLayoutEffect(() => {
     const mq = window.matchMedia("(min-width: 1024px)");
     setIsLg(mq.matches);
     const onChange = (e: MediaQueryListEvent) => setIsLg(e.matches);

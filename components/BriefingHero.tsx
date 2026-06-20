@@ -45,11 +45,15 @@ function fillGradient(fill: string, f: number): string {
 // Edge-bleed blend: the LEFT side melts into the canvas (where the text sits),
 // while top/bottom are softly feathered. The right side stays solid — it bleeds
 // off the viewport, so there's no box anywhere on screen.
+// Left edge: one smooth, long ramp (transparent → solid at 58%) with NO mid
+// inflection — the old `rgba(0,0,0,0.08) 13%` stop + the footage's own
+// person→desk contrast edge stacked into a visible vertical seam ~⅓ in. The
+// longer fade dissolves that whole left third into the canvas, so there's no line.
 const FEATHER: React.CSSProperties = {
   WebkitMaskImage:
-    "linear-gradient(to right, transparent 0%, rgba(0,0,0,0.08) 13%, #000 44%), linear-gradient(to bottom, transparent 0%, #000 9%, #000 91%, transparent 100%)",
+    "linear-gradient(to right, transparent 0%, #000 58%), linear-gradient(to bottom, transparent 0%, #000 9%, #000 91%, transparent 100%)",
   maskImage:
-    "linear-gradient(to right, transparent 0%, rgba(0,0,0,0.08) 13%, #000 44%), linear-gradient(to bottom, transparent 0%, #000 9%, #000 91%, transparent 100%)",
+    "linear-gradient(to right, transparent 0%, #000 58%), linear-gradient(to bottom, transparent 0%, #000 9%, #000 91%, transparent 100%)",
   WebkitMaskComposite: "source-in",
   maskComposite: "intersect",
 };
@@ -208,7 +212,7 @@ export default function BriefingHero() {
         className="pointer-events-none absolute inset-0 z-[2]"
         style={{
           background:
-            "linear-gradient(90deg, rgba(8,10,12,0.96) 0%, rgba(8,10,12,0.78) 26%, rgba(8,10,12,0.22) 48%, rgba(8,10,12,0) 62%)",
+            "linear-gradient(90deg, rgba(8,10,12,0.96) 0%, rgba(8,10,12,0) 62%)",
         }}
       />
 

@@ -18,6 +18,7 @@ import { CAL_LINK, CAL_CONFIG } from "@/lib/cal";
 export default function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -44,11 +45,28 @@ export default function Header() {
     };
   }, [open]);
 
-  const goTop = () => smoothScrollTo(0);
+  // mobile sheet: lock body scroll + close on escape
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMobileOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [mobileOpen]);
+
+  const goTop = () => {
+    setMobileOpen(false);
+    smoothScrollTo(0);
+  };
 
   const goWorld = (id: string, enabled: boolean) => {
     if (!enabled) return;
     setOpen(false);
+    setMobileOpen(false);
     smoothScrollTo(`#${id}`, { offset: 0 });
   };
 
@@ -79,7 +97,8 @@ export default function Header() {
           />
         </button>
 
-        <div className="flex items-center gap-3 md:gap-5">
+        {/* Desktop nav — hidden under md, replaced by the hamburger sheet. */}
+        <div className="hidden items-center gap-3 md:flex md:gap-5">
           {/* Mondes — expandable dropdown */}
           <div
             ref={menuRef}
@@ -189,6 +208,99 @@ export default function Header() {
             </svg>
           </button>
         </div>
+
+        {/* Hamburger — mobile only. Two bars morph into an X when open. */}
+        <button
+          type="button"
+          onClick={() => setMobileOpen((v) => !v)}
+          aria-label={mobileOpen ? "Fermer le menu" : "Ouvrir le menu"}
+          aria-expanded={mobileOpen}
+          aria-controls="mobile-menu"
+          className="-mr-1 inline-flex h-10 w-10 items-center justify-center rounded-sm text-cream/80 outline-none transition-colors duration-300 ease-editorial hover:text-cream focus-visible:ring-1 focus-visible:ring-cream/30 md:hidden"
+        >
+          <span className="relative block h-[12px] w-[22px]">
+            <span
+              className={[
+                "absolute left-0 block h-[1.5px] w-full rounded-full bg-current transition-all duration-300 ease-editorial",
+                mobileOpen ? "top-1/2 -translate-y-1/2 rotate-45" : "top-0",
+              ].join(" ")}
+            />
+            <span
+              className={[
+                "absolute bottom-0 left-0 block h-[1.5px] w-full rounded-full bg-current transition-all duration-300 ease-editorial",
+                mobileOpen ? "bottom-1/2 translate-y-1/2 -rotate-45" : "bottom-0",
+              ].join(" ")}
+            />
+          </span>
+        </button>
+      </div>
+
+      {/* Mobile sheet — full-width panel that drops under the bar (md:hidden). */}
+      <div
+        id="mobile-menu"
+        className={[
+          "overflow-hidden border-t border-cream/[0.06] bg-gradient-to-b from-[#0b0e11] to-void transition-[max-height,opacity] duration-500 ease-editorial md:hidden",
+          mobileOpen ? "max-h-[80vh] opacity-100" : "max-h-0 opacity-0",
+        ].join(" ")}
+      >
+        <nav className="mx-auto flex max-w-[1600px] flex-col gap-1 px-6 py-5">
+          <span className="px-1 pb-1 font-satoshi text-[11px] font-medium uppercase tracking-[0.18em] text-cream/35">
+            Mondes
+          </span>
+          {worlds.map((w, i) => (
+            <button
+              key={w.id}
+              type="button"
+              disabled={!w.enabled}
+              onClick={() => goWorld(w.id, w.enabled)}
+              className={[
+                "flex items-center justify-between gap-6 rounded-sm px-1 py-3.5 text-left transition-colors duration-200",
+                w.enabled
+                  ? "text-cream/85 active:text-cream"
+                  : "cursor-default text-cream/35",
+              ].join(" ")}
+            >
+              <span className="font-satoshi text-[17px] font-medium tracking-tight">
+                {w.label}
+              </span>
+              {w.enabled ? (
+                <span className="font-satoshi text-[12px] tabular-nums text-cream/35">
+                  {`0${i + 1}`}
+                </span>
+              ) : (
+                <span className="rounded-full border border-cream/10 bg-cream/[0.04] px-2 py-[3px] font-satoshi text-[9px] font-medium tracking-tight text-cream/40">
+                  Bientôt
+                </span>
+              )}
+            </button>
+          ))}
+
+          <button
+            type="button"
+            data-cal-link={CAL_LINK}
+            data-cal-config={CAL_CONFIG}
+            onClick={() => setMobileOpen(false)}
+            className="group/cta mt-4 inline-flex items-center justify-center gap-2 rounded-full bg-cream px-5 py-3.5 text-center font-satoshi text-[13px] font-semibold tracking-tight text-void outline-none transition-all duration-300 ease-editorial active:bg-white focus-visible:ring-2 focus-visible:ring-cream/40"
+          >
+            Réserver un appel gratuit de 15 minutes.
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 14 14"
+              aria-hidden
+              className="transition-transform duration-300 ease-editorial group-hover/cta:translate-x-[3px]"
+            >
+              <path
+                d="M2.5 7h9M8 3.5L11.5 7 8 10.5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+        </nav>
       </div>
     </header>
   );
