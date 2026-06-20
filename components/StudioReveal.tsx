@@ -30,7 +30,7 @@ const BLOCKS: GalleryBlock[] = [
     n: 2, // travertin + tablette (centre) — caption to its RIGHT; title sized down so
     //        it clears the clipped floor-plan board to the right
     fx: 0.5,
-    left: "57%",
+    left: "58%",
     v: { top: "33%" },
     titleClass: "text-[clamp(1.7rem,2.7vw,3rem)]",
     noteClass: "max-w-[22ch]",

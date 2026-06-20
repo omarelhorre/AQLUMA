@@ -32,7 +32,7 @@ const BLOCKS: GalleryBlock[] = [
     n: 2, // socle + tablette (centre, fx≈0.50) — même traitement que « Le calcul » :
     //        légende centrée qui occupe le mur, paragraphe large (2 lignes) au-dessus.
     fx: 0.50,
-    left: "28%",
+    left: "30%",
     v: { top: "16%" },
     wide: true,
     align: "center",
@@ -46,7 +46,7 @@ const BLOCKS: GalleryBlock[] = [
     //        paragraphe large (2 lignes) au-dessus de l’objet isolé.
     fx: 0.83,
     left: "61%",
-    v: { top: "16%" },
+    v: { top: "25%" },
     wide: true,
     align: "center",
     widthClass: "w-[min(96rem,88vw)]",

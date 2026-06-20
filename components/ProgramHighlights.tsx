@@ -139,14 +139,6 @@ const ACTS: Act[] = [
   },
 ];
 
-const CERT_AXES = [
-  "Compréhension technique & culturelle de l'IA",
-  "Esprit critique appliqué",
-  "Utilisation responsable & éthique",
-  "Créativité augmentée",
-  "Conception et pilotage de projets assistés par IA",
-];
-
 // ── per-character fill (same recipe as the Briefing/Studio heroes) ───────────
 const FILL = "#F7F4EF"; // cream
 const FILL_ACCENT = "#E8B23A"; // gold
@@ -197,14 +189,14 @@ export default function ProgramHighlights() {
 /** Intro headline — the first stage of the pinned programme sequence. */
 function IntroHeader() {
   return (
-    <header className="mx-auto max-w-[44ch] text-center">
+    <header className="max-w-[44ch] text-left">
       <p className="font-satoshi text-[0.8rem] font-bold uppercase tracking-kicker text-gold">
         Le programme · 3 mois · 12 semaines
       </p>
       <h2 className="mt-5 font-didot text-[clamp(2.4rem,5.5vw,4.5rem)] font-normal leading-[1.04] tracking-[-0.02em] text-cream">
         {fr("Comprendre, questionner, créer.")}
       </h2>
-      <p className="mx-auto mt-6 max-w-[52ch] font-satoshi text-[clamp(1rem,1.4vw,1.2rem)] leading-relaxed text-cream/65">
+      <p className="mt-6 max-w-[52ch] font-satoshi text-[clamp(1rem,1.4vw,1.2rem)] leading-relaxed text-cream/65">
         {fr(
           "Une aventure immersive en trois actes qui transforme un consommateur passif d'outils en véritable acteur de l'innovation.",
         )}
@@ -213,47 +205,59 @@ function IntroHeader() {
   );
 }
 
-/** Certificate + closing cards — the final stage of the pinned sequence. */
-function CertClosing() {
+/**
+ * Closing — the finale of the pinned sequence, distilled from the certificate +
+ * exposition into two STANDING editorial blocks (Didot display + Satoshi body).
+ * In the pinned run they arrive one after the other: the first is anchored left
+ * and slides in from the left, then the second is anchored right and slides in
+ * from the right. The static fallback just renders them in place.
+ */
+function CertClosing({
+  leftRef,
+  rightRef,
+  animated = false,
+}: {
+  leftRef?: (el: HTMLDivElement | null) => void;
+  rightRef?: (el: HTMLDivElement | null) => void;
+  animated?: boolean;
+}) {
+  const hide = animated ? { opacity: 0 } : undefined;
   return (
-    <div className="mx-auto grid w-full max-w-[1180px] gap-6 md:grid-cols-2">
-      <div className="rounded-2xl border border-cream/10 bg-ink/60 p-8">
-        <h3 className="font-didot text-[1.7rem] font-normal leading-tight text-cream">
-          {fr("Certificat AQLUMA · IA Créative")}
+    <div className="flex w-full flex-col gap-14 md:gap-20">
+      {/* La certification — anchored left, reveals first. */}
+      <div
+        ref={leftRef}
+        style={hide}
+        className="max-w-[46rem] self-start text-left will-change-[opacity,transform]"
+      >
+        <p className="font-satoshi text-[11px] font-bold uppercase tracking-kicker text-gold">
+          La certification
+        </p>
+        <h3 className="mt-5 font-didot text-[clamp(2.3rem,4vw,4rem)] font-normal leading-[1.06] tracking-[-0.02em] text-cream">
+          {fr("Un socle de compétences, certifié.")}
         </h3>
-        <p className="mt-3 font-satoshi text-[0.95rem] leading-relaxed text-cream/60">
+        <p className="mt-6 max-w-[48ch] font-satoshi text-[clamp(1.3rem,1.75vw,1.75rem)] leading-relaxed text-cream/70">
           {fr(
-            "Un socle de compétences de haut niveau, structuré autour de 5 axes cardinaux :",
+            "Le Certificat AQLUMA · IA Créative atteste d'un niveau de haut vol, structuré autour de cinq axes cardinaux : compréhension technique et culturelle de l'IA, esprit critique appliqué, usage responsable et éthique, créativité augmentée, et conception de projets assistés par l'IA.",
           )}
         </p>
-        <ul className="mt-5 space-y-3">
-          {CERT_AXES.map((axe) => (
-            <li
-              key={axe}
-              className="flex items-start gap-3 font-satoshi text-[0.95rem] leading-snug text-cream/80"
-            >
-              <span className="mt-[2px] text-gold">✓</span>
-              {fr(axe)}
-            </li>
-          ))}
-        </ul>
       </div>
 
-      <div className="flex flex-col justify-center rounded-2xl border border-cream/10 bg-gradient-to-br from-clay/20 to-ink/60 p-8">
+      {/* L'Exposition — anchored right, reveals second. */}
+      <div
+        ref={rightRef}
+        style={hide}
+        className="max-w-[46rem] self-end text-right will-change-[opacity,transform]"
+      >
         <p className="font-satoshi text-[11px] font-bold uppercase tracking-kicker text-gold">
-          Cérémonie de clôture
+          La cérémonie de clôture
         </p>
-        <h3 className="mt-4 font-didot text-[1.9rem] font-normal leading-tight text-cream">
-          {fr("L'Exposition AQLUMA")}
+        <h3 className="mt-5 font-didot text-[clamp(2.3rem,4vw,4rem)] font-normal leading-[1.06] tracking-[-0.02em] text-cream">
+          {fr("L'Exposition AQLUMA.")}
         </h3>
-        <p className="mt-4 font-satoshi text-[1rem] leading-relaxed text-cream/70">
+        <p className="ml-auto mt-6 max-w-[48ch] font-satoshi text-[clamp(1.3rem,1.75vw,1.75rem)] leading-relaxed text-cream/70">
           {fr(
-            "Un événement public où chaque participant présente son projet final devant familles, enseignants et partenaires, le fruit d'une synergie entre l'esprit humain et la puissance algorithmique.",
-          )}
-        </p>
-        <p className="mt-7 font-didot text-[1.25rem] italic leading-snug text-cream/85">
-          {fr(
-            "« Découvrir le monde de l'IA. Questionner ses réponses. Créer le futur. »",
+            "Un événement public où chaque participant présente son projet final devant familles, enseignants et partenaires — le fruit d'une synergie entre l'esprit humain et la puissance algorithmique : découvrir le monde de l'IA, questionner ses réponses, créer le futur.",
           )}
         </p>
       </div>
@@ -295,6 +299,8 @@ function ProgramReels() {
   const introRef = useRef<HTMLDivElement>(null);
   const reelsRef = useRef<HTMLDivElement>(null);
   const certRef = useRef<HTMLDivElement>(null);
+  const leftCertRef = useRef<HTMLDivElement>(null);
+  const rightCertRef = useRef<HTMLDivElement>(null);
   const phoneRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const panelRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -403,12 +409,21 @@ function ProgramReels() {
 
       setActiveVideo(reelsVis > 0.35 ? Math.round(feedIndex) : -1);
 
-      // ── STAGE 3 · certificate + closing — rise into place ──────────────────
-      const certIn = smoothstep(0.86, 0.97, p);
+      // ── STAGE 3 · closing — two blocks arrive in turn, left then right ─────
+      const stageIn = smoothstep(0.84, 0.88, p);
       if (certRef.current) {
-        certRef.current.style.opacity = String(certIn);
-        certRef.current.style.transform = `translateY(${(1 - certIn) * 80}px)`;
-        certRef.current.style.pointerEvents = certIn > 0.5 ? "auto" : "none";
+        certRef.current.style.opacity = String(stageIn);
+        certRef.current.style.pointerEvents = stageIn > 0.5 ? "auto" : "none";
+      }
+      const leftIn = smoothstep(0.85, 0.93, p);
+      if (leftCertRef.current) {
+        leftCertRef.current.style.opacity = String(leftIn);
+        leftCertRef.current.style.transform = `translateY(${(1 - leftIn) * 70}px)`;
+      }
+      const rightIn = smoothstep(0.93, 0.995, p);
+      if (rightCertRef.current) {
+        rightCertRef.current.style.opacity = String(rightIn);
+        rightCertRef.current.style.transform = `translateY(${(1 - rightIn) * 70}px)`;
       }
     };
 
@@ -439,7 +454,7 @@ function ProgramReels() {
       {/* STAGE 1 — intro headline, centred */}
       <div
         ref={introRef}
-        className="absolute inset-0 z-10 flex flex-col items-center justify-center px-6 will-change-[opacity,transform]"
+        className="absolute inset-0 z-10 flex flex-col items-start justify-center px-[min(6vw,5rem)] will-change-[opacity,transform]"
       >
         <IntroHeader />
       </div>
@@ -447,10 +462,10 @@ function ProgramReels() {
       {/* STAGE 2 — the reels: cross-fading act panels + one flicking phone */}
       <div
         ref={reelsRef}
-        className="absolute inset-0 z-20 flex items-center px-6 will-change-[opacity,transform] md:px-10"
+        className="absolute inset-0 z-20 flex items-center px-[min(6vw,5rem)] will-change-[opacity,transform]"
         style={{ opacity: 0 }}
       >
-        <div className="mx-auto grid w-full max-w-[1180px] items-center gap-10 lg:grid-cols-[1fr_minmax(320px,0.78fr)] lg:gap-14">
+        <div className="grid w-full items-center gap-10 lg:grid-cols-[1fr_auto] lg:gap-16">
           {/* LEFT — cross-fading act panels, stacked (overlap absolutely). */}
           <div className="relative min-h-[30rem] lg:min-h-[34rem]">
             {ACTS.map((a, k) => (
@@ -499,10 +514,18 @@ function ProgramReels() {
       {/* STAGE 3 — certificate + closing cards */}
       <div
         ref={certRef}
-        className="absolute inset-0 z-30 flex items-center px-6 will-change-[opacity,transform] md:px-10"
+        className="absolute inset-0 z-30 flex items-start px-[min(6vw,5rem)] pt-[13vh] will-change-[opacity,transform]"
         style={{ opacity: 0 }}
       >
-        <CertClosing />
+        <CertClosing
+          animated
+          leftRef={(el) => {
+            leftCertRef.current = el;
+          }}
+          rightRef={(el) => {
+            rightCertRef.current = el;
+          }}
+        />
       </div>
     </div>
   );
@@ -515,7 +538,7 @@ function ProgramReels() {
  */
 function StaticProgram() {
   return (
-    <div className="px-6 py-28 md:px-10 md:py-40">
+    <div className="px-[min(6vw,5rem)] py-28 md:py-40">
       <IntroHeader />
       <StaticReels />
       <div className="mt-20">
@@ -568,7 +591,7 @@ function ActText({
   const numeral = ["I", "II", "III"][index ?? ACTS.indexOf(act)] ?? "";
   const name = act.act.split("·").pop()?.trim() ?? act.act;
   return (
-    <div className="max-w-[40rem]">
+    <div className="w-full">
       {/* editorial index — serif numeral + act name + the month/phase line */}
       <div className="flex items-baseline gap-5">
         <span
@@ -588,7 +611,7 @@ function ActText({
       </div>
 
       {/* the fillable headline */}
-      <h3 className="mt-8 font-didot text-[clamp(1.8rem,3.5vw,3rem)] font-normal leading-[1.13] tracking-[-0.018em]">
+      <h3 className="mt-8 max-w-[20ch] font-didot text-[clamp(1.7rem,4.4vw,3.75rem)] font-normal leading-[1.18] tracking-[-0.018em]">
         {m.words.map((word, wi) => (
           <span key={wi} className="mr-[0.26em] inline-block whitespace-nowrap">
             {word.chars.map((c) => (
@@ -624,25 +647,28 @@ function ActText({
         {fr(act.objective)}
       </p>
 
-      <div className="mt-9 grid gap-x-10 gap-y-7 sm:grid-cols-2">
+      {/* Compétences · Expériences · Livrable — three columns that spread across
+          the full width up to the phone, so the row fills what would otherwise be
+          dead space rather than huddling on the left. */}
+      <div className="mt-12 grid gap-x-12 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
         <SpecList label="Compétences" items={act.skills} />
         <SpecList label="Expériences" items={act.experiences} />
-      </div>
 
-      {/* livrable — a quiet editorial footer, not a badge */}
-      <div className="mt-9 border-t border-cream/10 pt-5">
-        <span className="font-satoshi text-[11px] font-medium uppercase tracking-[0.08em] text-cream/35">
-          Livrable
-        </span>
-        <div className="mt-2 space-y-0.5">
-          {act.livrables.map((l) => (
-            <p
-              key={l}
-              className="font-didot text-[clamp(1.05rem,1.35vw,1.25rem)] italic leading-snug text-gold/90"
-            >
-              {fr(l)}
-            </p>
-          ))}
+        {/* livrable — same column rhythm as the spec lists, deliverables in gold */}
+        <div className="border-t border-cream/15 pt-4">
+          <p className="mb-1 font-satoshi text-[10px] font-bold uppercase tracking-[0.22em] text-gold/80">
+            Livrable
+          </p>
+          <div className="space-y-0.5 pt-2.5">
+            {act.livrables.map((l) => (
+              <p
+                key={l}
+                className="font-didot text-[clamp(1.05rem,1.35vw,1.25rem)] italic leading-snug text-gold/90"
+              >
+                {fr(l)}
+              </p>
+            ))}
+          </div>
         </div>
       </div>
     </div>

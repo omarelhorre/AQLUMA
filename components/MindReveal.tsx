@@ -12,6 +12,7 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { lazyPreloadVideo } from "@/lib/lazyVideo";
+import { CAL_LINK, CAL_CONFIG } from "@/lib/cal";
 import { fr } from "@/lib/typo";
 
 /**
@@ -39,6 +40,12 @@ const LOST =
 const THINKER =
   "à un esprit qui pense avec l'IA : il interroge, vérifie, reformule et garde sa voix. Même outil, deux trajectoires : la différence, c'est la méthode.";
 
+// Closing CTA — the same call to action as ContactClose, blended in here so the
+// finale lands while the thinker line still holds. Labels write themselves in.
+const CTA_KICKER = "Prêt à commencer ?";
+const CTA_BOOK = "Réserver un appel gratuit";
+const CTA_PROGRAM = "Demander le programme";
+
 const VOID = "#080A0C";
 const FILL = "#F7F4EF"; // cream — the written ink
 const GHOST = "rgba(247,244,239,0.07)"; // faint impression before/after writing
@@ -60,6 +67,10 @@ const sstep = (a: number, b: number, x: number) => {
 // Per-character fill as a moving gradient. `f` (0..1) is how written THIS glyph
 // is; a soft band straddles the edge so a glyph can read as half-written.
 function fillGradient(f: number): string {
+  // Crisp at the ends: a fully-written glyph is solid (no faded right edge that
+  // can read as a missing last letter), an unwritten one is a faint impression.
+  if (f >= 1) return `linear-gradient(90deg, ${FILL}, ${FILL})`;
+  if (f <= 0) return `linear-gradient(90deg, ${GHOST}, ${GHOST})`;
   const pct = f * 100;
   const a = pct - 4;
   const b = pct + 4;
@@ -97,11 +108,18 @@ export default function MindReveal() {
   const scanRef = useRef<HTMLSpanElement>(null);
   const lostRefs = useRef<(HTMLSpanElement | null)[]>([]);
   const thinkerRefs = useRef<(HTMLSpanElement | null)[]>([]);
+  const ctaRef = useRef<HTMLDivElement>(null);
+  // Per-character refs for the two CTA button labels: ctaCharRefs[btn][char].
+  const ctaCharRefs = useRef<(HTMLSpanElement | null)[][]>([[], []]);
   const reduced = useReducedMotion();
   const [phase, setPhase] = useState(0); // 0 = lost adolescent, 1 = thinker
 
   const lostModel = useMemo(() => buildModel(LOST), []);
   const thinkerModel = useMemo(() => buildModel(THINKER), []);
+  const ctaModels = useMemo(
+    () => [buildModel(CTA_BOOK), buildModel(CTA_PROGRAM)],
+    [],
+  );
 
   useEffect(() => {
     if (reduced) {
@@ -147,6 +165,27 @@ export default function MindReveal() {
         lostBoxRef.current.style.opacity = String(1 - sstep(0.58, 0.62, p));
       if (thinkerBoxRef.current)
         thinkerBoxRef.current.style.opacity = String(sstep(0.6, 0.64, p));
+
+      // After the thinker line has written itself in, the CTA rises + fades in,
+      // its button labels writing themselves character-by-character like the copy.
+      const ctaIn = sstep(0.80, 0.90, p);
+      if (ctaRef.current) {
+        ctaRef.current.style.opacity = String(ctaIn);
+        ctaRef.current.style.transform = `translateY(${(1 - ctaIn) * 26}px)`;
+        ctaRef.current.style.pointerEvents = ctaIn > 0.6 ? "auto" : "none";
+      }
+      // Finish the label fill by the time the buttons are fully in (0.90), so the
+      // last characters are never left transparent while the CTA sits at rest.
+      const ctaSweep = sstep(0.82, 0.90, p);
+      for (let b = 0; b < ctaModels.length; b++) {
+        const els = ctaCharRefs.current[b];
+        const sweep = ctaSweep * ctaModels[b].total;
+        for (let i = 0; i < els.length; i++) {
+          const el = els[i];
+          if (!el) continue;
+          el.style.backgroundImage = fillGradient(clamp01(sweep - i));
+        }
+      }
     };
 
     const ctx = gsap.context(() => {
@@ -176,7 +215,7 @@ export default function MindReveal() {
       stopLazy();
       ctx.revert();
     };
-  }, [reduced, lostModel, thinkerModel]);
+  }, [reduced, lostModel, thinkerModel, ctaModels]);
 
   // Per-character fill spans for a model; refs let the scroll update each glyph.
   const renderFill = (
@@ -210,8 +249,41 @@ export default function MindReveal() {
       </Fragment>
     ));
 
+  // One CTA button label as per-character fill spans (writes itself in on scroll),
+  // or as plain cream text under reduced motion.
+  const renderBtnLabel = (b: number, text: string) =>
+    reduced
+      ? fr(text)
+      : ctaModels[b].words.map((word, wi) => (
+          <Fragment key={wi}>
+            <span className="whitespace-nowrap">
+              {word.map((c) => (
+                <span
+                  key={c.i}
+                  ref={(el) => {
+                    ctaCharRefs.current[b][c.i] = el;
+                  }}
+                  style={{
+                    backgroundImage: fillGradient(0),
+                    WebkitBackgroundClip: "text",
+                    backgroundClip: "text",
+                    color: "transparent",
+                    WebkitTextFillColor: "transparent",
+                  }}
+                >
+                  {c.ch}
+                </span>
+              ))}
+            </span>
+            {wi < ctaModels[b].words.length - 1 ? " " : ""}
+          </Fragment>
+        ));
+
+  const btnClass =
+    "whitespace-nowrap rounded-full border border-cream/20 bg-cream/[0.06] px-8 py-3.5 font-satoshi text-[12.5px] font-semibold uppercase tracking-[0.14em] text-cream/90 outline-none backdrop-blur-md transition-all duration-300 ease-editorial hover:-translate-y-[1px] hover:border-cream/40 hover:bg-cream/[0.12] focus-visible:ring-2 focus-visible:ring-gold/50";
+
   const paraClass =
-    "font-satoshi text-[clamp(1rem,1.55vw,1.35rem)] leading-relaxed";
+    "font-satoshi text-[clamp(1.6rem,3.3vw,3rem)] leading-[1.35]";
 
   return (
     <section
@@ -276,17 +348,17 @@ export default function MindReveal() {
       {/* Left column — AQLUMA + lead line are STATIC; only the paragraph rewrites. */}
       <div
         ref={columnRef}
-        className="absolute inset-y-0 left-0 z-10 flex w-full flex-col justify-center px-[min(7vw,5.5rem)] md:w-[52%]"
+        className="absolute inset-y-0 left-0 z-10 flex w-full flex-col justify-center px-[min(7vw,5.5rem)] md:w-[58%]"
       >
-        <h2 className="font-didot text-[clamp(3rem,7vw,6.75rem)] font-normal leading-[0.92] tracking-[-0.02em] text-cream">
+        <h2 className="font-didot text-[clamp(3.5rem,8.6vw,8.75rem)] font-normal leading-[0.95] tracking-[0.01em] text-cream">
           AQLUMA
         </h2>
-        <p className="mt-3 font-satoshi text-[clamp(1.05rem,1.7vw,1.5rem)] font-medium leading-snug text-cream/65">
+        <p className="mt-4 font-satoshi text-[clamp(1.2rem,2vw,1.9rem)] font-medium leading-snug text-cream/65">
           {fr(LEAD)}
         </p>
 
         {/* The changing paragraph: two layers in one box. */}
-        <div className="relative mt-9 max-w-[40ch]">
+        <div className="relative mt-10 max-w-[70ch]">
           {reduced ? (
             <p className={`${paraClass} text-cream/90`}>{fr(THINKER)}</p>
           ) : (
@@ -317,6 +389,37 @@ export default function MindReveal() {
               />
             </>
           )}
+        </div>
+
+        {/* Closing CTA — fades in on scroll once the thinker line has landed.
+            Glassmorphic pills; their labels write themselves in like the copy. */}
+        <div
+          ref={ctaRef}
+          className="mt-11 will-change-[opacity,transform]"
+          style={{ opacity: reduced ? 1 : 0 }}
+        >
+          <p className="font-satoshi text-[0.78rem] font-bold uppercase tracking-kicker text-gold/90">
+            {fr(CTA_KICKER)}
+          </p>
+          <div className="mt-5 flex flex-wrap gap-3.5">
+            <button
+              type="button"
+              data-cal-link={CAL_LINK}
+              data-cal-config={CAL_CONFIG}
+              className={btnClass}
+            >
+              {renderBtnLabel(0, CTA_BOOK)}
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                window.dispatchEvent(new CustomEvent("aqluma:program"))
+              }
+              className={btnClass}
+            >
+              {renderBtnLabel(1, CTA_PROGRAM)}
+            </button>
+          </div>
         </div>
       </div>
     </section>

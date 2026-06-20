@@ -76,7 +76,7 @@ export default function FAQ() {
       id="faq"
       data-loupe
       aria-label="Questions fréquentes"
-      className="relative w-full overflow-hidden border-t border-cream/[0.06] bg-void px-6 py-28 md:py-40"
+      className="relative w-full overflow-hidden border-t border-cream/[0.06] bg-void px-[min(6vw,5rem)] py-28 md:py-40"
     >
       {/* Warm Rembrandt key from the upper-left, very faint — keeps the dark FAQ
           part of the same film as everything above it. Drifts on a slow plane. */}
@@ -94,7 +94,7 @@ export default function FAQ() {
         />
       </Parallax>
 
-      <div className="relative mx-auto grid max-w-[1340px] gap-12 lg:grid-cols-[0.66fr_1.34fr] lg:gap-16">
+      <div className="relative grid gap-12 lg:grid-cols-[0.6fr_1.4fr] lg:gap-20">
         {/* LEFT — section header, sticky beside the questions like the act intros. */}
         <header className="lg:sticky lg:top-28 lg:self-start" style={enter(0, 16)}>
           <div className="mb-6 flex items-center gap-3.5">

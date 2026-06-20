@@ -4,8 +4,6 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFacebookF, faInstagram, faLinkedinIn } from "@fortawesome/free-brands-svg-icons";
 import { config } from "@fortawesome/fontawesome-svg-core";
 import "@fortawesome/fontawesome-svg-core/styles.css";
-import { CAL_LINK, CAL_CONFIG } from "@/lib/cal";
-import { fr } from "@/lib/typo";
 import Parallax from "@/components/Parallax";
 
 // We import the Font Awesome CSS ourselves, so disable its runtime auto-injection
@@ -28,24 +26,23 @@ const SOCIALS = [
 ];
 
 /**
- * CONTACT — the simple closing section that ends the journey. A centred call to
- * action: book a free call (cal.com popup) or request the programme (opens the
- * ProgramModal via the shared `aqluma:program` event). Deliberately minimal —
- * to be polished later.
+ * CONTACT — slim closing footer. The call to action now lives at the end of the
+ * MindReveal section; here we keep only the ways to reach AQLUMA: the email, the
+ * social channels and the copyright line.
  */
 export default function ContactClose() {
   return (
     <section
       id="contact"
       data-loupe
-      className="relative flex w-full flex-col items-center justify-center overflow-hidden bg-void px-6 py-32 text-center md:py-44"
+      className="relative flex w-full flex-col items-center justify-center overflow-hidden bg-void px-6 py-24 text-center md:py-28"
       aria-label="AQLUMA, contact"
     >
-      {/* Closing glow — drifts up slowly behind the call to action. */}
+      {/* Closing glow — drifts up slowly behind the footer. */}
       <Parallax
         aria-hidden
         speed={0.08}
-        className="pointer-events-none absolute inset-x-0 -inset-y-[25%] -z-10"
+        className="pointer-events-none absolute inset-x-0 -inset-y-[40%] -z-10"
       >
         <div
           className="h-full w-full"
@@ -56,47 +53,15 @@ export default function ContactClose() {
         />
       </Parallax>
 
-      <Parallax speed={0.1} className="relative flex flex-col items-center">
-        <p className="font-satoshi text-[0.8rem] font-bold uppercase tracking-kicker text-gold">
-          Prêt à commencer ?
-        </p>
-        <h2 className="mt-5 max-w-[20ch] font-didot text-[clamp(2.4rem,6vw,5rem)] font-normal leading-[1.02] tracking-[-0.02em] text-cream">
-          {fr("Rejoignez le programme AQLUMA.")}
-        </h2>
-        <p className="mx-auto mt-6 max-w-[46ch] font-satoshi text-[clamp(1rem,1.4vw,1.2rem)] leading-relaxed text-cream/65">
-          {fr(
-            "Réservez un appel gratuit ou demandez le programme. Nous vous répondons sous 24 heures.",
-          )}
-        </p>
-      </Parallax>
-
-      <div className="mt-12 flex flex-wrap items-center justify-center gap-4">
-        <button
-          type="button"
-          data-cal-link={CAL_LINK}
-          data-cal-config={CAL_CONFIG}
-          className="rounded-full bg-gold px-8 py-4 font-satoshi text-[13px] font-semibold uppercase tracking-[0.14em] text-void transition-all duration-300 ease-editorial hover:-translate-y-[1px] hover:bg-[#f3c45e]"
-        >
-          Réserver un appel gratuit
-        </button>
-        <button
-          type="button"
-          onClick={() => window.dispatchEvent(new CustomEvent("aqluma:program"))}
-          className="rounded-full bg-cream px-8 py-4 font-satoshi text-[13px] font-semibold uppercase tracking-[0.14em] text-void transition-all duration-300 ease-editorial hover:-translate-y-[1px] hover:bg-white"
-        >
-          Demander le programme
-        </button>
-      </div>
-
       <a
         href="mailto:hello@aqluma.com"
-        className="mt-10 font-satoshi text-[0.9rem] text-cream/45 underline-offset-4 transition-colors duration-200 hover:text-cream/80 hover:underline"
+        className="relative font-satoshi text-[1.05rem] text-cream/70 underline-offset-4 transition-colors duration-200 hover:text-cream hover:underline"
       >
         hello@aqluma.com
       </a>
 
       {/* Social — logos only, no labels. */}
-      <div className="mt-14 flex items-center gap-8 text-[1.2rem]">
+      <div className="mt-10 flex items-center gap-8 text-[1.2rem]">
         {SOCIALS.map((s) => {
           const placeholder = s.href === "#";
           return (

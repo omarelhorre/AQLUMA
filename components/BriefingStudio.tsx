@@ -35,7 +35,7 @@ const BLOCKS: GalleryBlock[] = [
     n: 3, // boussole — caption to its RIGHT, past the carnet; title sized down so it
     //        keeps a margin off the frame edge instead of jamming against it
     fx: 0.84,
-    left: "97%",
+    left: "99%",
     v: { top: "33%" },
     noteClass: "max-w-[18ch]",
     titleClass: "text-[clamp(1.8rem,3vw,3.3rem)]",
