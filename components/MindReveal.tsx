@@ -3,6 +3,7 @@
 import {
   Fragment,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -64,6 +65,9 @@ const sstep = (a: number, b: number, x: number) => {
   return t * t * (3 - 2 * t);
 };
 
+const useIsoLayoutEffect =
+  typeof window !== "undefined" ? useLayoutEffect : useEffect;
+
 // Per-character fill as a moving gradient. `f` (0..1) is how written THIS glyph
 // is; a soft band straddles the edge so a glyph can read as half-written.
 function fillGradient(f: number): string {
@@ -112,6 +116,18 @@ export default function MindReveal() {
   // Per-character refs for the two CTA button labels: ctaCharRefs[btn][char].
   const ctaCharRefs = useRef<(HTMLSpanElement | null)[][]>([[], []]);
   const reduced = useReducedMotion();
+  // Below md the comparison clip is hidden (`md:block`), so the 460% pin would be a
+  // long, empty scroll. Phones get the settled thinker statement instead — the same
+  // branch as reduced motion. The pinned section stays mounted either way.
+  const [narrow, setNarrow] = useState(false);
+  useIsoLayoutEffect(() => {
+    const mq = window.matchMedia("(max-width: 767.98px)");
+    const apply = () => setNarrow(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+  const still = reduced || narrow;
   const [phase, setPhase] = useState(0); // 0 = lost adolescent, 1 = thinker
 
   const lostModel = useMemo(() => buildModel(LOST), []);
@@ -122,7 +138,14 @@ export default function MindReveal() {
   );
 
   useEffect(() => {
-    if (reduced) {
+    // Authoritative viewport check (see WorldGallery): never pin below md or under
+    // reduced motion, even if this passive effect runs with a stale closure before
+    // the resolving layout effect commits.
+    if (
+      still ||
+      !window.matchMedia("(min-width: 768px)").matches ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
       setPhase(1);
       return;
     }
@@ -215,7 +238,7 @@ export default function MindReveal() {
       stopLazy();
       ctx.revert();
     };
-  }, [reduced, lostModel, thinkerModel, ctaModels]);
+  }, [still, lostModel, thinkerModel, ctaModels]);
 
   // Per-character fill spans for a model; refs let the scroll update each glyph.
   const renderFill = (
@@ -252,7 +275,7 @@ export default function MindReveal() {
   // One CTA button label as per-character fill spans (writes itself in on scroll),
   // or as plain cream text under reduced motion.
   const renderBtnLabel = (b: number, text: string) =>
-    reduced
+    still
       ? fr(text)
       : ctaModels[b].words.map((word, wi) => (
           <Fragment key={wi}>
@@ -289,7 +312,7 @@ export default function MindReveal() {
     <section
       ref={sectionRef}
       id="mind-reveal"
-      className="relative flex h-screen w-full items-center overflow-hidden"
+      className="relative flex min-h-screen w-full items-center overflow-hidden py-20 md:h-screen md:py-0"
       style={{ backgroundColor: VOID }}
       aria-label="AQLUMA, l'esprit"
     >
@@ -302,7 +325,7 @@ export default function MindReveal() {
         style={{
           ...FEATHER,
           filter:
-            phase === 0 && !reduced
+            phase === 0 && !still
               ? "saturate(0.78) brightness(0.92) contrast(1.02)"
               : "saturate(1.04) brightness(1.02)",
           transition: "filter 1.4s cubic-bezier(0.16,1,0.3,1)",
@@ -319,7 +342,7 @@ export default function MindReveal() {
           tabIndex={-1}
           style={{
             transform:
-              reduced || phase === 1 ? "translateX(-25%)" : "translateX(-75%)",
+              still || phase === 1 ? "translateX(-25%)" : "translateX(-75%)",
             transition: "transform 1.4s cubic-bezier(0.16,1,0.3,1)",
           }}
         />
@@ -348,7 +371,7 @@ export default function MindReveal() {
       {/* Left column — AQLUMA + lead line are STATIC; only the paragraph rewrites. */}
       <div
         ref={columnRef}
-        className="absolute inset-y-0 left-0 z-10 flex w-full flex-col justify-center px-[min(7vw,5.5rem)] md:w-[58%]"
+        className="relative z-10 flex w-full flex-col justify-center px-[min(7vw,5.5rem)] md:absolute md:inset-y-0 md:left-0 md:w-[58%]"
       >
         <h2 className="font-didot text-[clamp(3.5rem,8.6vw,8.75rem)] font-normal leading-[0.95] tracking-[0.01em] text-cream">
           AQLUMA
@@ -359,7 +382,7 @@ export default function MindReveal() {
 
         {/* The changing paragraph: two layers in one box. */}
         <div className="relative mt-10 max-w-[70ch]">
-          {reduced ? (
+          {still ? (
             <p className={`${paraClass} text-cream/90`}>{fr(THINKER)}</p>
           ) : (
             <>
@@ -396,7 +419,7 @@ export default function MindReveal() {
         <div
           ref={ctaRef}
           className="mt-11 will-change-[opacity,transform]"
-          style={{ opacity: reduced ? 1 : 0 }}
+          style={{ opacity: still ? 1 : 0 }}
         >
           <p className="font-satoshi text-[0.95rem] font-bold text-gold">
             {fr(CTA_KICKER)}

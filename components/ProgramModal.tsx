@@ -134,7 +134,7 @@ export default function ProgramModal() {
           type="button"
           onClick={() => setOpen(false)}
           aria-label="Fermer"
-          className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full text-xl leading-none text-cream/55 transition-colors duration-200 hover:bg-cream/10 hover:text-cream"
+          className="absolute right-3 top-3 flex h-11 w-11 items-center justify-center rounded-full text-xl leading-none text-cream/55 transition-colors duration-200 hover:bg-cream/10 hover:text-cream"
         >
           ×
         </button>

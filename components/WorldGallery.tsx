@@ -1,11 +1,24 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useReducedMotion } from "@/lib/useReducedMotion";
 import { fr } from "@/lib/typo";
 import RunwayRule, { type RunwayRuleHandle } from "./RunwayRule";
+
+// Layout effect on the client (runs before paint), plain effect on the server
+// (where useLayoutEffect only warns). Resolves the viewport BEFORE the pinning
+// passive-effect runs, so a phone/tablet/reduced-motion visitor renders the
+// static carousel and the pin is never created — never reconciling a flipped
+// structure against a GSAP-moved node (the removeChild blank-page crash).
+const useIsoLayoutEffect =
+  typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 /**
  * WORLD GALLERY — the shared "Musée pan" engine for all three AQLUMA worlds.
@@ -19,7 +32,8 @@ import RunwayRule, { type RunwayRuleHandle } from "./RunwayRule";
  * around its scroll-progress peak (`at`). A bg-colour vignette blends the
  * panorama edges into the page, giving the centred object room to breathe.
  *
- * Mobile / reduced motion: the full image sits above stacked captions.
+ * Mobile / tablet / reduced motion: a swipeable scroll-snap carousel, one object
+ * per slide (the flat-lay cropped to each object via its `fx` anchor).
  */
 
 export type GalleryBlock = {
@@ -82,7 +96,18 @@ const smooth = (t: number) => t * t * (3 - 2 * t);
 const EDGE_FEATHER =
   "linear-gradient(to right, transparent 0, #000 3.5%, #000 96.5%, transparent 100%)";
 
-function Caption({ b, tone, total }: { b: GalleryBlock; tone: "dark" | "light"; total: number }) {
+function Caption({
+  b,
+  tone,
+  total,
+  compact = false,
+}: {
+  b: GalleryBlock;
+  tone: "dark" | "light";
+  total: number;
+  /** Phone-card sizing for the mobile carousel (smaller type, full-width note). */
+  compact?: boolean;
+}) {
   const light = tone === "light";
   const titleC = light ? "text-ink" : "text-cream";
   const bodyC = light ? "text-ink/85" : "text-cream/75";
@@ -107,18 +132,24 @@ function Caption({ b, tone, total }: { b: GalleryBlock; tone: "dark" | "light"; 
       </span>
       <h2
         className={`font-didot leading-[1.08] tracking-[-0.02em] ${titleC} ${
-          b.titleClass ??
-          (wide ? "text-[clamp(2.8rem,4.6vw,5.4rem)]" : "text-[clamp(2.6rem,4.4vw,4.9rem)]")
+          compact
+            ? "text-[clamp(1.9rem,6.4vw,2.5rem)]"
+            : b.titleClass ??
+              (wide ? "text-[clamp(2.8rem,4.6vw,5.4rem)]" : "text-[clamp(2.6rem,4.4vw,4.9rem)]")
         }`}
       >
         {fr(b.title)}
       </h2>
       <p
         className={`font-satoshi leading-relaxed ${bodyC} ${
-          wide
-            ? "mt-6 text-[clamp(1.15rem,1.55vw,1.72rem)]"
-            : "mt-5 text-[clamp(1.1rem,1.5vw,1.55rem)]"
-        } ${b.noteClass ?? (wide ? "max-w-[34ch]" : "max-w-[28ch]")}`}
+          compact
+            ? "mt-3 max-w-none text-[clamp(1rem,3.6vw,1.18rem)]"
+            : `${
+                wide
+                  ? "mt-6 text-[clamp(1.15rem,1.55vw,1.72rem)]"
+                  : "mt-5 text-[clamp(1.1rem,1.5vw,1.55rem)]"
+              } ${b.noteClass ?? (wide ? "max-w-[34ch]" : "max-w-[28ch]")}`
+        }`}
       >
         {fr(b.note)}
       </p>
@@ -138,29 +169,50 @@ export default function WorldGallery({
   frameBlend = 52,
 }: Props) {
   const sectionRef = useRef<HTMLElement>(null);
+  const panRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const capTrackRef = useRef<HTMLDivElement>(null);
   const capRefs = useRef<(HTMLDivElement | null)[]>([]);
   const ruleRef = useRef<RunwayRuleHandle>(null);
 
-  const reduced = useReducedMotion();
-  const [narrow, setNarrow] = useState(false);
+  // `stacked` decides which presentation is VISIBLE (carousel vs pan) and whether
+  // the GSAP pin is created — but BOTH are always mounted (see render), so flipping
+  // it only toggles `display` and never adds/removes the pinned subtree. That is
+  // what makes this crash-proof: React 19 unmounts a conditionally-rendered branch
+  // BEFORE the effect cleanup can revert GSAP, so it tears down DOM that the pin
+  // has reparented → `removeChild`/`insertBefore` blank page (in prod too, not just
+  // dev StrictMode). Keeping the pan permanently mounted sidesteps that entirely.
+  const [stacked, setStacked] = useState(false);
 
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 768px)");
-    const apply = () => setNarrow(mq.matches);
+  useIsoLayoutEffect(() => {
+    const mqWidth = window.matchMedia("(min-width: 1024px)");
+    const mqMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const apply = () => setStacked(!mqWidth.matches || mqMotion.matches);
     apply();
-    mq.addEventListener("change", apply);
-    return () => mq.removeEventListener("change", apply);
+    mqWidth.addEventListener("change", apply);
+    mqMotion.addEventListener("change", apply);
+    return () => {
+      mqWidth.removeEventListener("change", apply);
+      mqMotion.removeEventListener("change", apply);
+    };
   }, []);
 
-  const stacked = reduced || narrow;
-
   useEffect(() => {
+    // Authoritative viewport check, read synchronously at run time. The `stacked`
+    // STATE drives which branch is visible, but this passive effect can run with a
+    // stale closure (render-1 `stacked=false`) before the resolving layout effect's
+    // update commits — which would create the pin on a phone and leave a stale
+    // pin-spacer over the carousel. Re-reading matchMedia here means the pin is
+    // never created below 1024px / under reduced motion, whatever React's timing.
     if (stacked) return;
-    const section = sectionRef.current;
+    if (
+      !window.matchMedia("(min-width: 1024px)").matches ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    )
+      return;
+    const pan = panRef.current;
     const track = trackRef.current;
-    if (!section || !track) return;
+    if (!pan || !track) return;
 
     gsap.registerPlugin(ScrollTrigger);
     const caps = capRefs.current;
@@ -202,7 +254,7 @@ export default function WorldGallery({
 
       const tl = gsap.timeline({
         scrollTrigger: {
-          trigger: section,
+          trigger: pan,
           start: "top top",
           end: () => "+=" + distance(),
           pin: true,
@@ -217,90 +269,221 @@ export default function WorldGallery({
       });
 
       tl.fromTo(lanes, { x: startX }, { x: endX, ease: "none", duration: 1 }, 0);
-    }, section);
+    }, pan);
 
     return () => ctx.revert();
   }, [stacked, blocks]);
 
-  // ── Mobile / reduced motion: full image above stacked captions ──
-  if (stacked) {
-    return (
-      <section id={id} className="relative w-full" style={{ background: bg }} aria-label={label}>
-        {/* eslint-disable-next-line @next/next/no-img-element -- full world canvas */}
-        <img src={image} alt="" className="block h-auto w-full select-none" draggable={false} />
-        <div className="flex flex-col gap-12 px-7 py-16">
-          {blocks.map((b, i) => (
-            <Caption key={i} b={b} tone={tone} total={blocks.length} />
-          ))}
-        </div>
-      </section>
-    );
-  }
-
+  // Both presentations are ALWAYS mounted — only `display` toggles between them —
+  // so the GSAP-pinned pan subtree is never added/removed by React (no removeChild
+  // crash). The pin is created only while the pan is the visible branch.
   return (
     <section
       ref={sectionRef}
       id={id}
-      className="relative h-screen w-full overflow-hidden"
+      className="relative w-full"
       style={{ background: bg }}
       aria-label={label}
     >
-      {/* Image lane — the panned canvas. */}
+      {/* ── DESKTOP PAN (≥1024px, motion allowed) ── */}
       <div
-        ref={trackRef}
-        className="absolute inset-y-0 left-0 z-0 h-full will-change-transform"
-        style={{ width: `${zoomW}vw` }}
+        ref={panRef}
+        className="relative h-screen w-full overflow-hidden"
+        style={{ display: stacked ? "none" : "block" }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element -- single panned canvas */}
-        <img
-          src={image}
-          alt=""
-          draggable={false}
-          className="pointer-events-none absolute left-0 top-1/2 h-auto w-full max-w-none -translate-y-1/2 select-none"
-          style={{ WebkitMaskImage: EDGE_FEATHER, maskImage: EDGE_FEATHER }}
+        {/* Image lane — the panned canvas. */}
+        <div
+          ref={trackRef}
+          className="absolute inset-y-0 left-0 z-0 h-full will-change-transform"
+          style={{ width: `${zoomW}vw` }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element -- single panned canvas */}
+          <img
+            src={image}
+            alt=""
+            draggable={false}
+            className="pointer-events-none absolute left-0 top-1/2 h-auto w-full max-w-none -translate-y-1/2 select-none"
+            style={{ WebkitMaskImage: EDGE_FEATHER, maskImage: EDGE_FEATHER }}
+          />
+        </div>
+
+        {/* Screen-fixed blend — feathers the viewport edges into the world bg so
+            the centred object reads with more space; sits under the captions. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 z-10"
+          style={{
+            background: `radial-gradient(72% 110% at 50% 50%, rgba(0,0,0,0) ${frameBlend}%, ${bg} 100%)`,
+          }}
+        />
+
+        {/* Caption lane — panned in lock-step with the image (so each caption stays
+            glued to its object) but layered above the blend. One legible at a time. */}
+        <div
+          ref={capTrackRef}
+          className="pointer-events-none absolute inset-y-0 left-0 z-20 h-full will-change-transform"
+          style={{ width: `${zoomW}vw` }}
+        >
+          {blocks.map((b, i) => (
+            <div
+              key={i}
+              ref={(el) => {
+                capRefs.current[i] = el;
+              }}
+              className={`absolute will-change-[opacity,filter] ${
+                b.widthClass ?? (b.wide ? "w-[min(42rem,46vw)]" : "w-[min(27rem,30vw)]")
+              }`}
+              style={{ left: b.left, ...b.v, opacity: 0 }}
+            >
+              <Caption b={b} tone={tone} total={blocks.length} />
+            </div>
+          ))}
+        </div>
+
+        <RunwayRule
+          ref={ruleRef}
+          total={blocks.length}
+          label={label}
+          placement={rulePlacement}
+          tone={tone}
         />
       </div>
 
-      {/* Screen-fixed blend — feathers the viewport edges into the world bg so
-          the centred object reads with more space; sits under the captions. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 z-10"
-        style={{
-          background: `radial-gradient(72% 110% at 50% 50%, rgba(0,0,0,0) ${frameBlend}%, ${bg} 100%)`,
-        }}
-      />
+      {/* ── MOBILE / TABLET / REDUCED MOTION — swipeable carousel ── */}
+      <div style={{ display: stacked ? "block" : "none" }}>
+        <WorldCarousel
+          label={label}
+          image={image}
+          tone={tone}
+          blocks={blocks}
+        />
+      </div>
+    </section>
+  );
+}
 
-      {/* Caption lane — panned in lock-step with the image (so each caption stays
-          glued to its object) but layered above the blend. One legible at a time. */}
+// Mobile / tablet presentation of a world: a native horizontal scroll-snap
+// carousel. One slide per object — the wide flat-lay is cropped to that object via
+// its `fx` anchor (object-position) — caption beneath, a peek of the next slide to
+// invite the swipe. No GSAP, no pin: robust on touch and safe under reduced motion.
+function WorldCarousel({
+  label,
+  image,
+  tone,
+  blocks,
+}: {
+  label: string;
+  image: string;
+  tone: "dark" | "light";
+  blocks: GalleryBlock[];
+}) {
+  const light = tone === "light";
+  const trackRef = useRef<HTMLDivElement>(null);
+  const slideRefs = useRef<(HTMLElement | null)[]>([]);
+  const [active, setActive] = useState(0);
+
+  // Track the centred slide for the dot indicator.
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) {
+            const i = slideRefs.current.indexOf(e.target as HTMLElement);
+            if (i >= 0) setActive(i);
+          }
+        }
+      },
+      { root: track, threshold: 0.6 },
+    );
+    slideRefs.current.forEach((el) => el && io.observe(el));
+    return () => io.disconnect();
+  }, [blocks.length]);
+
+  const goTo = (i: number) => {
+    const track = trackRef.current;
+    const el = slideRefs.current[i];
+    if (!track || !el) return;
+    track.scrollTo({
+      left: el.offsetLeft - (track.clientWidth - el.clientWidth) / 2,
+      behavior: "smooth",
+    });
+  };
+
+  return (
+    <div className="relative w-full overflow-hidden py-14">
+      <div className="mb-6 flex items-baseline justify-between px-6">
+        <span
+          className={`font-satoshi text-[11px] font-medium uppercase tracking-[0.2em] ${
+            light ? "text-ink/55" : "text-cream/55"
+          }`}
+        >
+          {label}
+        </span>
+        <span
+          className={`font-satoshi text-[11px] ${light ? "text-ink/40" : "text-cream/40"}`}
+          aria-hidden
+        >
+          Glissez&nbsp;→
+        </span>
+      </div>
+
       <div
-        ref={capTrackRef}
-        className="pointer-events-none absolute inset-y-0 left-0 z-20 h-full will-change-transform"
-        style={{ width: `${zoomW}vw` }}
+        ref={trackRef}
+        className="flex snap-x snap-mandatory gap-4 overflow-x-auto px-6 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {blocks.map((b, i) => (
-          <div
+          <article
             key={i}
             ref={(el) => {
-              capRefs.current[i] = el;
+              slideRefs.current[i] = el;
             }}
-            className={`absolute will-change-[opacity,filter] ${
-              b.widthClass ?? (b.wide ? "w-[min(42rem,46vw)]" : "w-[min(27rem,30vw)]")
-            }`}
-            style={{ left: b.left, ...b.v, opacity: 0 }}
+            className="w-[86%] shrink-0 snap-center sm:w-[23rem]"
           >
-            <Caption b={b} tone={tone} total={blocks.length} />
-          </div>
+            <div
+              className="relative aspect-[4/5] w-full overflow-hidden rounded-[1.25rem]"
+              style={{
+                boxShadow: light
+                  ? "inset 0 0 0 1px rgba(15,20,23,0.08)"
+                  : "inset 0 0 0 1px rgba(247,244,239,0.08)",
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element -- flat-lay crop */}
+              <img
+                src={image}
+                alt=""
+                draggable={false}
+                className="absolute inset-0 h-full w-full select-none object-cover"
+                style={{ objectPosition: `${b.fx * 100}% 50%` }}
+              />
+            </div>
+            <div className="mt-5 px-0.5">
+              <Caption b={b} tone={tone} total={blocks.length} compact />
+            </div>
+          </article>
         ))}
       </div>
 
-      <RunwayRule
-        ref={ruleRef}
-        total={blocks.length}
-        label={label}
-        placement={rulePlacement}
-        tone={tone}
-      />
-    </section>
+      <div className="mt-8 flex items-center justify-center gap-1.5">
+        {blocks.map((_, i) => (
+          <button
+            key={i}
+            type="button"
+            onClick={() => goTo(i)}
+            aria-label={`Aller à l’objet ${i + 1} sur ${blocks.length}`}
+            className="flex h-10 w-6 items-center justify-center"
+          >
+            <span
+              className={`block h-1.5 rounded-full transition-all duration-300 ${
+                i === active
+                  ? `w-6 ${light ? "bg-ink/80" : "bg-cream/85"}`
+                  : `w-1.5 ${light ? "bg-ink/25" : "bg-cream/30"}`
+              }`}
+            />
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }

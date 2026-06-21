@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { fr } from "@/lib/typo";
+
+const useIsoLayoutEffect =
+  typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 /**
  * PROGRAM MANIFESTO — the horizontal hand-off between the Studio gallery and the
@@ -54,20 +57,42 @@ const rgba = (c: number[], a: number) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
 
 export default function ProgramManifesto() {
   const sectionRef = useRef<HTMLElement>(null);
+  const animatedRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const fadeRef = useRef<HTMLDivElement>(null);
   const wordRefs = useRef<(HTMLSpanElement | null)[]>([]);
   const reduced = useReducedMotion();
+  // Below 1024px the horizontal word-pan is cramped (words clipped at the viewport
+  // edges), so phones/tablets get the static centred statement instead — same
+  // branch as reduced motion. Resolved in a layout effect for SSR-safety.
+  const [narrow, setNarrow] = useState(false);
+  useIsoLayoutEffect(() => {
+    const mq = window.matchMedia("(max-width: 1023.98px)");
+    const apply = () => setNarrow(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+  const still = reduced || narrow;
 
   // fr() the whole sentence first (so thin no-break spaces stick to their
   // punctuation), then split on real spaces into animatable words.
   const words = fr(SENTENCE).split(" ").filter(Boolean);
 
   useEffect(() => {
-    if (reduced) return;
+    // Authoritative viewport check (see WorldGallery): never pin below 1024px or
+    // under reduced motion, even if this passive effect runs with a stale closure
+    // before the resolving layout effect commits.
+    if (
+      still ||
+      !window.matchMedia("(min-width: 1024px)").matches ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    )
+      return;
     const section = sectionRef.current;
+    const animated = animatedRef.current;
     const track = trackRef.current;
-    if (!section || !track) return;
+    if (!section || !animated || !track) return;
 
     gsap.registerPlugin(ScrollTrigger);
 
@@ -113,7 +138,7 @@ export default function ProgramManifesto() {
 
       const tl = gsap.timeline({
         scrollTrigger: {
-          trigger: section,
+          trigger: animated,
           start: "top top",
           end: () => "+=" + (distance() + window.innerHeight),
           pin: true,
@@ -125,27 +150,34 @@ export default function ProgramManifesto() {
       });
       tl.to(track, { x: () => -distance(), ease: "none" });
       apply(0);
-    }, section);
+    }, animated);
 
     return () => ctx.revert();
-  }, [reduced]);
+  }, [still]);
 
-  if (reduced) {
-    return (
-      <section
-        className="flex min-h-screen w-full items-center justify-center px-8 py-32"
-        aria-label="AQLUMA, le programme en une phrase"
+  // Both presentations stay mounted — only `display` toggles — so the pinned pan
+  // subtree is never added/removed by React. A whole-section swap here orphaned the
+  // GSAP pin and blanked the page in prod (`removeChild`); this keeps it stable.
+  return (
+    <section
+      ref={sectionRef}
+      className="relative w-full overflow-hidden"
+      style={{ backgroundColor: still ? rgb(VOID) : rgb(PAPER) }}
+      aria-label="AQLUMA, le programme en une phrase"
+    >
+      {/* STATIC — phones / tablets / reduced motion: calm centred statement, no pin. */}
+      <div
+        className="min-h-screen w-full flex-col items-center justify-center px-6 py-28 text-center sm:px-8 sm:py-32"
+        style={{ display: still ? "flex" : "none" }}
       >
-        <p className="max-w-[60ch] text-center font-satoshi text-[clamp(1.6rem,4vw,3rem)] font-medium leading-tight text-cream">
+        <p className="max-w-[24ch] font-satoshi text-[clamp(1.6rem,6vw,3rem)] font-medium leading-tight text-cream sm:max-w-[60ch]">
           {words.map((w, i) => {
             const key = cleanWord(w);
             const fixed = FIXED[key];
             return (
               <span
                 key={i}
-                className={
-                  !fixed && HIGHLIGHT.has(key) ? "text-gold" : undefined
-                }
+                className={!fixed && HIGHLIGHT.has(key) ? "text-gold" : undefined}
                 style={fixed ? { color: fixed } : undefined}
               >
                 {w}{" "}
@@ -153,54 +185,52 @@ export default function ProgramManifesto() {
             );
           })}
         </p>
-      </section>
-    );
-  }
-
-  return (
-    <section
-      ref={sectionRef}
-      className="relative h-screen w-full overflow-hidden"
-      style={{ backgroundColor: rgb(PAPER) }}
-      aria-label="AQLUMA, le programme en une phrase"
-    >
-      <div className="absolute inset-0 flex items-center">
-        <div
-          ref={trackRef}
-          className="flex flex-nowrap items-center whitespace-nowrap pl-[55vw] pr-[55vw] will-change-transform"
-        >
-          {words.map((w, i) => {
-            const key = cleanWord(w);
-            const fixed = FIXED[key];
-            const hl = HIGHLIGHT.has(key);
-            return (
-              <span
-                key={i}
-                ref={(el) => {
-                  wordRefs.current[i] = el;
-                }}
-                data-hl={hl ? "1" : "0"}
-                data-fixed={fixed}
-                className="mx-[0.28em] inline-block font-satoshi text-[clamp(2.4rem,7vw,6rem)] font-bold tracking-[-0.02em] will-change-transform"
-                style={{ color: fixed ?? rgb(hl ? BRASS : INK) }}
-              >
-                {w}
-              </span>
-            );
-          })}
-        </div>
       </div>
 
-      {/* edge fades so words melt in/out at the viewport sides — colour scrubs
-          with the bg (set imperatively above). */}
+      {/* DESKTOP horizontal word-pan (≥1024px, motion allowed). */}
       <div
-        ref={fadeRef}
-        aria-hidden
-        className="pointer-events-none absolute inset-0 z-10"
-        style={{
-          background: `linear-gradient(90deg, ${rgb(PAPER)} 0%, ${rgba(PAPER, 0)} 16%, ${rgba(PAPER, 0)} 84%, ${rgb(PAPER)} 100%)`,
-        }}
-      />
+        ref={animatedRef}
+        className="relative h-screen w-full"
+        style={{ display: still ? "none" : "block" }}
+      >
+        <div className="absolute inset-0 flex items-center">
+          <div
+            ref={trackRef}
+            className="flex flex-nowrap items-center whitespace-nowrap pl-[55vw] pr-[55vw] will-change-transform"
+          >
+            {words.map((w, i) => {
+              const key = cleanWord(w);
+              const fixed = FIXED[key];
+              const hl = HIGHLIGHT.has(key);
+              return (
+                <span
+                  key={i}
+                  ref={(el) => {
+                    wordRefs.current[i] = el;
+                  }}
+                  data-hl={hl ? "1" : "0"}
+                  data-fixed={fixed}
+                  className="mx-[0.28em] inline-block font-satoshi text-[clamp(2.4rem,7vw,6rem)] font-bold tracking-[-0.02em] will-change-transform"
+                  style={{ color: fixed ?? rgb(hl ? BRASS : INK) }}
+                >
+                  {w}
+                </span>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* edge fades so words melt in/out at the viewport sides — colour scrubs
+            with the bg (set imperatively above). */}
+        <div
+          ref={fadeRef}
+          aria-hidden
+          className="pointer-events-none absolute inset-0 z-10"
+          style={{
+            background: `linear-gradient(90deg, ${rgb(PAPER)} 0%, ${rgba(PAPER, 0)} 16%, ${rgba(PAPER, 0)} 84%, ${rgb(PAPER)} 100%)`,
+          }}
+        />
+      </div>
     </section>
   );
 }

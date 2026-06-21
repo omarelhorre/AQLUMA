@@ -461,7 +461,15 @@ function ProgramReels() {
   );
 
   useEffect(() => {
-    if (!animated) return;
+    // Authoritative viewport check (see WorldGallery): never pin below 1024px or
+    // under reduced motion, even if this passive effect runs with a stale closure
+    // before the resolving layout effect commits.
+    if (
+      !animated ||
+      !window.matchMedia("(min-width: 1024px)").matches ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    )
+      return;
     const pin = pinRef.current;
     if (!pin) return;
 
@@ -667,10 +675,17 @@ function ProgramReels() {
     return () => ctx.revert();
   }, [animated, models, certModels, certFills]);
 
-  if (!animated) return <StaticProgram />;
-
+  // Both layouts stay mounted — only `display` toggles — so React never unmounts
+  // the GSAP-pinned subtree. A conditional `return <StaticProgram/>` orphaned the
+  // pin and blanked the page in prod via `removeChild` (the pin reparents pinRef,
+  // then React tears it down before the effect cleanup can revert GSAP).
   return (
-    <div ref={pinRef} className="relative h-screen w-full overflow-hidden">
+    <>
+      <div
+        ref={pinRef}
+        className="relative h-screen w-full overflow-hidden"
+        style={{ display: animated ? undefined : "none" }}
+      >
       {/* STAGE 1 — intro headline, centred */}
       <div
         ref={introRef}
@@ -761,20 +776,28 @@ function ProgramReels() {
           }}
         />
       </div>
-    </div>
+      </div>
+
+      {/* Reduced-motion / narrow-screen (<1024px) fallback — always mounted, shown
+          when the pinned sequence is off. */}
+      <div style={{ display: animated ? "none" : "block" }}>
+        <StaticProgram active={!animated} />
+      </div>
+    </>
   );
 }
 
 /**
  * Reduced-motion / narrow-screen fallback: the whole programme block in normal
  * flow — intro headline, the three acts stacked (each with its reel), then the
- * certificate + closing cards. No pin, no scrub.
+ * certificate + closing cards. No pin, no scrub. `active` is false while this
+ * branch is hidden (desktop), so its reels don't autoplay off-screen.
  */
-function StaticProgram() {
+function StaticProgram({ active }: { active: boolean }) {
   return (
     <div className="px-[min(6vw,5rem)] py-28 md:py-40">
       <IntroHeader />
-      <StaticReels />
+      <StaticReels active={active} />
       <div className="mt-20">
         <CertClosing />
       </div>
@@ -783,7 +806,7 @@ function StaticProgram() {
 }
 
 /** Three acts stacked, each with its reel (used by the static fallback). */
-function StaticReels() {
+function StaticReels({ active }: { active: boolean }) {
   return (
     <div className="mt-16 flex flex-col gap-24">
       {ACTS.map((a, k) => (
@@ -794,7 +817,7 @@ function StaticReels() {
           <ActText act={a} reduced />
           <div className="lg:justify-self-end">
             <PhoneShell>
-              <ReelScreen reel={a.reel} autoPlay />
+              <ReelScreen reel={a.reel} autoPlay={active} />
             </PhoneShell>
           </div>
         </div>

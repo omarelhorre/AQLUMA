@@ -44,8 +44,8 @@ export default function ContactClose() {
         hello@aqluma.com
       </a>
 
-      {/* Social — logos only, no labels. */}
-      <div className="mt-10 flex items-center gap-8 text-[1.2rem]">
+      {/* Social — logos only, no labels. Each link is a 44px tap target. */}
+      <div className="mt-8 flex items-center gap-3 text-[1.2rem]">
         {SOCIALS.map((s) => {
           const placeholder = s.href === "#";
           return (
@@ -54,7 +54,7 @@ export default function ContactClose() {
               href={s.href}
               aria-label={s.label}
               {...(placeholder ? {} : { target: "_blank", rel: "noopener noreferrer" })}
-              className="leading-none text-cream/40 transition-colors duration-200 hover:text-cream"
+              className="inline-flex h-11 w-11 items-center justify-center leading-none text-cream/40 transition-colors duration-200 hover:text-cream"
             >
               <FontAwesomeIcon icon={s.icon} />
             </a>

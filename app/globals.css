@@ -18,6 +18,24 @@
     text-rendering: optimizeLegibility;
   }
 
+  /* Custom scrollbar */
+  html::-webkit-scrollbar {
+    width: 12px;
+  }
+
+  html::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  html::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, rgba(139, 92, 246, 0.7) 0%, rgba(59, 130, 246, 0.7) 50%, rgba(6, 182, 212, 0.7) 100%);
+    border-radius: 6px;
+  }
+
+  html::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, rgba(168, 85, 247, 0.9) 0%, rgba(96, 165, 250, 0.9) 50%, rgba(34, 197, 94, 0.9) 100%);
+  }
+
   body {
     font-family: theme("fontFamily.satoshi");
     background-color: theme("colors.void");
