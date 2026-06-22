@@ -1,7 +1,7 @@
 "use client";
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faFacebookF, faInstagram, faLinkedinIn } from "@fortawesome/free-brands-svg-icons";
+import { faFacebookF, faInstagram, faLinkedinIn, faWhatsapp } from "@fortawesome/free-brands-svg-icons";
 import { config } from "@fortawesome/fontawesome-svg-core";
 import "@fortawesome/fontawesome-svg-core/styles.css";
 import { fr } from "@/lib/typo";
@@ -23,6 +23,8 @@ const SOCIALS = [
     icon: faInstagram,
   },
   { label: "Facebook", href: "#", icon: faFacebookF },
+  // PLACEHOLDER number — keep in sync with WhatsAppFab.tsx.
+  { label: "WhatsApp", href: "https://wa.me/212600000000", icon: faWhatsapp },
 ];
 
 // Sitemap — anchors map to the live section ids threaded through the scroll journey.
@@ -66,7 +68,7 @@ export default function ContactClose() {
       {/* Oversized wordmark watermark — clipped by the footer's overflow-hidden. */}
       <span
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 bottom-[-0.14em] select-none whitespace-nowrap text-center font-didot text-[20vw] font-normal leading-none tracking-[-0.03em] text-cream/[0.04]"
+        className="pointer-events-none absolute inset-x-0 bottom-[-0.08em] select-none whitespace-nowrap text-center font-didot text-[12vw] font-normal leading-none tracking-[-0.03em] text-cream/[0.03]"
       >
         AQLUMA
       </span>
@@ -152,20 +154,9 @@ export default function ContactClose() {
           <p className="font-satoshi text-[0.78rem] tracking-[0.02em] text-cream/35">
             © 2026 AQLUMA. {fr("Tous droits réservés.")}
           </p>
-          <div className="flex flex-wrap items-center gap-3 font-satoshi text-[0.78rem] text-cream/35">
-            <button
-              type="button"
-              className="transition-colors duration-200 hover:text-cream/70"
-            >
-              {fr("Changer de langue")}
-            </button>
-            <span className="text-cream/15">|</span>
-            <span>Marrakech</span>
-            <span className="text-cream/20">·</span>
-            <span>Casablanca</span>
-            <span className="text-cream/20">·</span>
-            <span>Monde</span>
-          </div>
+          <p className="font-satoshi text-[0.78rem] tracking-[0.02em] text-cream/35">
+            Maroc
+          </p>
         </div>
       </div>
     </footer>
