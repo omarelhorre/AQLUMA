@@ -46,11 +46,14 @@ function fillGradient(fill: string, f: number): string {
 
 // Edge-bleed blend: the LEFT side melts into the paper (where the text sits),
 // top/bottom softly feathered; the right side stays solid and bleeds off-frame.
+// Left edge: one smooth, long ramp (transparent → solid at 58%) with NO mid
+// inflection — the old `rgba(0,0,0,0.06) 14%` stop stacked with the footage's own
+// contrast edge into a visible vertical seam (same fix as BriefingHero).
 const FEATHER: React.CSSProperties = {
   WebkitMaskImage:
-    "linear-gradient(to right, transparent 0%, rgba(0,0,0,0.06) 14%, #000 46%), linear-gradient(to bottom, transparent 0%, #000 9%, #000 91%, transparent 100%)",
+    "linear-gradient(to right, transparent 0%, #000 58%), linear-gradient(to bottom, transparent 0%, #000 9%, #000 91%, transparent 100%)",
   maskImage:
-    "linear-gradient(to right, transparent 0%, rgba(0,0,0,0.06) 14%, #000 46%), linear-gradient(to bottom, transparent 0%, #000 9%, #000 91%, transparent 100%)",
+    "linear-gradient(to right, transparent 0%, #000 58%), linear-gradient(to bottom, transparent 0%, #000 9%, #000 91%, transparent 100%)",
   WebkitMaskComposite: "source-in",
   maskComposite: "intersect",
 };
@@ -201,7 +204,7 @@ export default function StudioHero() {
         className="pointer-events-none absolute inset-0 z-[2]"
         style={{
           background:
-            "linear-gradient(90deg, rgba(236,231,221,0.96) 0%, rgba(236,231,221,0.78) 26%, rgba(236,231,221,0.22) 48%, rgba(236,231,221,0) 62%)",
+            "linear-gradient(90deg, rgba(236,231,221,0.96) 0%, rgba(236,231,221,0) 62%)",
         }}
       />
 

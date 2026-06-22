@@ -293,10 +293,10 @@ export default function Reviews() {
       ref={sectionRef}
       id="avis"
       data-loupe
-      className="relative w-full overflow-hidden px-[min(6vw,5rem)] py-32 md:py-48"
+      className="relative w-full overflow-hidden py-32 md:py-48"
       aria-label="AQLUMA, avis"
     >
-      <div className="relative grid gap-16 lg:grid-cols-2 lg:gap-24">
+      <div className="shell relative grid gap-16 lg:grid-cols-2 lg:gap-24">
         {/* LEFT — the section title + aggregate. Sticky on desktop so it holds
             beside the testimonial, like the act intros. */}
         <div className="lg:sticky lg:top-28 lg:self-start">

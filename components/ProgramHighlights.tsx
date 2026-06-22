@@ -229,25 +229,28 @@ const CERT_LEFT = {
   align: "left" as const,
   head: "Un socle de compétences, certifié.",
   body: "Le Certificat AQLUMA · IA Créative atteste d'un niveau de haut vol, structuré autour de cinq axes cardinaux : compréhension technique et culturelle de l'IA, esprit critique appliqué, usage responsable et éthique, créativité augmentée, et conception de projets assistés par l'IA.",
+  accent: /cinq|axes|cardinaux/i,
 };
 const CERT_RIGHT = {
   kicker: "La cérémonie de clôture",
   align: "right" as const,
   head: "L'Exposition AQLUMA.",
   body: "Un événement public où chaque participant présente son projet final devant familles, enseignants et partenaires. Le fruit d'une vraie synergie entre l'esprit humain et la puissance des algorithmes. Découvrir le monde de l'IA, questionner ses réponses, créer le futur.",
+  accent: /synergie|créer/i,
 };
 
 /** Split a card's headline + body into one continuous index of fillable chars
  *  (headline cream, body dim cream), so a single sweep writes head → body. */
-function buildCertModel(head: string, body: string) {
+function buildCertModel(head: string, body: string, accent?: RegExp) {
   let idx = 0;
-  const seg = (text: string, fill: string) =>
+  const seg = (text: string, base: string, acc?: RegExp) =>
     fr(text)
       .split(" ")
-      .map((word) => ({
-        chars: [...word].map((ch) => ({ ch, fill, i: idx++ })),
-      }));
-  return { head: seg(head, FILL), body: seg(body, FILL_BODY), total: idx };
+      .map((word) => {
+        const fill = acc && acc.test(word) ? FILL_ACCENT : base;
+        return { chars: [...word].map((ch) => ({ ch, fill, i: idx++ })) };
+      });
+  return { head: seg(head, FILL), body: seg(body, FILL_BODY, accent), total: idx };
 }
 type CertModel = ReturnType<typeof buildCertModel>;
 type CertWords = CertModel["head"];
@@ -277,8 +280,8 @@ function CertClosing({
 }) {
   const local = useMemo(
     () => ({
-      left: buildCertModel(CERT_LEFT.head, CERT_LEFT.body),
-      right: buildCertModel(CERT_RIGHT.head, CERT_RIGHT.body),
+      left: buildCertModel(CERT_LEFT.head, CERT_LEFT.body, CERT_LEFT.accent),
+      right: buildCertModel(CERT_RIGHT.head, CERT_RIGHT.body, CERT_RIGHT.accent),
     }),
     [],
   );
@@ -442,8 +445,8 @@ function ProgramReels() {
 
   const certModels = useMemo(
     () => ({
-      left: buildCertModel(CERT_LEFT.head, CERT_LEFT.body),
-      right: buildCertModel(CERT_RIGHT.head, CERT_RIGHT.body),
+      left: buildCertModel(CERT_LEFT.head, CERT_LEFT.body, CERT_LEFT.accent),
+      right: buildCertModel(CERT_RIGHT.head, CERT_RIGHT.body, CERT_RIGHT.accent),
     }),
     [],
   );
@@ -689,18 +692,20 @@ function ProgramReels() {
       {/* STAGE 1 — intro headline, centred */}
       <div
         ref={introRef}
-        className="absolute inset-0 z-10 flex flex-col items-start justify-center px-[min(6vw,5rem)] will-change-[opacity,transform]"
+        className="absolute inset-0 z-10 flex flex-col items-start justify-center will-change-[opacity,transform]"
       >
-        <IntroHeader />
+        <div className="shell">
+          <IntroHeader />
+        </div>
       </div>
 
       {/* STAGE 2 — the reels: cross-fading act panels + one flicking phone */}
       <div
         ref={reelsRef}
-        className="absolute inset-0 z-20 flex items-center px-[min(6vw,5rem)] will-change-[opacity,transform]"
+        className="absolute inset-0 z-20 flex items-center will-change-[opacity,transform]"
         style={{ opacity: 0 }}
       >
-        <div className="grid w-full items-center gap-10 lg:grid-cols-[1fr_auto] lg:gap-16">
+        <div className="shell grid items-center gap-10 lg:grid-cols-[1fr_auto] lg:gap-16">
           {/* LEFT — a clipped window; the three acts stack in a vertical track and
               slide through it in lock-step with the phone (one act at a time). */}
           <div className="relative h-[clamp(30rem,76vh,42rem)] overflow-hidden">
@@ -759,22 +764,24 @@ function ProgramReels() {
       {/* STAGE 3 — certificate + closing cards */}
       <div
         ref={certRef}
-        className="absolute inset-0 z-30 flex items-start px-[min(6vw,5rem)] pt-[13vh] will-change-[opacity,transform]"
+        className="absolute inset-0 z-30 flex items-start pt-[13vh] will-change-[opacity,transform]"
         style={{ opacity: 0 }}
       >
-        <CertClosing
-          animated
-          models={certModels}
-          registerChar={(which, i, el) => {
-            certCharRefs.current[which][i] = el;
-          }}
-          leftRef={(el) => {
-            leftCertRef.current = el;
-          }}
-          rightRef={(el) => {
-            rightCertRef.current = el;
-          }}
-        />
+        <div className="shell">
+          <CertClosing
+            animated
+            models={certModels}
+            registerChar={(which, i, el) => {
+              certCharRefs.current[which][i] = el;
+            }}
+            leftRef={(el) => {
+              leftCertRef.current = el;
+            }}
+            rightRef={(el) => {
+              rightCertRef.current = el;
+            }}
+          />
+        </div>
       </div>
       </div>
 
@@ -795,7 +802,7 @@ function ProgramReels() {
  */
 function StaticProgram({ active }: { active: boolean }) {
   return (
-    <div className="px-[min(6vw,5rem)] py-28 md:py-40">
+    <div className="shell py-28 md:py-40">
       <IntroHeader />
       <StaticReels active={active} />
       <div className="mt-20">

@@ -8,6 +8,7 @@ import Loupe from "@/components/Loupe";
 import ContactModal from "@/components/ContactModal";
 import ProgramModal from "@/components/ProgramModal";
 import CalInit from "@/components/CalInit";
+import WhatsAppFab from "@/components/WhatsAppFab";
 
 const DESCRIPTION =
   "AQLUMA : méthode, pas outil. Une littératie de l'IA, en français et darija.";
@@ -62,6 +63,7 @@ export default function RootLayout({
         <ContactModal />
         <ProgramModal />
         <CalInit />
+        <WhatsAppFab />
       </body>
     </html>
   );

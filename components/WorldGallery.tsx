@@ -63,6 +63,10 @@ export type GalleryBlock = {
   widthClass?: string;
   /** Override the title's responsive font-size classes for a single block. */
   titleClass?: string;
+  /** Dedicated image for the MOBILE/TABLET carousel slide. When set, the slide shows
+   *  this picture (centred, object-cover) instead of cropping the wide panorama via
+   *  `fx`. The desktop pan always uses the shared panorama. */
+  img?: string;
 };
 
 type Props = {
@@ -80,6 +84,20 @@ type Props = {
   /** Inner transparent radius (%) of the edge blend. Lower = the image melts into
    *  the world bg sooner (more background showing around the scene). */
   frameBlend?: number;
+  /** Fade a caption OUT (opacity + blur) as its object leaves the centre. When false
+   *  each caption still fades IN as its object arrives, then stays fully solid and
+   *  simply slides off the edge with the wall instead of fading away. */
+  fadeOut?: boolean;
+  /** Extra scroll held at the END of the pan, as a fraction of the pan distance.
+   *  The last object stays centred and pinned (caption solid) for this stretch
+   *  before the section unpins — so the final frame can be read without the next
+   *  section pulling in. 0 = hand off immediately (default). */
+  endHold?: number;
+  /** Which fraction of the image HEIGHT sits at the viewport's vertical centre.
+   *  0.5 centres the photo itself (default). Lower values pull the image DOWN so a
+   *  band high in the photo (e.g. objects hung from a wire near the top) lands at
+   *  centre instead of riding high with empty wall beneath. */
+  focusY?: number;
 };
 
 // A caption owns the stretch of scroll around its object and hands off at a
@@ -94,7 +112,7 @@ const smooth = (t: number) => t * t * (3 - 2 * t);
 // Feather the image's far left/right edges into transparency so that, at the
 // start/end of the pan, the picture dissolves into the world bg (no hard seam).
 const EDGE_FEATHER =
-  "linear-gradient(to right, transparent 0, #000 3.5%, #000 96.5%, transparent 100%)";
+  "linear-gradient(to right, transparent 0, #000 1.6%, #000 98.4%, transparent 100%)";
 
 function Caption({
   b,
@@ -167,6 +185,9 @@ export default function WorldGallery({
   zoomW = 200,
   rulePlacement = "bottom",
   frameBlend = 52,
+  fadeOut = true,
+  endHold = 0,
+  focusY = 0.5,
 }: Props) {
   const sectionRef = useRef<HTMLElement>(null);
   const panRef = useRef<HTMLDivElement>(null);
@@ -229,7 +250,11 @@ export default function WorldGallery({
     const trackW = () => track.offsetWidth;
     const startX = () => window.innerWidth / 2 - fx0 * trackW();
     const endX = () => window.innerWidth / 2 - fxL * trackW();
-    const distance = () => Math.abs(startX() - endX());
+    const panDist = () => Math.abs(startX() - endX());
+    // Total scroll = the pan + a held tail (endHold × pan). The pan completes over
+    // the first `panFrac` of that range; the tail keeps the last frame pinned.
+    const distance = () => panDist() * (1 + endHold);
+    const panFrac = 1 / (1 + endHold);
 
     // A note is full across its own stretch and cross-fades only at the (late)
     // boundaries with its neighbours — holds, then a quick handoff.
@@ -241,7 +266,10 @@ export default function WorldGallery({
         if (!el) continue;
         let op = 1;
         if (i > 0) op *= clamp01((p - (bound(ats[i - 1], ats[i]) - FADE)) / (2 * FADE));
-        if (i < last) op *= 1 - clamp01((p - (bound(ats[i], ats[i + 1]) - FADE)) / (2 * FADE));
+        // Fade OUT as the next object takes over — skipped when fadeOut=false, so the
+        // caption holds at full strength and slides off the edge with the wall instead.
+        if (fadeOut && i < last)
+          op *= 1 - clamp01((p - (bound(ats[i], ats[i + 1]) - FADE)) / (2 * FADE));
         const e = smooth(op);
         el.style.opacity = String(e);
         el.style.filter = `blur(${(1 - e) * 14}px)`;
@@ -261,18 +289,23 @@ export default function WorldGallery({
           scrub: 1,
           invalidateOnRefresh: true,
           onUpdate: (self) => {
-            ruleRef.current?.setProgress(self.progress);
-            paint(self.progress);
+            // Remap so the pan reaches its end at `panFrac`; the tail holds at 1.
+            const pp = clamp01(self.progress / panFrac);
+            ruleRef.current?.setProgress(pp);
+            paint(pp);
           },
           onToggle: (self) => ruleRef.current?.setActive(self.isActive),
         },
       });
 
       tl.fromTo(lanes, { x: startX }, { x: endX, ease: "none", duration: 1 }, 0);
+      // Held tail: the lanes stay at endX while this empty stretch of scroll plays,
+      // keeping the last object centred and pinned before the section hands off.
+      if (endHold > 0) tl.to(lanes, { x: endX, duration: endHold });
     }, pan);
 
     return () => ctx.revert();
-  }, [stacked, blocks]);
+  }, [stacked, blocks, fadeOut, endHold]);
 
   // Both presentations are ALWAYS mounted — only `display` toggles between them —
   // so the GSAP-pinned pan subtree is never added/removed by React (no removeChild
@@ -302,8 +335,12 @@ export default function WorldGallery({
             src={image}
             alt=""
             draggable={false}
-            className="pointer-events-none absolute left-0 top-1/2 h-auto w-full max-w-none -translate-y-1/2 select-none"
-            style={{ WebkitMaskImage: EDGE_FEATHER, maskImage: EDGE_FEATHER }}
+            className="pointer-events-none absolute left-0 top-1/2 h-auto w-full max-w-none select-none"
+            style={{
+              transform: `translateY(${-focusY * 100}%)`,
+              WebkitMaskImage: EDGE_FEATHER,
+              maskImage: EDGE_FEATHER,
+            }}
           />
         </div>
 
@@ -313,7 +350,7 @@ export default function WorldGallery({
           aria-hidden
           className="pointer-events-none absolute inset-0 z-10"
           style={{
-            background: `radial-gradient(72% 110% at 50% 50%, rgba(0,0,0,0) ${frameBlend}%, ${bg} 100%)`,
+            background: `radial-gradient(88% 155% at 50% 50%, rgba(0,0,0,0) ${frameBlend}%, ${bg} 100%)`,
           }}
         />
 
@@ -451,11 +488,11 @@ function WorldCarousel({
             >
               {/* eslint-disable-next-line @next/next/no-img-element -- flat-lay crop */}
               <img
-                src={image}
+                src={b.img ?? image}
                 alt=""
                 draggable={false}
                 className="absolute inset-0 h-full w-full select-none object-cover"
-                style={{ objectPosition: `${b.fx * 100}% 50%` }}
+                style={{ objectPosition: b.img ? "50% 50%" : `${b.fx * 100}% 50%` }}
               />
             </div>
             <div className="mt-5 px-0.5">

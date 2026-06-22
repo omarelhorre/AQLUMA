@@ -16,11 +16,16 @@
     color: theme("colors.cream");
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    /* Firefox — thin neutral pill, cream-tinted, on a transparent track. */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(247, 244, 239, 0.22) transparent;
   }
 
-  /* Custom scrollbar */
+  /* Premium scrollbar (WebKit/Chromium) — a slim, rounded cream pill on a
+     transparent track. The 2px transparent border + padding-box clip insets the
+     thumb so it reads as a floating capsule, not a heavy bar. */
   html::-webkit-scrollbar {
-    width: 12px;
+    width: 10px;
   }
 
   html::-webkit-scrollbar-track {
@@ -28,12 +33,15 @@
   }
 
   html::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, rgba(139, 92, 246, 0.7) 0%, rgba(59, 130, 246, 0.7) 50%, rgba(6, 182, 212, 0.7) 100%);
-    border-radius: 6px;
+    background: rgba(247, 244, 239, 0.16);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
   }
 
   html::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(180deg, rgba(168, 85, 247, 0.9) 0%, rgba(96, 165, 250, 0.9) 50%, rgba(34, 197, 94, 0.9) 100%);
+    background: rgba(247, 244, 239, 0.32);
+    background-clip: padding-box;
   }
 
   body {
@@ -58,6 +66,15 @@
   ::selection {
     background: theme("colors.gold");
     color: theme("colors.void");
+  }
+}
+
+@layer components {
+  /* Page shell — the shared content grid. Matches the header container
+     (max-w-[1600px] + px-6 md:px-10) so the nav and body align to ONE grid, and
+     wide screens get generous left/right gutters instead of edge-hugging text. */
+  .shell {
+    @apply mx-auto w-full max-w-[1600px] px-6 md:px-10;
   }
 }
 

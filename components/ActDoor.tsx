@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { fr } from "@/lib/typo";
+
+const useIsoLayoutEffect =
+  typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 // Descriptive adjectives completing "…apprend à devenir." — scattered on the
 // right with a little jitter in position + scale so they don't read as a list.
@@ -59,6 +62,19 @@ export default function ActDoor() {
   const descRef    = useRef<HTMLDivElement>(null);
   const descLineRefs = useRef<(HTMLParagraphElement | null)[]>([]);
   const reduced    = useReducedMotion();
+  // Below md the desktop two-column scatter (left copy ‖ right description, plus
+  // the right-scattered traits) collapses into the same centre band and overlaps.
+  // `narrow` keeps the pinned scroll story but reflows the blocks into separate
+  // vertical zones (left copy → upper, description + traits → lower). Resolved in a
+  // layout effect for SSR-safety, like MindReveal / ProgramManifesto.
+  const [narrow, setNarrow] = useState(false);
+  useIsoLayoutEffect(() => {
+    const mq = window.matchMedia("(max-width: 767.98px)");
+    const apply = () => setNarrow(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
 
   useEffect(() => {
     if (reduced) return;
@@ -196,6 +212,20 @@ export default function ActDoor() {
         }}
       />
 
+      {/* Mobile-only legibility scrim. On phones the copy is CENTRED over the
+          clip (not tucked in the dark side-gutters like desktop), so bright video
+          details — e.g. the door's frame molding — bleed through the text. This
+          darkens the top + bottom bands where the copy sits while keeping the
+          middle clearer so the door reveal still reads. md+: side vignette only. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 z-10 md:hidden"
+        style={{
+          background:
+            "linear-gradient(to bottom, rgba(8,10,12,0.84) 0%, rgba(8,10,12,0.5) 30%, rgba(8,10,12,0.42) 50%, rgba(8,10,12,0.5) 70%, rgba(8,10,12,0.86) 100%)",
+        }}
+      />
+
       <div className="pointer-events-none absolute inset-0 z-20">
 
         {/* Line 1 — on load (left), with the programme CTA (opens the form modal). */}
@@ -203,7 +233,7 @@ export default function ActDoor() {
           <p className="font-didot text-[clamp(1.7rem,3.6vw,3.2rem)] leading-[1.12] tracking-[-0.015em] text-cream">
             Bienvenu chez AQLUMA.
           </p>
-          <p className="mt-5 max-w-[34ch] font-satoshi text-[clamp(0.92rem,1.15vw,1.05rem)] leading-relaxed text-cream/60">
+          <p className="mx-auto mt-5 max-w-[34ch] font-satoshi text-[clamp(0.92rem,1.15vw,1.05rem)] leading-relaxed text-cream/60 md:mx-0">
             {fr("Places limitées à chaque session. Recevez le programme avant qu’il ne soit complet.")}
           </p>
           <button
@@ -234,8 +264,8 @@ export default function ActDoor() {
         {/* Right-hand intro — Dala hierarchy (gold kicker → stacked Satoshi-black
             headline → calm paragraph). Scrolls up + reveals line-by-line, then
             fades; only this side moves while the left copy holds. */}
-        <div className="absolute inset-y-0 right-[6vw] z-20 flex items-center">
-          <div ref={descRef} className="ml-auto max-w-[min(88vw,36rem)] text-right will-change-transform">
+        <div className="absolute inset-x-0 bottom-0 top-[48%] z-20 flex items-center justify-center px-6 md:left-auto md:right-[6vw] md:top-0 md:bottom-0 md:items-center md:justify-end md:px-0">
+          <div ref={descRef} className="max-w-[min(88vw,36rem)] text-center will-change-transform md:ml-auto md:text-right">
             {DESC.map((line, i) => (
               <p
                 key={i}
@@ -247,8 +277,8 @@ export default function ActDoor() {
                   line.kind === "kicker"
                     ? "mb-5 font-satoshi text-[clamp(0.9rem,1.1vw,1.05rem)] font-bold text-gold will-change-[transform,opacity,filter]"
                     : line.kind === "head"
-                      ? "block font-didot text-[clamp(2.4rem,5.6vw,5rem)] font-normal leading-[1.06] tracking-[-0.02em] text-cream will-change-[transform,opacity,filter]"
-                      : "ml-auto mt-7 max-w-[44ch] font-satoshi text-[clamp(0.95rem,1.3vw,1.2rem)] font-normal leading-relaxed text-cream/70 will-change-[transform,opacity,filter]"
+                      ? "block font-didot text-[clamp(2rem,5.6vw,5rem)] font-normal leading-[1.06] tracking-[-0.02em] text-cream will-change-[transform,opacity,filter]"
+                      : "mx-auto mt-7 max-w-[44ch] font-satoshi text-[clamp(0.95rem,1.3vw,1.2rem)] font-normal leading-relaxed text-cream/70 will-change-[transform,opacity,filter] md:ml-auto md:mx-0"
                 }
               >
                 {fr(line.text)}
@@ -258,7 +288,7 @@ export default function ActDoor() {
         </div>
 
         {/* Line 2 — editorial two-line treatment (left) */}
-        <Beat side="left" innerRef={line2Ref} initialOpacity={0}>
+        <Beat side="left" innerRef={line2Ref} initialOpacity={0} mtop="top-[26%]">
           <p className="font-didot leading-[1.16] tracking-[-0.015em]">
             <span className="block text-[clamp(1rem,2vw,1.6rem)] text-cream/50">
               Ici, votre adolescent
@@ -269,27 +299,35 @@ export default function ActDoor() {
           </p>
         </Beat>
 
-        {/* The 4 traits — scattered on the right, staggered in, group fade-out */}
-        {TRAITS.map((t, i) => (
-          <div
-            key={t.word}
-            ref={(el) => {
-              itemsRef.current[i] = el;
-            }}
-            style={{
-              opacity: reduced ? 1 : 0,
-              top: t.top,
-              right: t.right,
-              fontSize: t.size,
-            }}
-            className="absolute font-didot leading-[1.04] tracking-[-0.015em] text-cream will-change-[transform,opacity,filter]"
-          >
-            {t.word}
-          </div>
-        ))}
+        {/* The 4 traits — md+: scattered on the right (absolute, per-item top/right).
+            Mobile: a centred stack in the lower zone (clear of line2 in the upper
+            zone). The wrapper is `display:contents` at md+ so the children keep
+            their original absolute scatter relative to the section. */}
+        <div className="absolute inset-x-0 bottom-0 top-[50%] z-20 flex flex-col items-center justify-center gap-1.5 px-6 md:contents">
+          {TRAITS.map((t, i) => (
+            <div
+              key={t.word}
+              ref={(el) => {
+                itemsRef.current[i] = el;
+              }}
+              style={
+                narrow
+                  ? { opacity: reduced ? 1 : 0, fontSize: "clamp(1.7rem,7vw,2.6rem)" }
+                  : { opacity: reduced ? 1 : 0, top: t.top, right: t.right, fontSize: t.size }
+              }
+              className={[
+                "font-didot leading-[1.04] tracking-[-0.015em] text-cream will-change-[transform,opacity,filter]",
+                narrow ? "" : "absolute",
+              ].join(" ")}
+            >
+              {t.word}
+            </div>
+          ))}
+        </div>
 
-        {/* Climax — AQLUMA in brand clay/orange (left) */}
-        <Beat side="left" innerRef={climaxRef} initialOpacity={reduced ? 1 : 0}>
+        {/* Climax — AQLUMA in brand clay/orange (left). Lone on mobile, so it sits
+            lower toward the vertical centre rather than up in the header band. */}
+        <Beat side="left" innerRef={climaxRef} initialOpacity={reduced ? 1 : 0} mtop="top-[40%]">
           <span
             className="block font-didot text-[clamp(2.9rem,7.4vw,6.2rem)] font-normal leading-[1.0] tracking-[-0.025em]"
             style={{ color: "#C9612E" }}
@@ -319,11 +357,15 @@ function Beat({
   side,
   innerRef,
   initialOpacity,
+  mtop = "top-[16%]",
   children,
 }: {
   side: "left" | "right";
   innerRef: React.Ref<HTMLDivElement> | null;
   initialOpacity: number;
+  /** Mobile vertical anchor (Tailwind `top-*`). Tuned per beat so a beat paired
+   *  with a large lower block sits higher, a lone/small-paired beat sits lower. */
+  mtop?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -331,8 +373,14 @@ function Beat({
       ref={innerRef ?? undefined}
       style={{ opacity: initialOpacity }}
       className={[
-        "absolute top-1/2 max-w-[min(86vw,40rem)] -translate-y-1/2 will-change-[transform,opacity,filter]",
-        side === "left" ? "left-[6vw] text-left" : "right-[6vw] text-right",
+        // Mobile: full-width, centred, anchored in the upper zone (the right-side
+        // description + traits get the lower zone) so the two never overlap.
+        `absolute left-0 right-0 ${mtop} px-6 text-center will-change-[transform,opacity,filter]`,
+        // md+: the original left/right column, vertically centred.
+        "md:top-1/2 md:max-w-[min(86vw,40rem)] md:-translate-y-1/2 md:px-0",
+        side === "left"
+          ? "md:left-[6vw] md:right-auto md:text-left"
+          : "md:left-auto md:right-[6vw] md:text-right",
       ].join(" ")}
     >
       {children}

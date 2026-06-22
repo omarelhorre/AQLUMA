@@ -49,7 +49,11 @@ const CTA_PROGRAM = "Demander le programme";
 
 const VOID = "#080A0C";
 const FILL = "#F7F4EF"; // cream — the written ink
+const FILL_ACCENT = "#E8B23A"; // gold — the thinker's agency words land here
 const GHOST = "rgba(247,244,239,0.07)"; // faint impression before/after writing
+// Words that land in gold (the thinker's agency); the lost line stays cream so
+// the morph reads as monotone-loss → vivid-method.
+const THINKER_ACCENT = /pense|voix|méthode/i;
 
 // Scroll-progress beats.
 const REVEAL_IN = 0.06;
@@ -70,25 +74,29 @@ const useIsoLayoutEffect =
 
 // Per-character fill as a moving gradient. `f` (0..1) is how written THIS glyph
 // is; a soft band straddles the edge so a glyph can read as half-written.
-function fillGradient(f: number): string {
+function fillGradient(f: number, color: string = FILL): string {
   // Crisp at the ends: a fully-written glyph is solid (no faded right edge that
   // can read as a missing last letter), an unwritten one is a faint impression.
-  if (f >= 1) return `linear-gradient(90deg, ${FILL}, ${FILL})`;
+  if (f >= 1) return `linear-gradient(90deg, ${color}, ${color})`;
   if (f <= 0) return `linear-gradient(90deg, ${GHOST}, ${GHOST})`;
   const pct = f * 100;
   const a = pct - 4;
   const b = pct + 4;
-  return `linear-gradient(90deg, ${FILL} 0%, ${FILL} ${a}%, ${GHOST} ${b}%, ${GHOST} 100%)`;
+  return `linear-gradient(90deg, ${color} 0%, ${color} ${a}%, ${GHOST} ${b}%, ${GHOST} 100%)`;
 }
 
 // Flatten a line into words (kept unbreakable) of characters with a global index.
-function buildModel(text: string) {
+function buildModel(text: string, accent?: RegExp) {
   let i = 0;
   const words = fr(text)
     .split(" ")
     .filter(Boolean)
-    .map((w) => [...w].map((ch) => ({ ch, i: i++ })));
-  return { words, total: i };
+    .map((w) => {
+      const fill = accent && accent.test(w) ? FILL_ACCENT : FILL;
+      return [...w].map((ch) => ({ ch, fill, i: i++ }));
+    });
+  const fills = words.flat().map((c) => c.fill);
+  return { words, total: i, fills };
 }
 
 // Edge blend: feathered on ALL four sides so the spotlit half floats in the
@@ -131,7 +139,7 @@ export default function MindReveal() {
   const [phase, setPhase] = useState(0); // 0 = lost adolescent, 1 = thinker
 
   const lostModel = useMemo(() => buildModel(LOST), []);
-  const thinkerModel = useMemo(() => buildModel(THINKER), []);
+  const thinkerModel = useMemo(() => buildModel(THINKER, THINKER_ACCENT), []);
   const ctaModels = useMemo(
     () => [buildModel(CTA_BOOK), buildModel(CTA_PROGRAM)],
     [],
@@ -161,6 +169,8 @@ export default function MindReveal() {
     const think = thinkerRefs.current;
     const NL = lostModel.total;
     const NT = thinkerModel.total;
+    const lostFills = lostModel.fills;
+    const thinkFills = thinkerModel.fills;
 
     // Handwriting transition, one line at a time (never two texts at once):
     //  · LOST writes itself in (REVEAL), holds.
@@ -176,12 +186,12 @@ export default function MindReveal() {
         if (!el) continue;
         const written = clamp01(rv * NL - i); // ink lands in reading order
         const kept = clamp01((1 - uw) * NL - i); // ink recedes from the end first
-        el.style.backgroundImage = fillGradient(Math.min(written, kept));
+        el.style.backgroundImage = fillGradient(Math.min(written, kept), lostFills[i]);
       }
       for (let j = 0; j < think.length; j++) {
         const el = think[j];
         if (!el) continue;
-        el.style.backgroundImage = fillGradient(clamp01(wt * NT - j));
+        el.style.backgroundImage = fillGradient(clamp01(wt * NT - j), thinkFills[j]);
       }
 
       if (lostBoxRef.current)
@@ -203,10 +213,11 @@ export default function MindReveal() {
       for (let b = 0; b < ctaModels.length; b++) {
         const els = ctaCharRefs.current[b];
         const sweep = ctaSweep * ctaModels[b].total;
+        const fills = ctaModels[b].fills;
         for (let i = 0; i < els.length; i++) {
           const el = els[i];
           if (!el) continue;
-          el.style.backgroundImage = fillGradient(clamp01(sweep - i));
+          el.style.backgroundImage = fillGradient(clamp01(sweep - i), fills[i]);
         }
       }
     };
@@ -257,12 +268,31 @@ export default function MindReveal() {
                 refs.current[c.i] = el;
               }}
               style={{
-                backgroundImage: fillGradient(0),
+                backgroundImage: fillGradient(0, c.fill),
                 WebkitBackgroundClip: "text",
                 backgroundClip: "text",
                 color: "transparent",
                 WebkitTextFillColor: "transparent",
               }}
+            >
+              {c.ch}
+            </span>
+          ))}
+        </span>
+        {wi < model.words.length - 1 ? " " : ""}
+      </Fragment>
+    ));
+
+  // Static (reduced-motion / narrow) render of a model: accent chars solid gold,
+  // every other glyph inherits the paragraph colour.
+  const renderStatic = (model: ReturnType<typeof buildModel>) =>
+    model.words.map((word, wi) => (
+      <Fragment key={wi}>
+        <span className="whitespace-nowrap">
+          {word.map((c) => (
+            <span
+              key={c.i}
+              style={c.fill === FILL_ACCENT ? { color: FILL_ACCENT } : undefined}
             >
               {c.ch}
             </span>
@@ -287,7 +317,7 @@ export default function MindReveal() {
                     ctaCharRefs.current[b][c.i] = el;
                   }}
                   style={{
-                    backgroundImage: fillGradient(0),
+                    backgroundImage: fillGradient(0, c.fill),
                     WebkitBackgroundClip: "text",
                     backgroundClip: "text",
                     color: "transparent",
@@ -377,13 +407,16 @@ export default function MindReveal() {
           AQLUMA
         </h2>
         <p className="mt-4 font-satoshi text-[clamp(1.2rem,2vw,1.9rem)] font-medium leading-snug text-cream/65">
-          {fr(LEAD)}
+          <span className="text-gold/90">{fr(LEAD).split(" ")[0]}</span>{" "}
+          {fr(LEAD).split(" ").slice(1).join(" ")}
         </p>
 
         {/* The changing paragraph: two layers in one box. */}
         <div className="relative mt-10 max-w-[70ch]">
           {still ? (
-            <p className={`${paraClass} text-cream/90`}>{fr(THINKER)}</p>
+            <p className={`${paraClass} text-cream/90`}>
+              {renderStatic(thinkerModel)}
+            </p>
           ) : (
             <>
               <p ref={lostBoxRef} className={paraClass}>
