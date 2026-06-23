@@ -6,6 +6,14 @@ import { worlds } from "@/lib/worlds";
 import { smoothScrollTo } from "@/lib/lenis";
 import { CAL_LINK, CAL_CONFIG } from "@/lib/cal";
 
+// In-page sections surfaced in the nav (besides the Mondes dropdown). Anchors map
+// to live section ids; clicks smooth-scroll with the fixed-header offset.
+const SECTIONS = [
+  { id: "programme", label: "Le Programme" },
+  { id: "avis", label: "Avis" },
+  { id: "faq", label: "FAQ" },
+];
+
 /**
  * Fixed, ALWAYS-VISIBLE header for the whole journey. It is never transparent:
  * an opaque vertical gradient-black bar with a hairline base and a soft drop
@@ -70,10 +78,16 @@ export default function Header() {
     smoothScrollTo(`#${id}`, { offset: 0 });
   };
 
+  const goSection = (id: string) => {
+    setOpen(false);
+    setMobileOpen(false);
+    smoothScrollTo(`#${id}`, { offset: -80 });
+  };
+
   return (
     <header
       className={[
-        "fixed inset-x-0 top-0 z-50 border-b bg-gradient-to-b from-[#0d1115] via-[#0a0c0f] to-void transition-[border-color,box-shadow] duration-500 ease-editorial",
+        "fixed inset-x-0 top-0 z-50 border-b bg-[#0a0c0f] transition-[border-color,box-shadow] duration-500 ease-editorial",
         scrolled
           ? "border-cream/[0.09] shadow-[0_14px_40px_-18px_rgba(0,0,0,0.85)]"
           : "border-cream/[0.05] shadow-[0_10px_30px_-20px_rgba(0,0,0,0.7)]",

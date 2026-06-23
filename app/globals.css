@@ -49,6 +49,17 @@
     background-color: theme("colors.void");
     /* Lenis controls scrolling; keep native overscroll quiet. */
     overscroll-behavior: none;
+    /* Premium finish: no grey flash on touch, full kerning + ligatures. */
+    -webkit-tap-highlight-color: transparent;
+    font-kerning: normal;
+    font-feature-settings: "kern", "liga", "calt";
+  }
+
+  /* In-page anchor jumps (footer / nav) clear the fixed header instead of
+     tucking the target heading underneath it. */
+  section[id],
+  footer[id] {
+    scroll-margin-top: 5rem;
   }
 
   /* Lenis smooth-scroll hooks */

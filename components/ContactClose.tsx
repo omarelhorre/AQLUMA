@@ -5,6 +5,7 @@ import { faFacebookF, faInstagram, faLinkedinIn, faWhatsapp } from "@fortawesome
 import { config } from "@fortawesome/fontawesome-svg-core";
 import "@fortawesome/fontawesome-svg-core/styles.css";
 import { fr } from "@/lib/typo";
+import { smoothScrollTo } from "@/lib/lenis";
 
 // We import the Font Awesome CSS ourselves, so disable its runtime auto-injection
 // (prevents the icons flashing oversized before the stylesheet loads).
@@ -80,7 +81,7 @@ export default function ContactClose() {
             <p className="font-didot text-[1.7rem] font-normal leading-none tracking-[0.04em] text-cream">
               AQLUMA
             </p>
-            <p className="mt-5 max-w-[34ch] font-satoshi text-[0.95rem] leading-relaxed text-cream/55">
+            <p className="mt-5 max-w-[34ch] text-pretty font-satoshi text-[0.95rem] leading-relaxed text-cream/55">
               {fr(
                 "Refuser de se fondre dans la machine. Nous formons des esprits qui pensent avec l'IA, sans jamais lui céder leur voix.",
               )}
@@ -94,7 +95,7 @@ export default function ContactClose() {
                     href={s.href}
                     aria-label={s.label}
                     {...(placeholder ? {} : { target: "_blank", rel: "noopener noreferrer" })}
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-cream/15 leading-none text-cream/55 transition-colors duration-200 hover:border-cream/40 hover:text-cream"
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-cream/15 leading-none text-cream/55 transition-all duration-200 ease-editorial hover:-translate-y-0.5 hover:border-cream/40 hover:bg-cream/[0.04] hover:text-cream"
                   >
                     <FontAwesomeIcon icon={s.icon} />
                   </a>
@@ -189,12 +190,27 @@ function FooterLink({
   href: string;
   children: React.ReactNode;
 }) {
+  // Internal anchors (#avis, …) scroll smoothly and clear the fixed header;
+  // "#" placeholders and external links keep default behaviour.
+  const internal = href.length > 1 && href.startsWith("#");
+  const onClick = internal
+    ? (e: React.MouseEvent) => {
+        e.preventDefault();
+        if (href === "#top") smoothScrollTo(0);
+        else smoothScrollTo(href, { offset: -80 });
+      }
+    : undefined;
   return (
     <a
       href={href}
-      className="w-fit font-satoshi text-[0.95rem] text-cream/60 transition-colors duration-200 hover:text-cream"
+      onClick={onClick}
+      className="group/fl relative w-fit font-satoshi text-[0.95rem] text-cream/55 transition-colors duration-300 ease-editorial hover:text-cream"
     >
       {children}
+      <span
+        aria-hidden
+        className="absolute -bottom-0.5 left-0 h-px w-full origin-left scale-x-0 bg-gold/60 transition-transform duration-300 ease-editorial group-hover/fl:scale-x-100"
+      />
     </a>
   );
 }
