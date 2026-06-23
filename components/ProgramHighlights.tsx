@@ -11,6 +11,7 @@ import {
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useReducedMotion } from "@/lib/useReducedMotion";
+import { useScrubbedFill } from "@/lib/useScrubbedFill";
 import { fr } from "@/lib/typo";
 
 // Layout effect on the client (runs before paint), plain effect on the server
@@ -788,7 +789,7 @@ function ProgramReels() {
       {/* Reduced-motion / narrow-screen (<1024px) fallback — always mounted, shown
           when the pinned sequence is off. */}
       <div style={{ display: animated ? "none" : "block" }}>
-        <StaticProgram active={!animated} />
+        <StaticProgram active={!animated} reduced={reduced} />
       </div>
     </>
   );

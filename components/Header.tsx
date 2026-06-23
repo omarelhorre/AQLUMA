@@ -113,6 +113,18 @@ export default function Header() {
 
         {/* Desktop nav — hidden under md, replaced by the hamburger sheet. */}
         <div className="hidden items-center gap-3 md:flex md:gap-5">
+          {/* In-page section links — smooth-scroll with the fixed-header offset. */}
+          {SECTIONS.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => goSection(s.id)}
+              className="rounded-sm px-1 py-2 font-satoshi text-[14px] font-medium tracking-tight text-cream/75 outline-none transition-colors duration-300 ease-editorial hover:text-cream focus-visible:ring-1 focus-visible:ring-cream/30"
+            >
+              {s.label}
+            </button>
+          ))}
+
           {/* Mondes — expandable dropdown */}
           <div
             ref={menuRef}
@@ -286,6 +298,21 @@ export default function Header() {
                   Bientôt
                 </span>
               )}
+            </button>
+          ))}
+
+          {/* In-page sections */}
+          <span className="mt-4 px-1 pb-1 font-satoshi text-[11px] font-medium uppercase tracking-[0.18em] text-cream/35">
+            Sections
+          </span>
+          {SECTIONS.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => goSection(s.id)}
+              className="flex items-center rounded-sm px-1 py-3.5 text-left font-satoshi text-[17px] font-medium tracking-tight text-cream/85 transition-colors duration-200 active:text-cream"
+            >
+              {s.label}
             </button>
           ))}
 

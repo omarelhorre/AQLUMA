@@ -54,6 +54,7 @@ const BLOCKS: GalleryBlock[] = [
     fx: 0.9,
     left: "99%",
     v: { top: "30%" },
+    img: "/responsive/briefing/3.jpeg",
     wide: true,
     widthClass: "w-[min(22rem,25vw)]",
     noteClass: "max-w-[18ch]",

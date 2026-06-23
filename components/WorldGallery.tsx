@@ -131,7 +131,10 @@ function Caption({
   const bodyC = light ? "text-ink/85" : "text-cream/75";
   const mutedC = light ? "text-ink/45" : "text-cream/45";
   const wide = b.wide;
-  const center = b.align === "center";
+  // `align: "center"` is a desktop-pan treatment (a caption owning a wide stretch
+  // of wall). In the compact carousel every card is the same width, so centring
+  // one note while the others read left looks inconsistent — force left there.
+  const center = !compact && b.align === "center";
 
   return (
     <div className={`relative ${center ? "flex flex-col items-center text-center" : ""}`}>
