@@ -264,12 +264,15 @@ type CertWords = CertModel["head"];
  */
 function CertClosing({
   animated = false,
+  scrub = false,
   leftRef,
   rightRef,
   models,
   registerChar,
 }: {
   animated?: boolean;
+  /** Responsive (non-pinned) mode: each card writes itself in as it scrolls past. */
+  scrub?: boolean;
   leftRef?: (el: HTMLDivElement | null) => void;
   rightRef?: (el: HTMLDivElement | null) => void;
   models?: { left: CertModel; right: CertModel };
@@ -287,12 +290,16 @@ function CertClosing({
     [],
   );
   const m = models ?? local;
+  // The scrub path renders the gradient glyphs (so they can fill) but drives them
+  // from each card's own ScrollTrigger rather than the parent's pinned sweep.
+  const anim = animated || scrub;
   return (
     <div className="flex w-full flex-col gap-14 md:gap-20">
       <CertBlock
         data={CERT_LEFT}
         model={m.left}
-        animated={animated}
+        animated={anim}
+        scrub={scrub}
         blockRef={leftRef}
         registerChar={
           registerChar ? (i, el) => registerChar("left", i, el) : undefined
@@ -301,7 +308,8 @@ function CertClosing({
       <CertBlock
         data={CERT_RIGHT}
         model={m.right}
-        animated={animated}
+        animated={anim}
+        scrub={scrub}
         blockRef={rightRef}
         registerChar={
           registerChar ? (i, el) => registerChar("right", i, el) : undefined
@@ -316,16 +324,51 @@ function CertBlock({
   data,
   model,
   animated,
+  scrub = false,
   blockRef,
   registerChar,
 }: {
   data: { kicker: string; align: "left" | "right"; head: string; body: string };
   model: CertModel;
   animated: boolean;
+  /** Responsive (non-pinned) mode: drive this card's sweep from its own scroll. */
+  scrub?: boolean;
   blockRef?: (el: HTMLDivElement | null) => void;
   registerChar?: (i: number, el: HTMLSpanElement | null) => void;
 }) {
   const right = data.align === "right";
+
+  // Scrubbed write-in for the responsive stack: collect this card's glyphs and
+  // drive head→body fill off the card's own viewport transit (no parent pin).
+  const blockEl = useRef<HTMLDivElement | null>(null);
+  const scrubSpans = useRef<(HTMLSpanElement | null)[]>([]);
+  const fills = useMemo(
+    () =>
+      [...model.head, ...model.body].flatMap((w) =>
+        w.chars.map((c) => c.fill),
+      ),
+    [model],
+  );
+  useScrubbedFill({
+    enabled: scrub,
+    containerRef: blockEl,
+    spansRef: scrubSpans,
+    fills,
+    total: model.total,
+    // The long card copy reads over a taller transit so it finishes mid-screen.
+    start: "top 80%",
+    end: "top 30%",
+    fillGradient,
+  });
+  // When scrubbing without a parent registrar, capture spans locally.
+  const captureSpan =
+    registerChar ??
+    (scrub
+      ? (i: number, el: HTMLSpanElement | null) => {
+          scrubSpans.current[i] = el;
+        }
+      : undefined);
+
   const charStyle = (fill: string): React.CSSProperties =>
     animated
       ? {
@@ -345,8 +388,8 @@ function CertBlock({
             <span
               key={c.i}
               ref={
-                animated && registerChar
-                  ? (el) => registerChar(c.i, el)
+                animated && captureSpan
+                  ? (el) => captureSpan(c.i, el)
                   : undefined
               }
               style={charStyle(c.fill)}
@@ -359,8 +402,13 @@ function CertBlock({
     ));
   return (
     <div
-      ref={blockRef}
-      style={animated ? { opacity: 0 } : undefined}
+      ref={(el) => {
+        blockEl.current = el;
+        blockRef?.(el);
+      }}
+      // The pinned desktop reveal starts hidden (parent fades each card in); the
+      // scrub path must stay visible so its ghost copy can write itself in.
+      style={animated && !scrub ? { opacity: 0 } : undefined}
       className={`max-w-[46rem] will-change-[opacity,transform] ${
         right ? "self-end text-right" : "self-start text-left"
       }`}
@@ -801,20 +849,30 @@ function ProgramReels() {
  * certificate + closing cards. No pin, no scrub. `active` is false while this
  * branch is hidden (desktop), so its reels don't autoplay off-screen.
  */
-function StaticProgram({ active }: { active: boolean }) {
+function StaticProgram({
+  active,
+  reduced,
+}: {
+  active: boolean;
+  reduced: boolean;
+}) {
+  // Narrow screen with motion allowed → give the static stack the SAME write-in
+  // sweep as the pinned desktop sequence, scrubbed as each block scrolls past.
+  // Under reduced motion, keep the solid end-state.
+  const scrub = !reduced;
   return (
     <div className="shell py-28 md:py-40">
       <IntroHeader />
-      <StaticReels active={active} />
+      <StaticReels active={active} scrub={scrub} />
       <div className="mt-20">
-        <CertClosing />
+        <CertClosing scrub={scrub} />
       </div>
     </div>
   );
 }
 
 /** Three acts stacked, each with its reel (used by the static fallback). */
-function StaticReels({ active }: { active: boolean }) {
+function StaticReels({ active, scrub }: { active: boolean; scrub: boolean }) {
   return (
     <div className="mt-16 flex flex-col gap-24">
       {ACTS.map((a, k) => (
@@ -822,7 +880,7 @@ function StaticReels({ active }: { active: boolean }) {
           key={a.act}
           className="grid items-center gap-10 lg:grid-cols-[1fr_0.82fr] lg:gap-16"
         >
-          <ActText act={a} reduced />
+          <ActText act={a} reduced scrub={scrub} />
           <div className="lg:justify-self-end">
             <PhoneShell>
               <ReelScreen reel={a.reel} autoPlay={active} />
@@ -845,16 +903,37 @@ function ActText({
   charRefs,
   index,
   reduced = false,
+  scrub = false,
 }: {
   act: Act;
   model?: { words: { chars: { ch: string; fill: string; i: number }[] }[] };
   charRefs?: React.MutableRefObject<(HTMLSpanElement | null)[][]>;
   index?: number;
   reduced?: boolean;
+  /** Responsive (non-pinned) mode: write the headline in as it scrolls into view. */
+  scrub?: boolean;
 }) {
   const m = model ?? buildModel(act.question, act.accent);
   const numeral = ["I", "II", "III"][index ?? ACTS.indexOf(act)] ?? "";
   const name = act.act.split("·").pop()?.trim() ?? act.act;
+
+  // Scrubbed write-in for the responsive stack (own ScrollTrigger, no pin).
+  const headRef = useRef<HTMLHeadingElement>(null);
+  const scrubSpans = useRef<(HTMLSpanElement | null)[]>([]);
+  const fills = useMemo(
+    () => m.words.flatMap((w) => w.chars.map((c) => c.fill)),
+    [m],
+  );
+  useScrubbedFill({
+    enabled: scrub,
+    containerRef: headRef,
+    spansRef: scrubSpans,
+    fills,
+    total: fills.length,
+    fillGradient,
+  });
+  // Solid only under reduced motion; the scrub path writes itself in.
+  const solid = reduced && !scrub;
   return (
     <div className="w-full">
       {/* editorial index — serif numeral + act name + the month/phase line */}
@@ -876,7 +955,10 @@ function ActText({
       </div>
 
       {/* the fillable headline */}
-      <h3 className="mt-8 max-w-[20ch] font-didot text-[clamp(1.7rem,4.4vw,3.75rem)] font-normal leading-[1.18] tracking-[-0.018em]">
+      <h3
+        ref={headRef}
+        className="mt-8 max-w-[20ch] font-didot text-[clamp(1.7rem,4.4vw,3.75rem)] font-normal leading-[1.18] tracking-[-0.018em]"
+      >
         {m.words.map((word, wi) => (
           <span key={wi} className="mr-[0.26em] inline-block whitespace-nowrap">
             {word.chars.map((c) => (
@@ -887,10 +969,14 @@ function ActText({
                     ? (el) => {
                         charRefs.current[index][c.i] = el;
                       }
-                    : undefined
+                    : scrub
+                      ? (el) => {
+                          scrubSpans.current[c.i] = el;
+                        }
+                      : undefined
                 }
                 style={
-                  reduced
+                  solid
                     ? { color: c.fill }
                     : {
                         backgroundImage: fillGradient(c.fill, 0),
