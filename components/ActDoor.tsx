@@ -5,6 +5,8 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { fr } from "@/lib/typo";
+import CtaButton from "@/components/CtaButton";
+import { CTA_SUPPORT } from "@/lib/contact";
 
 const useIsoLayoutEffect =
   typeof window !== "undefined" ? useLayoutEffect : useEffect;
@@ -16,30 +18,6 @@ const TRAITS = [
   { word: "Lucide",     top: "43%", right: "18vw", size: "clamp(1.7rem,3.7vw,3.2rem)" },
   { word: "Méthodique", top: "57%", right: "7vw",  size: "clamp(1.95rem,4.3vw,3.8rem)" },
   { word: "Concentré",  top: "70%", right: "15vw", size: "clamp(1.7rem,3.8vw,3.3rem)" },
-];
-
-// Right-hand intro statement, reformatted in the Dala hierarchy (gold kicker →
-// big stacked Didot headline (consistent with the rest of the site) → a calm
-// descriptive paragraph). It scrolls
-// up + reveals line-by-line while "Bienvenu chez AQLUMA" and the CTA hold.
-// Theme: in the AI revolution most people get lost — the tool is everywhere but
-// almost no one knows how to use it; AQLUMA builds the method (professionalism)
-// so nothing ever feels like mere repetition.
-type IntroLine =
-  | { kind: "kicker"; text: string }
-  | { kind: "head"; text: string }
-  | { kind: "body"; text: string };
-
-const DESC: IntroLine[] = [
-  { kind: "kicker", text: "À l’ère de l’IA" },
-  { kind: "head", text: "L’IA partout." },
-  { kind: "head", text: "La méthode," },
-  { kind: "head", text: "nulle part." },
-  {
-    kind: "body",
-    text:
-      "Dans cette révolution, beaucoup se sont perdus : l’outil est partout, sans qu’on sache vraiment l’utiliser. AQLUMA n’est pas un cours d’informatique, mais une école du jugement : lire une réponse sans la croire, vérifier, reformuler, garder sa voix. Une méthode calme, qui tient dans le temps, pour que plus rien ne ressemble à de la simple répétition.",
-  },
 ];
 
 const BLUR_HIDDEN = { opacity: 0, filter: "blur(14px)", y: 22 };
@@ -59,8 +37,10 @@ export default function ActDoor() {
   const itemsRef   = useRef<(HTMLDivElement | null)[]>([]);
   const climaxRef  = useRef<HTMLDivElement>(null);
   const veilRef    = useRef<HTMLDivElement>(null);
-  const descRef    = useRef<HTMLDivElement>(null);
-  const descLineRefs = useRef<(HTMLParagraphElement | null)[]>([]);
+  // Hero reveals that stagger in on scroll while the headline holds.
+  const heroParaRef = useRef<HTMLDivElement>(null); // right-hand subtitle
+  const heroProgRef = useRef<HTMLParagraphElement>(null); // left programme line
+  const heroCtaRef  = useRef<HTMLDivElement>(null); // CTA + microcopy
   const reduced    = useReducedMotion();
   // Below md the desktop two-column scatter (left copy ‖ right description, plus
   // the right-scattered traits) collapses into the same centre band and overlaps.
@@ -91,13 +71,13 @@ export default function ActDoor() {
     const items = itemsRef.current.filter(Boolean) as HTMLDivElement[];
 
     const ctx = gsap.context(() => {
-      const descLines = descLineRefs.current.filter(Boolean) as HTMLElement[];
-
       gsap.set(line1Ref.current, BLUR_SHOWN);
       gsap.set([line2Ref.current, climaxRef.current], BLUR_HIDDEN);
       gsap.set(items, BLUR_HIDDEN);
-      gsap.set(descLines, BLUR_HIDDEN);
-      gsap.set(descRef.current, { y: 30 });
+      gsap.set(
+        [heroParaRef.current, heroProgRef.current, heroCtaRef.current],
+        BLUR_HIDDEN,
+      );
 
       const seek = video
         ? gsap.quickTo(video, "currentTime", { duration: 0.25, ease: "power3.out" })
@@ -120,13 +100,13 @@ export default function ActDoor() {
       const dissolve = (el: gsap.TweenTarget, at: number, dur = 0.04) =>
         tl.to(el, { opacity: 0, filter: "blur(14px)", y: -22, ease: "power2.in", duration: dur }, at);
 
-      // ── Intro: "Bienvenu chez AQLUMA" holds while ONLY the right side scrolls
-      //    up and reveals the six-line description, then it fades out. ──
-      tl.to(descRef.current, { y: -30, ease: "none", duration: 0.26 }, 0);
-      descLines.forEach((el, i) => reveal(el, 0.02 + i * 0.028, 0.05));
-      dissolve(descLines, 0.27, 0.05);
-
-      // Bienvenu hands off to the existing sequence.
+      // ── Intro: the headline holds over the closed door. On scroll, the
+      //    right-hand subtitle fades in first, then the left programme line,
+      //    then the CTA — a progressive reveal. The whole block then dissolves
+      //    into beat 2. ──
+      reveal(heroParaRef.current, 0.06, 0.05);
+      reveal(heroProgRef.current, 0.13, 0.05);
+      reveal(heroCtaRef.current, 0.20, 0.05);
       dissolve(line1Ref.current, 0.31);
 
       // "…apprend à devenir" reveals and LOCKS at full opacity (no early exit).
@@ -228,62 +208,52 @@ export default function ActDoor() {
 
       <div className="pointer-events-none absolute inset-0 z-20">
 
-        {/* Line 1 — on load (left), with the programme CTA (opens the form modal). */}
-        <Beat side="left" innerRef={line1Ref} initialOpacity={reduced ? 0 : 1}>
-          <p className="font-didot text-[clamp(1.7rem,3.6vw,3.2rem)] leading-[1.12] tracking-[-0.015em] text-cream">
-            Bienvenu chez AQLUMA.
-          </p>
-          <p className="mx-auto mt-5 max-w-[34ch] font-satoshi text-[clamp(0.92rem,1.15vw,1.05rem)] leading-relaxed text-cream/60 md:mx-0">
-            {fr("Places limitées à chaque session. Recevez le programme avant qu’il ne soit complet.")}
-          </p>
-          <button
-            type="button"
-            onClick={() => window.dispatchEvent(new CustomEvent("aqluma:program"))}
-            className="group/cta pointer-events-auto mt-8 inline-flex items-center gap-2 rounded-full bg-cream px-6 py-3 font-satoshi text-[13px] font-semibold tracking-tight text-void outline-none transition-all duration-300 ease-editorial hover:-translate-y-[1px] hover:bg-white hover:shadow-[0_12px_30px_-8px_rgba(247,244,239,0.45)] focus-visible:ring-2 focus-visible:ring-cream/40"
-          >
-            Demander le programme
-            <svg
-              width="13"
-              height="13"
-              viewBox="0 0 14 14"
-              aria-hidden
-              className="translate-x-0 transition-transform duration-300 ease-editorial group-hover/cta:translate-x-[3px]"
+        {/* Line 1 — the hero hold, spread across the full frame: the insight on
+            the LEFT, the closed door standing as a threshold in the CENTRE, and
+            the invitation (CTA) anchored on the RIGHT, so the eye reads
+            left → door → action. Collapses to a centred stack on mobile.
+            NOTE: the program-request form modal (aqluma:program / ProgramModal)
+            is intentionally kept in the codebase, stale, so the CTA can be
+            switched back to it later. */}
+        <div
+          ref={line1Ref}
+          style={{ opacity: reduced ? 0 : 1 }}
+          className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-12 px-[6vw] text-center will-change-[transform,opacity,filter] md:flex-row md:items-center md:justify-between md:gap-8 md:text-left"
+        >
+          {/* Left — headline holds; programme line + CTA fade in on scroll */}
+          <div className="max-w-[min(92vw,38rem)] md:max-w-[46%]">
+            <h1 className="text-balance font-didot text-[clamp(2rem,4.5vw,3.9rem)] leading-[1.08] tracking-[-0.018em] text-cream">
+              {fr("Une réponse propre ne veut pas dire qu’il a compris.")}
+            </h1>
+            <p
+              ref={heroProgRef}
+              style={{ opacity: 0 }}
+              className="mx-auto mt-8 max-w-[44ch] text-pretty font-satoshi text-[clamp(1.05rem,1.4vw,1.3rem)] font-medium leading-relaxed text-cream/75 will-change-[transform,opacity,filter] md:mx-0"
             >
-              <path
-                d="M2.5 7h9M8 3.5L11.5 7 8 10.5"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.4"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </button>
-        </Beat>
-
-        {/* Right-hand intro — Dala hierarchy (gold kicker → stacked Satoshi-black
-            headline → calm paragraph). Scrolls up + reveals line-by-line, then
-            fades; only this side moves while the left copy holds. */}
-        <div className="absolute inset-x-0 bottom-0 top-[48%] z-20 flex items-center justify-center px-6 md:left-auto md:right-[6vw] md:top-0 md:bottom-0 md:items-center md:justify-end md:px-0">
-          <div ref={descRef} className="max-w-[min(88vw,36rem)] text-center will-change-transform md:ml-auto md:text-right">
-            {DESC.map((line, i) => (
-              <p
-                key={i}
-                ref={(el) => {
-                  descLineRefs.current[i] = el;
-                }}
-                style={{ opacity: 0 }}
-                className={
-                  line.kind === "kicker"
-                    ? "mb-5 font-satoshi text-[clamp(0.9rem,1.1vw,1.05rem)] font-bold text-gold will-change-[transform,opacity,filter]"
-                    : line.kind === "head"
-                      ? "block font-didot text-[clamp(2rem,5.6vw,5rem)] font-normal leading-[1.06] tracking-[-0.02em] text-cream will-change-[transform,opacity,filter]"
-                      : "mx-auto mt-7 max-w-[44ch] font-satoshi text-[clamp(0.95rem,1.3vw,1.2rem)] font-normal leading-relaxed text-cream/70 will-change-[transform,opacity,filter] md:ml-auto md:mx-0"
-                }
-              >
-                {fr(line.text)}
+              {fr("AQLUMA apprend aux adolescents de 13 à 17 ans à utiliser l’IA avec jugement.")}
+            </p>
+            <div
+              ref={heroCtaRef}
+              style={{ opacity: 0 }}
+              className="mt-9 will-change-[transform,opacity,filter]"
+            >
+              <CtaButton className="pointer-events-auto" />
+              <p className="mx-auto mt-4 max-w-[40ch] text-pretty font-satoshi text-[0.78rem] leading-relaxed text-cream/40 md:mx-0">
+                {fr(CTA_SUPPORT)}
               </p>
-            ))}
+            </div>
+          </div>
+
+          {/* Right — the descriptive line fades in on scroll, echoing the old
+              right-hand reveal. */}
+          <div
+            ref={heroParaRef}
+            style={{ opacity: 0 }}
+            className="max-w-[min(92vw,34rem)] text-left will-change-[transform,opacity,filter]"
+          >
+            <p className="text-pretty font-satoshi text-[clamp(1.35rem,2.1vw,2rem)] font-normal leading-relaxed text-cream/85">
+              {fr("Un programme en ligne, au Maroc, pour apprendre à vérifier, reformuler, expliquer et créer.")}
+            </p>
           </div>
         </div>
 
