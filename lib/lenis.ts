@@ -59,6 +59,10 @@ export function useSmoothScroll(enabled: boolean) {
       smoothWheel: true,
     });
     lenisInstance = lenis;
+    // Dev-only handle for driving the page during testing (harmless in prod).
+    if (process.env.NODE_ENV !== "production") {
+      (window as unknown as { __lenis?: Lenis }).__lenis = lenis;
+    }
 
     lenis.on("scroll", ScrollTrigger.update);
 

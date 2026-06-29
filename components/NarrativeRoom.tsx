@@ -61,7 +61,6 @@ export default function NarrativeRoom() {
   const clauseRegionRef = useRef<HTMLDivElement>(null);
   const voieLineRef = useRef<HTMLParagraphElement>(null);
   const wordRefs = useRef<(HTMLSpanElement | null)[]>([]);
-  const orbRef = useRef<HTMLSpanElement>(null);
 
   const words = fr(VOIE).split(" ").filter(Boolean);
 
@@ -118,10 +117,9 @@ export default function NarrativeRoom() {
             els[i].style.transform = `translateY(${(1 - v) * dir * 64}px)`;
             els[i].style.filter = v < 1 ? `blur(${(1 - v) * 7}px)` : "blur(0px)";
           }
-          if (orbRef.current) {
-            orbRef.current.style.opacity = String(gsap.utils.clamp(0, 1, prog * 1.6));
-            orbRef.current.style.transform = `scale(${0.5 + Math.min(1, prog * 1.4) * 0.5})`;
-          }
+          // The compass / orb itself is the shared <JourneyThread> (a fixed mark
+          // that flies from here onto La Méthode's rail); this section only owns
+          // the words and the #journey-voie anchor it homes to.
         };
         ScrollTrigger.create({
           trigger: line,
@@ -139,7 +137,7 @@ export default function NarrativeRoom() {
   }, [reduced]);
 
   return (
-    <section id="constat" className="relative w-full overflow-hidden bg-void">
+    <section id="constat" className="relative w-full overflow-x-clip bg-void">
       <div className="shell">
         {/* ── Le constat ── */}
         <Beat>
@@ -217,25 +215,9 @@ export default function NarrativeRoom() {
         {/* ── La voie — pulsing orb + word-by-word reveal ── */}
         <Beat className="justify-center text-center">
           <div className="mx-auto flex max-w-5xl flex-col items-center">
-            {/* Pulsing gold journey-orb. */}
-            <span ref={orbRef} aria-hidden className="relative mb-12 block h-4 w-4" style={{ opacity: reduced ? 1 : 0 }}>
-              <span
-                className="absolute inset-0 rounded-full"
-                style={{
-                  background: "radial-gradient(circle, #FFF6DC 0%, #F0C25A 48%, rgba(232,178,58,0) 78%)",
-                  boxShadow: "0 0 30px 10px rgba(232,178,58,0.55)",
-                }}
-              />
-              {!reduced ? (
-                <span
-                  className="absolute inset-0 rounded-full"
-                  style={{
-                    background: "radial-gradient(circle, rgba(240,194,90,0.6) 0%, rgba(232,178,58,0) 70%)",
-                    animation: "voie-orb-pulse 2.4s cubic-bezier(0.16,1,0.3,1) infinite",
-                  }}
-                />
-              ) : null}
-            </span>
+            {/* Anchor — the shared <JourneyThread> mark homes here (the compass
+                above « voie ») before it flies onto La Méthode's rail. */}
+            <span id="journey-voie" aria-hidden className="mb-12 block h-[78px] w-[78px]" />
 
             <p
               ref={voieLineRef}

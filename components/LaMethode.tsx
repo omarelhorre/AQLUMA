@@ -73,7 +73,6 @@ export default function LaMethode() {
   const sectionRef = useRef<HTMLElement>(null);
   const cardsRef = useRef<(HTMLDivElement | null)[]>([]);
   const railFillRef = useRef<HTMLDivElement>(null);
-  const markerRef = useRef<HTMLDivElement>(null);
   const railRef = useRef<HTMLDivElement>(null);
 
   const reduced = useReducedMotion();
@@ -113,7 +112,6 @@ export default function LaMethode() {
         const h = rail.clientHeight;
         const y = Math.min(1, Math.max(0, p)) * h;
         if (railFillRef.current) railFillRef.current.style.height = `${y}px`;
-        if (markerRef.current) markerRef.current.style.transform = `translateY(${y}px)`;
       }
     };
 
@@ -153,21 +151,18 @@ export default function LaMethode() {
           <Header />
 
           <div className="flex items-stretch gap-8">
-            {/* Progress rail + traveling marker. */}
-            <div ref={railRef} className="relative w-px flex-shrink-0 self-stretch bg-cream/12">
+            {/* Progress rail — the shared <JourneyThread> orb rides its fill's
+                leading edge (so the marker lives there, not here). */}
+            <div
+              id="journey-rail"
+              ref={railRef}
+              className="relative w-px flex-shrink-0 self-stretch bg-cream/12"
+            >
               <div
+                id="journey-rail-fill"
                 ref={railFillRef}
                 className="absolute left-0 top-0 w-px"
                 style={{ height: 0, background: "linear-gradient(180deg, rgba(232,178,58,0.9), rgba(232,178,58,0.4))" }}
-              />
-              <div
-                ref={markerRef}
-                aria-hidden
-                className="absolute -left-[5px] top-0 h-[11px] w-[11px] -translate-y-1/2 rounded-full will-change-transform"
-                style={{
-                  background: "radial-gradient(circle, #FFF4D6 0%, #F0C25A 45%, rgba(232,178,58,0) 76%)",
-                  boxShadow: "0 0 18px 5px rgba(232,178,58,0.5)",
-                }}
               />
             </div>
 

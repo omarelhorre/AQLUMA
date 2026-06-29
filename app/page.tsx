@@ -2,6 +2,7 @@ import Header from "@/components/Header";
 import ActDoor from "@/components/ActDoor";
 import NarrativeRoom from "@/components/NarrativeRoom";
 import LaMethode from "@/components/LaMethode";
+import JourneyThread from "@/components/JourneyThread";
 import BriefingHero from "@/components/BriefingHero";
 import BriefingStudio from "@/components/BriefingStudio";
 import TransitionRope from "@/components/TransitionRope";
@@ -45,6 +46,7 @@ export default function Home() {
   return (
     <>
       <Header />
+      <JourneyThread />
       <main id="top" className="relative">
         <ActDoor />
         <NarrativeRoom />
