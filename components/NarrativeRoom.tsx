@@ -1,69 +1,230 @@
+"use client";
+
+import { useEffect, useRef } from "react";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useReducedMotion } from "@/lib/useReducedMotion";
 import { fr } from "@/lib/typo";
 import PaperArtifact from "@/components/PaperArtifact";
 import Parallax from "@/components/Parallax";
 import Reveal from "@/components/Reveal";
 
 /**
- * Section 2a — Le constat & Une nouvelle réalité, as a NORMAL-scroll parallax:
- * the blocks sit close together in flow (no empty viewports) and each rises from
- * the bottom as it crosses the viewport, layers drifting at their own speeds for
- * depth — the library note drifts fastest against the slower réalité text.
- * The fausse-solution finale lives in its own pinned morph (FausseSolution).
+ * SECTION 1 — Le constat → Une nouvelle réalité → La fausse solution → la voie.
+ *
+ * Normal vertical-scroll scrollytelling: each beat is a full-height, centred
+ * moment, so the reader meets ONE idea at a time. The two "fausse solution"
+ * clauses are centred and stacked, each pulling into focus from a blur as it
+ * scrolls in. The finale « Il faut une troisième voie » lands word-by-word
+ * (rise + blur, the ProgramManifesto mechanic) beneath a pulsing gold journey-
+ * orb. No pin. Reduced motion → everything static.
  */
 
-function Label({ children }: { children: React.ReactNode }) {
+const VOIE = "Il faut une troisième voie.";
+
+function Label({ children, center }: { children: React.ReactNode; center?: boolean }) {
   return (
-    <div className="mb-7 flex items-center gap-3.5">
+    <div className={`mb-8 flex items-center gap-3.5 ${center ? "justify-center" : ""}`}>
       <span
         aria-hidden
-        className="h-px w-10 flex-shrink-0"
+        className="h-px w-12 flex-shrink-0"
         style={{ background: "linear-gradient(90deg, rgba(232,178,58,0.75), rgba(232,178,58,0))" }}
       />
-      <span className="font-satoshi text-[0.95rem] font-semibold tracking-tight text-gold/90">
+      <span className="font-satoshi text-[1.05rem] font-semibold tracking-tight text-gold/90">
         {children}
       </span>
     </div>
   );
 }
 
-export default function NarrativeRoom() {
+function Beat({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
-    <section id="constat" className="relative w-full overflow-hidden bg-void py-32 md:py-48">
-      <div className="shell flex flex-col gap-32 md:gap-52">
+    <div className={`flex min-h-[88vh] w-full items-center ${className}`}>
+      <div className="w-full">{children}</div>
+    </div>
+  );
+}
+
+export default function NarrativeRoom() {
+  const reduced = useReducedMotion();
+  const clauseRefs = useRef<(HTMLParagraphElement | null)[]>([]);
+  const voieLineRef = useRef<HTMLParagraphElement>(null);
+  const wordRefs = useRef<(HTMLSpanElement | null)[]>([]);
+  const orbRef = useRef<HTMLSpanElement>(null);
+
+  const words = fr(VOIE).split(" ").filter(Boolean);
+
+  useEffect(() => {
+    if (reduced) return;
+    gsap.registerPlugin(ScrollTrigger);
+
+    const ctx = gsap.context(() => {
+      // Clauses — each pulls into focus from a blur as it scrolls toward centre.
+      clauseRefs.current.forEach((el) => {
+        if (!el) return;
+        gsap.fromTo(
+          el,
+          { filter: "blur(13px)", opacity: 0.12, y: 26 },
+          {
+            filter: "blur(0px)",
+            opacity: 1,
+            y: 0,
+            ease: "none",
+            scrollTrigger: { trigger: el, start: "top 90%", end: "top 52%", scrub: true, invalidateOnRefresh: true },
+          },
+        );
+      });
+
+      // « voie » — word-by-word rise + blur, staggered as the line scrolls in.
+      const els = wordRefs.current.filter(Boolean) as HTMLSpanElement[];
+      const line = voieLineRef.current;
+      if (line && els.length) {
+        gsap.set(els, { opacity: 0 });
+        const n = els.length;
+        const spread = 0.55; // how staggered the words are (0 = together)
+        const apply = () => {
+          const vh = window.innerHeight;
+          const r = line.getBoundingClientRect();
+          const center = (r.top + r.bottom) / 2 / vh;
+          const prog = gsap.utils.clamp(0, 1, (0.9 - center) / 0.42);
+          for (let i = 0; i < n; i++) {
+            const start = (i / n) * spread;
+            const v = gsap.utils.clamp(0, 1, (prog - start) / (1 - spread));
+            const dir = i % 2 === 0 ? -1 : 1;
+            els[i].style.opacity = String(v);
+            els[i].style.transform = `translateY(${(1 - v) * dir * 64}px)`;
+            els[i].style.filter = v < 1 ? `blur(${(1 - v) * 7}px)` : "blur(0px)";
+          }
+          if (orbRef.current) {
+            orbRef.current.style.opacity = String(gsap.utils.clamp(0, 1, prog * 1.6));
+            orbRef.current.style.transform = `scale(${0.5 + Math.min(1, prog * 1.4) * 0.5})`;
+          }
+        };
+        ScrollTrigger.create({
+          trigger: line,
+          start: "top bottom",
+          end: "bottom top",
+          onUpdate: apply,
+          onRefresh: apply,
+          invalidateOnRefresh: true,
+        });
+        apply();
+      }
+    });
+
+    return () => ctx.revert();
+  }, [reduced]);
+
+  return (
+    <section id="constat" className="relative w-full overflow-hidden bg-void">
+      <div className="shell">
         {/* ── Le constat ── */}
-        <Parallax speed={0.16} className="max-w-3xl">
-          <Reveal>
+        <Beat>
+          <Reveal className="max-w-4xl">
             <Label>Le constat</Label>
-            <h2 className="text-balance font-didot text-[clamp(1.9rem,4vw,3.3rem)] font-normal leading-[1.12] tracking-[-0.015em] text-cream">
+            <h2 className="text-balance font-didot text-[clamp(2.4rem,5.4vw,4.6rem)] font-normal leading-[1.06] tracking-[-0.02em] text-cream">
               {fr("Vous voyez votre adolescent copier-coller des réponses sans même les lire.")}
             </h2>
-            <p className="mt-8 max-w-[52ch] text-pretty font-satoshi text-[clamp(1.05rem,1.4vw,1.3rem)] leading-relaxed text-cream/65">
+            <p className="mt-10 max-w-[46ch] text-pretty font-satoshi text-[clamp(1.2rem,1.7vw,1.65rem)] leading-relaxed text-cream/60">
               {fr("L'IA est devenue un raccourci qui éteint l'effort. On croit qu'il travaille. Il ne fait que déléguer.")}
             </p>
           </Reveal>
-        </Parallax>
+        </Beat>
 
-        {/* ── Une nouvelle réalité — text (slow) + note (fast) = parallax depth ── */}
-        <div className="grid items-center gap-16 md:grid-cols-2">
-          <Parallax speed={0.07}>
-            <Reveal className="max-w-xl">
+        {/* ── Une nouvelle réalité — statement + the library note ── */}
+        <Beat>
+          <div className="grid items-center gap-16 md:grid-cols-[1.1fr_0.9fr]">
+            <Reveal className="max-w-2xl">
               <Label>Une nouvelle réalité</Label>
-              <p className="text-pretty font-satoshi text-[clamp(1.1rem,1.5vw,1.45rem)] leading-relaxed text-cream/75">
-                {fr("Ces outils sont déjà dans sa chambre. Il les utilise pour ses devoirs, ses exposés, ses questions. La question n'est plus s'il les utilisera, mais comment.")}
+              <p className="text-balance font-didot text-[clamp(1.9rem,3.4vw,3.1rem)] font-normal leading-[1.16] tracking-[-0.015em] text-cream">
+                {fr("Ces outils sont déjà dans sa chambre. La question n'est plus s'il les utilisera, mais comment.")}
+              </p>
+              <p className="mt-8 max-w-[44ch] font-satoshi text-[clamp(1.1rem,1.5vw,1.4rem)] leading-relaxed text-cream/55">
+                {fr("Il les utilise pour ses devoirs, ses exposés, ses questions.")}
               </p>
             </Reveal>
-          </Parallax>
 
-          <Parallax speed={0.3} className="flex justify-center md:justify-end">
-            <Reveal y={48}>
-              <PaperArtifact variant="note" fastener="tape" tilt={-2.2} className="max-w-[25rem]">
-                <blockquote className="text-balance font-didot text-[clamp(1.35rem,2vw,1.7rem)] font-normal leading-[1.32]">
-                  {fr('"C\'est comme donner les clés d\'une bibliothèque immense à quelqu\'un qui n\'a pas appris à lire."')}
-                </blockquote>
-              </PaperArtifact>
+            <Parallax speed={0.22} className="flex justify-center md:justify-end">
+              <Reveal y={48}>
+                <PaperArtifact variant="note" fastener="tape" tilt={-2.2} className="max-w-[27rem]">
+                  <blockquote className="text-balance font-didot text-[clamp(1.6rem,2.4vw,2.1rem)] font-normal leading-[1.3]">
+                    {fr('"C\'est comme donner les clés d\'une bibliothèque immense à quelqu\'un qui n\'a pas appris à lire."')}
+                  </blockquote>
+                </PaperArtifact>
+              </Reveal>
+            </Parallax>
+          </div>
+        </Beat>
+
+        {/* ── La fausse solution — two centred clauses, blur focus-pull ── */}
+        <Beat className="justify-center text-center">
+          <div className="mx-auto max-w-4xl">
+            <Reveal>
+              <Label center>La fausse solution</Label>
             </Reveal>
-          </Parallax>
-        </div>
+            <div className="flex flex-col items-center gap-12 font-didot text-[clamp(1.7rem,3.4vw,3rem)] font-normal leading-[1.2] text-cream/50">
+              {[
+                ["Lui interdire l'accès ?", "C'est le couper du monde qui vient."],
+                ["Lui donner un accès libre ?", "C'est accepter qu'il arrête de penser."],
+              ].map((c, i) => (
+                <p
+                  key={i}
+                  ref={(el) => { clauseRefs.current[i] = el; }}
+                  className="max-w-[24ch] will-change-[filter,transform,opacity]"
+                >
+                  <span className="text-cream">{fr(c[0])}</span>{" "}
+                  {fr(c[1])}
+                </p>
+              ))}
+            </div>
+          </div>
+        </Beat>
+
+        {/* ── La voie — pulsing orb + word-by-word reveal ── */}
+        <Beat className="justify-center text-center">
+          <div className="mx-auto flex max-w-5xl flex-col items-center">
+            {/* Pulsing gold journey-orb. */}
+            <span ref={orbRef} aria-hidden className="relative mb-12 block h-4 w-4" style={{ opacity: reduced ? 1 : 0 }}>
+              <span
+                className="absolute inset-0 rounded-full"
+                style={{
+                  background: "radial-gradient(circle, #FFF6DC 0%, #F0C25A 48%, rgba(232,178,58,0) 78%)",
+                  boxShadow: "0 0 30px 10px rgba(232,178,58,0.55)",
+                }}
+              />
+              {!reduced ? (
+                <span
+                  className="absolute inset-0 rounded-full"
+                  style={{
+                    background: "radial-gradient(circle, rgba(240,194,90,0.6) 0%, rgba(232,178,58,0) 70%)",
+                    animation: "voie-orb-pulse 2.4s cubic-bezier(0.16,1,0.3,1) infinite",
+                  }}
+                />
+              ) : null}
+            </span>
+
+            <p
+              ref={voieLineRef}
+              aria-label={fr(VOIE)}
+              className="flex flex-wrap justify-center font-didot text-[clamp(3rem,8vw,7rem)] font-normal leading-[1.0] tracking-[-0.03em] text-cream"
+            >
+              {words.map((w, i) => {
+                const isVoie = /voie/i.test(w);
+                return (
+                  <span
+                    key={i}
+                    ref={(el) => { wordRefs.current[i] = el; }}
+                    aria-hidden
+                    className={`mx-[0.22em] inline-block will-change-[transform,filter,opacity] ${isVoie ? "text-gold" : ""}`}
+                    style={reduced ? undefined : { opacity: 0 }}
+                  >
+                    {w}
+                  </span>
+                );
+              })}
+            </p>
+          </div>
+        </Beat>
       </div>
     </section>
   );

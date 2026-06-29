@@ -20,24 +20,24 @@ type QA = { q: string; a: string };
 // them to ’ and adds the thin spaces before « » and ? at render.
 const ITEMS: QA[] = [
   {
-    q: "AQLUMA est-il un cours de programmation ?",
-    a: "Non. AQLUMA n'est pas une école de code. Le programme travaille surtout le jugement, la vérification, la reformulation, l'explication et la création avec l'IA.",
+    q: "Mon enfant utilise déjà l'IA — est-ce encore utile ?",
+    a: "C'est précisément parce qu'il l'utilise déjà qu'il en a besoin. AQLUMA remplace l'usage passif (consommation) par un usage actif (production, jugement, restitution). La différence est totale.",
   },
   {
-    q: "Mon adolescent doit-il déjà connaître l'IA ?",
-    a: "Non. Il peut commencer même s'il n'a pas de méthode. L'objectif est justement d'installer des gestes simples et utiles.",
+    q: "Quel est l'engagement en temps pour l'adolescent ?",
+    a: "Le programme est conçu pour s'intégrer à la vie scolaire sans la surcharger. Le détail complet des sessions, de la fréquence et de la durée est dans le document de programme.",
   },
   {
-    q: "Les parents doivent-ils être experts ?",
-    a: "Non. Le Briefing AQLUMA aide les parents à poser les bonnes questions sans devenir techniciens.",
+    q: "Faut-il un équipement spécifique ?",
+    a: "Une connexion internet stable et un ordinateur standard suffisent. Aucun logiciel payant supplémentaire n'est requis.",
   },
   {
-    q: "Est-ce que le programme promet de meilleures notes ?",
-    a: "Non. AQLUMA ne promet pas de résultats scolaires. Le programme aide l'adolescent à utiliser l'IA avec plus de méthode, de recul et de responsabilité.",
+    q: "Le programme est-il compatible avec le lycée marocain ?",
+    a: "Oui. AQLUMA n'est pas un programme scolaire concurrent. C'est une discipline complémentaire qui renforce les capacités de travail et de pensée, dans toutes les matières.",
   },
   {
-    q: "Comment recevoir les détails ?",
-    a: "Cliquez sur « Recevoir le programme » ou écrivez ADO en message privé. Nous vous envoyons les informations et les prochaines étapes.",
+    q: "Comment se déroule l'accompagnement des parents ?",
+    a: "Chaque semaine, les parents reçoivent un carnet de bord et des questions spécifiques à poser. L'équipe pédagogique est accessible directement pour toute question.",
   },
 ];
 

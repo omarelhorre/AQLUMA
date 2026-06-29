@@ -6,6 +6,8 @@ import { faFacebookF, faInstagram, faLinkedinIn, faWhatsapp } from "@fortawesome
 import { config } from "@fortawesome/fontawesome-svg-core";
 import "@fortawesome/fontawesome-svg-core/styles.css";
 import { fr } from "@/lib/typo";
+import CtaButton from "@/components/CtaButton";
+import { CTA_SUPPORT_FINAL } from "@/lib/contact";
 import { smoothScrollTo } from "@/lib/lenis";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { useScrubbedFill } from "@/lib/useScrubbedFill";
@@ -34,8 +36,9 @@ const SOCIALS = [
 // Sitemap — anchors map to the live section ids threaded through the scroll journey.
 const SITEMAP = [
   { label: "Accueil", href: "#top" },
+  { label: "La Méthode", href: "#methode" },
   { label: "Les Mondes", href: "#mondes" },
-  { label: "Le Programme", href: "#programme" },
+  // { label: "Le Programme", href: "#programme" }, — parked with the Program section
   { label: "Avis", href: "#avis" },
   { label: "FAQ", href: "#faq" },
   { label: "Contact", href: "#contact" },
@@ -78,6 +81,22 @@ export default function ContactClose() {
       </span>
 
       <div className="shell relative py-20 md:py-24">
+        {/* Closing statement — the quiet last word + one final CTA. */}
+        <div className="mb-16 max-w-3xl border-b border-cream/10 pb-14 md:mb-20 md:pb-16">
+          <p className="text-balance font-didot text-[clamp(1.8rem,3.8vw,3.1rem)] font-normal leading-[1.12] tracking-[-0.02em] text-cream">
+            {fr("L'IA sera dans sa vie.")}{" "}
+            <span className="text-cream/55">
+              {fr("La question est : avec quel jugement ?")}
+            </span>
+          </p>
+          <div className="mt-9 flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:gap-7">
+            <CtaButton className="!px-6 !py-3 !text-[13px]" />
+            <p className="max-w-[32ch] font-satoshi text-[0.9rem] leading-relaxed text-cream/45">
+              {fr(CTA_SUPPORT_FINAL)}
+            </p>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-[1.6fr_1fr_1fr_1.4fr] lg:gap-10">
           {/* Brand */}
           <div className="sm:col-span-2 lg:col-span-1">

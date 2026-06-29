@@ -6,7 +6,8 @@ import Grid from "@/components/Grid";
 import Grain from "@/components/Grain";
 import Loupe from "@/components/Loupe";
 import ContactModal from "@/components/ContactModal";
-import ProgramModal from "@/components/ProgramModal";
+// Program section is parked (see app/page.tsx). Re-enable with ProgramHighlights/Manifesto.
+// import ProgramModal from "@/components/ProgramModal";
 import CalInit from "@/components/CalInit";
 import WhatsAppFab from "@/components/WhatsAppFab";
 
@@ -61,7 +62,7 @@ export default function RootLayout({
         <Grain />
         <Loupe />
         <ContactModal />
-        <ProgramModal />
+        {/* <ProgramModal /> — parked with the Program section */}
         <CalInit />
         <WhatsAppFab />
       </body>
