@@ -22,6 +22,16 @@ import Reveal from "@/components/Reveal";
 
 const VOIE = "Il faut une troisième voie.";
 
+const CLAUSES: [string, string][] = [
+  ["Lui interdire l'accès ?", "C'est le couper du monde qui vient."],
+  ["Lui donner un accès libre ?", "C'est accepter qu'il arrête de penser."],
+];
+
+const smoothstep = (a: number, b: number, x: number) => {
+  const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
+  return t * t * (3 - 2 * t);
+};
+
 function Label({ children, center }: { children: React.ReactNode; center?: boolean }) {
   return (
     <div className={`mb-8 flex items-center gap-3.5 ${center ? "justify-center" : ""}`}>
@@ -48,6 +58,7 @@ function Beat({ children, className = "" }: { children: React.ReactNode; classNa
 export default function NarrativeRoom() {
   const reduced = useReducedMotion();
   const clauseRefs = useRef<(HTMLParagraphElement | null)[]>([]);
+  const clauseRegionRef = useRef<HTMLDivElement>(null);
   const voieLineRef = useRef<HTMLParagraphElement>(null);
   const wordRefs = useRef<(HTMLSpanElement | null)[]>([]);
   const orbRef = useRef<HTMLSpanElement>(null);
@@ -59,21 +70,33 @@ export default function NarrativeRoom() {
     gsap.registerPlugin(ScrollTrigger);
 
     const ctx = gsap.context(() => {
-      // Clauses — each pulls into focus from a blur as it scrolls toward centre.
-      clauseRefs.current.forEach((el) => {
-        if (!el) return;
-        gsap.fromTo(
-          el,
-          { filter: "blur(13px)", opacity: 0.12, y: 26 },
-          {
-            filter: "blur(0px)",
-            opacity: 1,
-            y: 0,
-            ease: "none",
-            scrollTrigger: { trigger: el, start: "top 90%", end: "top 52%", scrub: true, invalidateOnRefresh: true },
-          },
-        );
-      });
+      // Clauses — both occupy the SAME centred spot (a sticky stage holds them
+      // in place); scroll crossfades clause 1 → clause 2 through a blur, so the
+      // first transforms into the second without moving.
+      const region = clauseRegionRef.current;
+      const c1 = clauseRefs.current[0];
+      const c2 = clauseRefs.current[1];
+      if (region && c1 && c2) {
+        // A single progress crossfades the two sentences in the SAME spot: as
+        // clause 1 blurs + fades out, clause 2 sharpens + fades in (both ~50% at
+        // the midpoint) — one sentence morphs into the other, no movement.
+        const apply = (p: number) => {
+          const s = smoothstep(0.22, 0.72, p);
+          c1.style.opacity = String(1 - s);
+          c1.style.filter = `blur(${s * 16}px)`;
+          c2.style.opacity = String(s);
+          c2.style.filter = `blur(${(1 - s) * 16}px)`;
+        };
+        ScrollTrigger.create({
+          trigger: region,
+          start: "top top",
+          end: "bottom bottom",
+          onUpdate: (self) => apply(self.progress),
+          onRefresh: (self) => apply(self.progress),
+          invalidateOnRefresh: true,
+        });
+        apply(0);
+      }
 
       // « voie » — word-by-word rise + blur, staggered as the line scrolls in.
       const els = wordRefs.current.filter(Boolean) as HTMLSpanElement[];
@@ -156,29 +179,40 @@ export default function NarrativeRoom() {
           </div>
         </Beat>
 
-        {/* ── La fausse solution — two centred clauses, blur focus-pull ── */}
-        <Beat className="justify-center text-center">
-          <div className="mx-auto max-w-4xl">
-            <Reveal>
+        {/* ── La fausse solution — both clauses share one centred spot; scroll
+            crossfades clause 1 → clause 2 in place (sticky stage, no pin). ── */}
+        {reduced ? (
+          <Beat className="justify-center text-center">
+            <div className="mx-auto flex max-w-4xl flex-col items-center gap-12">
               <Label center>La fausse solution</Label>
-            </Reveal>
-            <div className="flex flex-col items-center gap-12 font-didot text-[clamp(1.7rem,3.4vw,3rem)] font-normal leading-[1.2] text-cream/50">
-              {[
-                ["Lui interdire l'accès ?", "C'est le couper du monde qui vient."],
-                ["Lui donner un accès libre ?", "C'est accepter qu'il arrête de penser."],
-              ].map((c, i) => (
-                <p
-                  key={i}
-                  ref={(el) => { clauseRefs.current[i] = el; }}
-                  className="max-w-[24ch] will-change-[filter,transform,opacity]"
-                >
-                  <span className="text-cream">{fr(c[0])}</span>{" "}
-                  {fr(c[1])}
+              {CLAUSES.map((c, i) => (
+                <p key={i} className="mx-auto max-w-[22ch] font-didot text-[clamp(2rem,4.2vw,3.6rem)] font-normal leading-[1.18] text-cream/55">
+                  <span className="text-cream">{fr(c[0])}</span> {fr(c[1])}
                 </p>
               ))}
             </div>
+          </Beat>
+        ) : (
+          <div ref={clauseRegionRef} className="relative h-[200vh]">
+            <div className="sticky top-0 flex h-screen flex-col items-center justify-center text-center">
+              <Label center>La fausse solution</Label>
+              <div className="relative mt-10 flex min-h-[3.6em] w-full max-w-4xl items-center justify-center">
+                {CLAUSES.map((c, i) => (
+                  <p
+                    key={i}
+                    ref={(el) => { clauseRefs.current[i] = el; }}
+                    className="absolute inset-0 mx-auto flex max-w-[22ch] items-center justify-center font-didot text-[clamp(2rem,4.2vw,3.6rem)] font-normal leading-[1.18] text-cream/55 will-change-[filter,transform,opacity]"
+                    style={{ opacity: i === 0 ? 1 : 0 }}
+                  >
+                    <span>
+                      <span className="text-cream">{fr(c[0])}</span> {fr(c[1])}
+                    </span>
+                  </p>
+                ))}
+              </div>
+            </div>
           </div>
-        </Beat>
+        )}
 
         {/* ── La voie — pulsing orb + word-by-word reveal ── */}
         <Beat className="justify-center text-center">
