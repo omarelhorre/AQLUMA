@@ -23,7 +23,7 @@ export default function CtaCard() {
     >
       <div className="shell">
         <Reveal>
-          <div className="relative overflow-hidden rounded-[2rem] bg-cream px-7 py-16 text-center text-void md:rounded-[2.75rem] md:px-20 md:py-24">
+          <div className="relative overflow-hidden rounded-slab bg-cream px-7 py-16 text-center text-void md:rounded-slab-lg md:px-20 md:py-24">
             {/* Faint warm tint + gold inner frame on the white. */}
             <div
               aria-hidden
@@ -35,7 +35,7 @@ export default function CtaCard() {
             />
             <div
               aria-hidden
-              className="pointer-events-none absolute inset-3 rounded-[1.6rem] border border-clay/15 md:inset-5 md:rounded-[2.25rem]"
+              className="pointer-events-none absolute inset-3 rounded-frame border border-clay/15 md:inset-5 md:rounded-frame-lg"
             />
 
             <div className="relative mx-auto flex max-w-3xl flex-col items-center">
@@ -46,14 +46,14 @@ export default function CtaCard() {
                     {i > 0 ? (
                       <span aria-hidden className="h-1 w-1 rounded-full bg-clay/60" />
                     ) : null}
-                    <span className="font-satoshi text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-void/55">
+                    <span className="font-satoshi text-[0.8rem] font-semibold tracking-tight text-void/65">
                       {fr(f)}
                     </span>
                   </li>
                 ))}
               </ul>
 
-              <h2 className="mt-9 max-w-[18ch] text-balance font-didot text-[clamp(2.4rem,5.4vw,4.6rem)] font-normal leading-[1.02] tracking-[-0.025em] text-void">
+              <h2 className="section-title mt-9 max-w-[18ch] text-void">
                 Premier groupe AQLUMA.
               </h2>
 
@@ -64,7 +64,7 @@ export default function CtaCard() {
               </p>
 
               <div className="mt-11 flex flex-col items-center gap-5">
-                <CtaButton className="!bg-void !text-cream hover:!bg-ink hover:!shadow-[0_14px_34px_-10px_rgba(8,10,12,0.5)] !px-7 !py-3.5 !text-[14px]" />
+                <CtaButton variant="dark" size="lg" />
                 <p className="max-w-[34ch] font-satoshi text-[0.92rem] leading-relaxed text-void/45">
                   {fr(CTA_SUPPORT_COHORT)}
                 </p>

@@ -8,6 +8,10 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 // Module-level handle so UI (header logo, nav) can drive smooth scrolling.
 let lenisInstance: Lenis | null = null;
 
+// One scroll feel everywhere — the wheel-driven smoothing and programmatic
+// scrollTo share the same duration (mirrors the `scroll` motion-duration token).
+const LENIS_DURATION = 1.1;
+
 /**
  * Smoothly scroll to the top, or to a target (selector / element / offset).
  * Falls back to native scrolling when Lenis is off (reduced motion).
@@ -17,7 +21,7 @@ export function smoothScrollTo(
   opts: { offset?: number } = {}
 ) {
   if (lenisInstance) {
-    lenisInstance.scrollTo(target, { offset: opts.offset ?? 0, duration: 1.2 });
+    lenisInstance.scrollTo(target, { offset: opts.offset ?? 0, duration: LENIS_DURATION });
     return;
   }
   if (typeof window === "undefined") return;
@@ -53,7 +57,7 @@ export function useSmoothScroll(enabled: boolean) {
     }
 
     const lenis = new Lenis({
-      duration: 1.1,
+      duration: LENIS_DURATION,
       // long, eased curve — quiet and deliberate, no bounce (§8)
       easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       smoothWheel: true,

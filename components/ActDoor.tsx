@@ -238,7 +238,7 @@ export default function ActDoor() {
               className="mt-9 will-change-[transform,opacity,filter]"
             >
               <CtaButton className="pointer-events-auto" />
-              <p className="mx-auto mt-4 max-w-[40ch] text-pretty font-satoshi text-[0.78rem] leading-relaxed text-cream/40 md:mx-0">
+              <p className="mx-auto mt-4 max-w-[40ch] text-pretty font-satoshi text-[0.82rem] leading-relaxed text-cream/60 md:mx-0">
                 {fr(CTA_SUPPORT)}
               </p>
             </div>
@@ -298,10 +298,7 @@ export default function ActDoor() {
         {/* Climax — AQLUMA in brand clay/orange (left). Lone on mobile, so it sits
             lower toward the vertical centre rather than up in the header band. */}
         <Beat side="left" innerRef={climaxRef} initialOpacity={reduced ? 1 : 0} mtop="top-[40%]">
-          <span
-            className="block font-didot text-[clamp(2.9rem,7.4vw,6.2rem)] font-normal leading-[1.0] tracking-[-0.025em]"
-            style={{ color: "#C9612E" }}
-          >
+          <span className="block font-didot text-[clamp(2.9rem,7.4vw,6.2rem)] font-normal leading-[1.0] tracking-[-0.025em] text-clay">
             AQLUMA
           </span>
           <span className="mt-3 block font-didot text-[clamp(1.4rem,3vw,2.4rem)] leading-tight tracking-[-0.01em] text-cream/70">

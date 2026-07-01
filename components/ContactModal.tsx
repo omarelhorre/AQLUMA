@@ -11,11 +11,12 @@ import "@fortawesome/fontawesome-svg-core/styles.css";
 config.autoAddCss = false;
 
 // Contact channels. Profile URLs are placeholders — swap for the real AQLUMA
-// pages. Each carries its brand colour so the Font Awesome icon reads on-platform.
+// pages. Kept on-palette (cream → gold on hover) rather than flooding each tile
+// with its platform brand colour, which fought AQLUMA's warm register.
 const CONTACT_SOCIALS = [
-  { label: "Facebook", href: "https://www.facebook.com/aqluma", icon: faFacebookF, color: "#1877F2" },
-  { label: "Instagram", href: "https://www.instagram.com/aqluma", icon: faInstagram, color: "#E1306C" },
-  { label: "LinkedIn", href: "https://www.linkedin.com/company/aqluma", icon: faLinkedinIn, color: "#0A66C2" },
+  { label: "Facebook", href: "https://www.facebook.com/aqluma", icon: faFacebookF },
+  { label: "Instagram", href: "https://www.instagram.com/aqluma", icon: faInstagram },
+  { label: "LinkedIn", href: "https://www.linkedin.com/company/aqluma", icon: faLinkedinIn },
 ];
 
 /**
@@ -92,7 +93,7 @@ export default function ContactModal() {
       <div
         ref={modalRef}
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-[30rem] rounded-2xl border border-cream/12 bg-[#0e1114] px-8 py-12 text-center shadow-2xl"
+        className="relative w-full max-w-[30rem] rounded-2xl border border-cream/12 bg-obsidian px-8 py-12 text-center shadow-2xl"
         style={{
           transform: open ? "translateY(0) scale(1)" : "translateY(16px) scale(0.97)",
           transition: "transform 0.45s cubic-bezier(0.16,1,0.3,1)",
@@ -107,7 +108,7 @@ export default function ContactModal() {
         >
           ×
         </button>
-        <h3 className="font-didot text-[clamp(1.6rem,3vw,2.2rem)] font-normal tracking-[-0.01em] text-cream">
+        <h3 className="font-didot text-[clamp(1.75rem,3vw,2.2rem)] font-normal tracking-[-0.01em] text-cream">
           Suivez-nous
         </h3>
         <p className="mx-auto mt-3 max-w-[28ch] font-satoshi text-[0.95rem] leading-relaxed text-cream/60">
@@ -122,9 +123,8 @@ export default function ContactModal() {
               rel="noopener noreferrer"
               aria-label={s.label}
               className="group flex flex-col items-center gap-3"
-              style={{ ["--brand" as string]: s.color }}
             >
-              <span className="flex h-16 w-16 items-center justify-center rounded-full border border-cream/15 text-2xl text-cream transition-all duration-300 group-hover:scale-110 group-hover:border-[var(--brand)] group-hover:bg-[var(--brand)] group-hover:text-white">
+              <span className="flex h-16 w-16 items-center justify-center rounded-full border border-cream/15 text-2xl text-cream/80 transition-all duration-300 ease-editorial group-hover:-translate-y-0.5 group-hover:border-gold/50 group-hover:bg-cream/[0.05] group-hover:text-gold">
                 <FontAwesomeIcon icon={s.icon} />
               </span>
               <span className="font-satoshi text-[0.85rem] font-medium text-cream/55 transition-colors duration-300 group-hover:text-cream/90">

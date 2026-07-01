@@ -5,16 +5,16 @@ import { gsap } from "gsap";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 
 /**
- * JOURNEY THREAD — one continuous element that threads two adjacent sections.
+ * JOURNEY THREAD — one continuous mark that threads two adjacent sections.
  *
- * A single fixed-position mark that, frame by frame, reads two anchors:
- *   · #journey-voie       — its home above « Il faut une troisième voie »
- *   · #journey-rail(+fill)— La Méthode's progress rail and its growing fill
+ * A single fixed-position element that, frame by frame, reads two anchors:
+ *   · #journey-voie       — its home beside « Il faut une troisième voie »
+ *   · #journey-rail(+fill) — La Méthode's progress rail and its growing fill
  *
- * At « voie » it is a compass (finding direction). As you scroll past, it morphs
- * into the gold orb and flies down onto the rail, then rides the rail's leading
- * edge through the six gestes — never fading, never duplicated. The two sections
- * own no orb of their own; this is the only one.
+ * It arrives at « voie » as a compass (the needle searches, then settles North),
+ * holds there a beat, then morphs into the gold orb and slides directly onto the
+ * rail, riding the fill's leading edge through the gestes. One mark, never
+ * duplicated, hard-hidden outside the voie→rail window.
  *
  * Desktop + motion only (the sections render static fallbacks otherwise), so the
  * pinned rail it rides actually exists.
@@ -24,6 +24,7 @@ export default function JourneyThread() {
   const [enabled, setEnabled] = useState(false);
 
   const wrapRef = useRef<HTMLDivElement>(null);
+  const haloRef = useRef<HTMLSpanElement>(null);
   const detailRef = useRef<HTMLSpanElement>(null);
   const orbRef = useRef<HTMLSpanElement>(null);
   const needleRef = useRef<SVGGElement>(null);
@@ -51,18 +52,36 @@ export default function JourneyThread() {
 
     const rect = (id: string) => document.getElementById(id)?.getBoundingClientRect();
 
+    // Displayed (damped) state — eased toward the per-frame targets so rect jitter
+    // and fast scroll never snap. Seeded NaN so the first valid frame jumps to
+    // target instead of easing up from 0.
+    const view = { x: NaN, y: NaN, o: 0, m: 0, settle: 0 };
+    const K = 0.22; // damping (higher = tighter tracking, less ghosting)
+    const damp = (cur: number, target: number) =>
+      Number.isNaN(cur) ? target : lerp(cur, target, K);
+
     const tick = () => {
       const vh = window.innerHeight;
       const voie = rect("journey-voie");
       const rail = rect("journey-rail");
       if (!voie || !rail) {
+        view.o = damp(view.o, 0);
+        wrap.style.opacity = String(view.o);
+        return;
+      }
+
+      // Hard visibility gate — the thread only exists in the voie→rail window.
+      // Once the rail has left the top (later sections) or voie hasn't arrived
+      // yet, force-hide so it never leaks elsewhere.
+      if (rail.bottom < -40 || voie.top > vh * 1.15) {
+        view.o = 0;
         wrap.style.opacity = "0";
         return;
       }
-      const fill = rect("journey-rail-fill");
 
+      const fill = rect("journey-rail-fill");
       const railH = rail.height;
-      const railPinTop = (vh - railH) / 2; // rail's screen-top while pinned (centred)
+      const railPinTop = (vh - railH) / 2; // rail's screen-top while pinned
       // h: 0 while the rail is still below, 1 once it has settled into its pin.
       const h = clamp(0, 1, (vh - rail.top) / Math.max(1, vh - railPinTop));
 
@@ -71,40 +90,63 @@ export default function JourneyThread() {
       const fillH = fill ? fill.height : 0;
       const railLeadY = rail.top + fillH; // leading edge of the fill
 
-      // Path threads the EMPTY LEFT MARGIN, never the centred words:
-      //  1) slide left out of the text column to a corridor (still high, above
-      //     the line) · 2) descend the corridor through negative space ·
-      //  3) only once the words have scrolled away, slide onto the rail.
-      const corridorX = window.innerWidth * 0.13;
-      const xToCorridor = smooth(0.02, 0.24, h);
-      const xToRail = smooth(0.62, 0.96, h);
-      const x = lerp(lerp(voieCx, corridorX, xToCorridor), rail.left, xToRail);
-      const y = lerp(voieCy, railLeadY, smooth(0.18, 1, h));
+      // Hold at the voie line through the look/find beat, then slide DIRECTLY onto
+      // the rail — no far-left detour (that read as a detached dot floating up top).
+      const slide = smooth(0.22, 0.92, h);
+      const tx = lerp(voieCx, rail.left, slide);
+      const ty = lerp(voieCy, railLeadY, smooth(0.2, 0.96, h));
 
-      // Morph is driven by TRAVEL only (h), so it stays a compass while the line
-      // is being read (h≈0) and morphs into the orb as it actually moves.
-      const m = smooth(0.05, 0.45, h);
-      // Travel bump (0→1→0, peaks mid-flight): the orb stretches along its motion
-      // (comet-like) to hold the eye during transit.
-      const travel = 4 * h * (1 - h);
+      // Morph held back so it stays a legible compass through the look beat, then
+      // becomes the orb as it sets off.
+      const tm = smooth(0.2, 0.6, h);
 
-      // Visibility: fade in as voie arrives, hold, fade out as the rail leaves up.
-      const entrance = clamp(0, 1, (vh * 0.99 - voieCy) / (vh * 0.34));
-      const exit = smooth(-vh * 0.1, vh * 0.14, y);
-      const o = entrance * exit;
+      // Visibility: gentle fade-in as voie arrives, full-opacity hold, fade out as
+      // the rail carries it up and away.
+      const entrance = smooth(vh * 0.96, vh * 0.5, voieCy);
+      const exit = smooth(-vh * 0.1, vh * 0.16, ty);
+      const tsettle = clamp(0, 1, entrance);
 
-      wrap.style.opacity = String(clamp(0, 1, o));
-      wrap.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -50%)`;
-      if (detailRef.current) detailRef.current.style.opacity = String(1 - smooth(0, 0.4, m));
+      view.x = damp(view.x, tx);
+      view.y = damp(view.y, ty);
+      view.o = damp(view.o, clamp(0, 1, entrance * exit));
+      view.m = damp(view.m, tm);
+      view.settle = damp(view.settle, tsettle);
+
+      const morph = smooth(0.14, 0.9, view.m); // 0 = compass · 1 = orb (widened → the contraction reads slower, less of a snap)
+      wrap.style.opacity = String(view.o);
+      wrap.style.transform = `translate3d(${view.x}px, ${view.y}px, 0) translate(-50%, -50%)`;
+
+      // TRUE MORPH — the compass CONTRACTS into the ball; it does not just dissolve.
+      // The dial eases its scale down toward the orb's size and only fades once it
+      // has shrunk that far, while the orb blooms up from a seed. The two opacities
+      // overlap heavily (their sum stays ≳1), so the mark never blinks to empty —
+      // you watch the compass tighten into the glowing point. Uniform scale only
+      // (never per-axis), so it shrinks symmetrically and never stretches.
+      const ORB = 0.17; // 16px orb ÷ 96px dial — the size the compass collapses to
+      const collapse = morph * morph; // ease-in: drifts, then snaps inward
+      const compassScale = lerp(1, ORB, collapse);
+      const compassOp = 1 - smooth(0.52, 0.96, morph); // holds, then fades late
+      const orbScale = lerp(0.45, 1, smooth(0.16, 1, morph));
+      const orbOp = smooth(0.26, 0.86, morph);
+
+      if (detailRef.current) {
+        detailRef.current.style.opacity = String(compassOp);
+        detailRef.current.style.transform = `scale(${compassScale})`;
+      }
+      if (haloRef.current) {
+        haloRef.current.style.opacity = String(compassOp * 0.85);
+        haloRef.current.style.transform = `translate(-50%, -50%) scale(${compassScale})`;
+      }
       if (orbRef.current) {
-        orbRef.current.style.opacity = String(smooth(0.1, 0.45, m));
-        const sy = 1 + travel * 0.85;
-        const sx = 1 - travel * 0.28;
-        orbRef.current.style.transform = `translate(-50%, -50%) scale(${sx}, ${sy})`;
+        orbRef.current.style.opacity = String(orbOp);
+        orbRef.current.style.transform = `translate(-50%, -50%) scale(${orbScale})`;
       }
       if (needleRef.current) {
-        const settle = clamp(0, 1, entrance);
-        const angle = (1 - settle) * -150 + Math.sin(settle * Math.PI * 2) * 5 * (1 - settle);
+        // Search → settle to North → a final clockwise lock as the dial folds in.
+        const s = view.settle;
+        const overshoot = Math.sin(s * Math.PI) * 6 * (1 - s);
+        const windDown = collapse * 24; // eases to rest as it disappears into the orb
+        const angle = (1 - s) * -150 + overshoot + windDown;
         needleRef.current.setAttribute("transform", `rotate(${angle} 50 50)`);
       }
     };
@@ -119,34 +161,54 @@ export default function JourneyThread() {
     <div
       ref={wrapRef}
       aria-hidden
-      className="pointer-events-none fixed left-0 top-0 z-[34] h-[78px] w-[78px]"
+      /* z-[34]: above section content + the RunwayRule (z-30) it conceptually
+         continues, but below the header (z-50), loupe (z-80) and modals (z-100). */
+      className="pointer-events-none fixed left-0 top-0 z-[34] h-[96px] w-[96px]"
       style={{ opacity: 0, willChange: "transform, opacity" }}
     >
-      {/* compass detail */}
-      <span ref={detailRef} className="absolute inset-0 block">
+      {/* soft halo — lifts the dial off the void; fades with the compass */}
+      <span
+        ref={haloRef}
+        aria-hidden
+        className="absolute left-1/2 top-1/2 block h-[135%] w-[135%] -translate-x-1/2 -translate-y-1/2 rounded-full"
+        style={{
+          background:
+            "radial-gradient(circle, rgb(var(--gold-rgb) / 0.12) 0%, rgb(var(--gold-rgb) / 0) 68%)",
+          mixBlendMode: "screen",
+          willChange: "transform, opacity",
+        }}
+      />
+
+      {/* compass detail — strokes carry enough weight to read as a dial on the
+          void, so the morph is plainly "a compass tightening into a ball" */}
+      <span ref={detailRef} className="absolute inset-0 block" style={{ willChange: "transform, opacity" }}>
         <svg viewBox="0 0 100 100" className="h-full w-full" fill="none">
-          <circle cx="50" cy="50" r="46" stroke="rgba(247,244,239,0.26)" strokeWidth="1.1" />
-          <circle cx="50" cy="50" r="36.5" stroke="rgba(247,244,239,0.1)" strokeWidth="1" />
-          <line x1="50" y1="4.5" x2="50" y2="12.5" stroke="#E8B23A" strokeWidth="1.6" strokeLinecap="round" />
-          <line x1="95.5" y1="50" x2="88" y2="50" stroke="rgba(247,244,239,0.32)" strokeWidth="1.2" strokeLinecap="round" />
-          <line x1="50" y1="95.5" x2="50" y2="88" stroke="rgba(247,244,239,0.32)" strokeWidth="1.2" strokeLinecap="round" />
-          <line x1="4.5" y1="50" x2="12" y2="50" stroke="rgba(247,244,239,0.32)" strokeWidth="1.2" strokeLinecap="round" />
+          <circle cx="50" cy="50" r="46" stroke="rgba(247,244,239,0.62)" strokeWidth="1.4" />
+          <circle cx="50" cy="50" r="36.5" stroke="rgba(247,244,239,0.32)" strokeWidth="1" />
+          <line x1="50" y1="3.5" x2="50" y2="13" stroke="#E8B23A" strokeWidth="2.2" strokeLinecap="round" />
+          <line x1="96" y1="50" x2="88" y2="50" stroke="rgba(247,244,239,0.62)" strokeWidth="1.4" strokeLinecap="round" />
+          <line x1="50" y1="96" x2="50" y2="88" stroke="rgba(247,244,239,0.62)" strokeWidth="1.4" strokeLinecap="round" />
+          <line x1="4" y1="50" x2="12" y2="50" stroke="rgba(247,244,239,0.62)" strokeWidth="1.4" strokeLinecap="round" />
           <g ref={needleRef}>
-            <path d="M50 13 L56 50 L44 50 Z" fill="#E8B23A" />
-            <path d="M50 87 L56 50 L44 50 Z" fill="rgba(247,244,239,0.32)" />
+            <path d="M50 12 L57 50 L43 50 Z" fill="#E8B23A" />
+            <path d="M50 88 L57 50 L43 50 Z" fill="rgba(247,244,239,0.5)" />
           </g>
-          <circle cx="50" cy="50" r="3.6" fill="#0F1417" stroke="#E8B23A" strokeWidth="1.4" />
+          <circle cx="50" cy="50" r="3.9" fill="#0F1417" stroke="#E8B23A" strokeWidth="1.6" />
         </svg>
       </span>
 
-      {/* gold journey-orb (the rail marker) */}
+      {/* gold journey-orb (the rail marker) — fixed 16px, never scaled */}
       <span
         ref={orbRef}
         className="absolute left-1/2 top-1/2 block h-[16px] w-[16px] -translate-x-1/2 -translate-y-1/2 rounded-full"
         style={{
           opacity: 0,
-          background: "radial-gradient(circle, #FFF4D6 0%, #F0C25A 45%, rgba(232,178,58,0) 76%)",
-          boxShadow: "0 0 18px 5px rgba(232,178,58,0.5)",
+          // cream core → gold, derived from the brand tokens (was #FFF4D6/#F0C25A);
+          // glow lowered so the orb sits with the photography, not over it.
+          background:
+            "radial-gradient(circle, #F7F4EF 0%, #E8B23A 55%, rgb(var(--gold-rgb) / 0) 80%)",
+          boxShadow: "0 0 10px 2px rgb(var(--gold-rgb) / 0.3)",
+          willChange: "transform, opacity",
         }}
       />
     </div>

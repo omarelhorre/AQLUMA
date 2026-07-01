@@ -35,7 +35,6 @@ function Tape() {
       style={{
         background: "linear-gradient(180deg, rgba(232,178,58,0.28), rgba(201,97,46,0.18))",
         boxShadow: "0 2px 6px -2px rgba(0,0,0,0.35)",
-        backdropFilter: "blur(1px)",
       }}
     />
   );

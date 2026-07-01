@@ -87,7 +87,7 @@ export default function Header() {
   return (
     <header
       className={[
-        "fixed inset-x-0 top-0 z-50 border-b bg-[#0a0c0f] transition-[border-color,box-shadow] duration-500 ease-editorial",
+        "fixed inset-x-0 top-0 z-50 border-b bg-obsidian transition-[border-color,box-shadow] duration-500 ease-editorial",
         scrolled
           ? "border-cream/[0.09] shadow-[0_14px_40px_-18px_rgba(0,0,0,0.85)]"
           : "border-cream/[0.05] shadow-[0_10px_30px_-20px_rgba(0,0,0,0.7)]",
@@ -139,7 +139,7 @@ export default function Header() {
               aria-expanded={open}
               className="group/btn flex items-center gap-2.5 rounded-sm px-1 py-2 font-satoshi text-[14px] font-medium tracking-tight text-cream/75 outline-none transition-colors duration-300 ease-editorial hover:text-cream focus-visible:ring-1 focus-visible:ring-cream/30"
             >
-              <PlanetGlyph />
+              <RoomsGlyph />
               Mondes
               <svg
                 width="10"
@@ -172,7 +172,7 @@ export default function Header() {
                   : "pointer-events-none -translate-y-1 opacity-0",
               ].join(" ")}
             >
-              <ul className="overflow-hidden rounded-md border border-cream/10 bg-ink/95 p-1.5 shadow-[0_24px_60px_-24px_rgba(0,0,0,0.9)] backdrop-blur-xl">
+              <ul className="overflow-hidden rounded-md border border-cream/10 bg-ink/95 p-1.5 shadow-[0_24px_60px_-24px_rgba(0,0,0,0.9)]">
                 {worlds.map((w, i) => (
                   <li key={w.id}>
                     <button
@@ -181,7 +181,7 @@ export default function Header() {
                       disabled={!w.enabled}
                       onClick={() => goWorld(w.id, w.enabled)}
                       className={[
-                        "flex w-full items-center justify-between gap-6 rounded-sm px-3 py-2.5 text-left transition-colors duration-200",
+                        "flex w-full items-center justify-between gap-6 rounded-sm px-3 py-2.5 text-left transition-colors duration-200 ease-editorial",
                         w.enabled
                           ? "text-cream/85 hover:bg-cream/[0.06] hover:text-cream"
                           : "cursor-default text-cream/35",
@@ -191,11 +191,11 @@ export default function Header() {
                         {w.label}
                       </span>
                       {w.enabled ? (
-                        <span className="font-satoshi text-[11px] tabular-nums text-cream/35">
+                        <span className="font-satoshi text-[11px] tabular-nums text-cream/45">
                           {`0${i + 1}`}
                         </span>
                       ) : (
-                        <span className="rounded-full border border-cream/10 bg-cream/[0.04] px-2 py-[3px] font-satoshi text-[9px] font-medium tracking-tight text-cream/40">
+                        <span className="rounded-full border border-cream/10 bg-cream/[0.04] px-2 py-[3px] font-satoshi text-[10px] font-medium tracking-tight text-cream/55">
                           Bientôt
                         </span>
                       )}
@@ -213,7 +213,7 @@ export default function Header() {
             type="button"
             data-cal-link={CAL_LINK}
             data-cal-config={CAL_CONFIG}
-            className="group/cta inline-flex items-center gap-2 rounded-full bg-cream px-5 py-2.5 font-satoshi text-[12.5px] font-semibold tracking-tight text-void outline-none transition-all duration-300 ease-editorial hover:-translate-y-[1px] hover:bg-white hover:shadow-[0_12px_30px_-8px_rgba(247,244,239,0.45)] focus-visible:ring-2 focus-visible:ring-cream/40"
+            className="group/cta inline-flex items-center gap-2 rounded-full bg-cream px-5 py-2.5 font-satoshi text-[12.5px] font-semibold tracking-tight text-void outline-none transition-all duration-300 ease-editorial hover:-translate-y-[1px] hover:bg-white hover:shadow-[0_12px_30px_-8px_rgba(247,244,239,0.30)] focus-visible:ring-2 focus-visible:ring-cream/40"
           >
             Réserver un appel gratuit de 15 minutes.
             <svg
@@ -265,12 +265,12 @@ export default function Header() {
       <div
         id="mobile-menu"
         className={[
-          "overflow-hidden border-t border-cream/[0.06] bg-gradient-to-b from-[#0b0e11] to-void transition-[max-height,opacity] duration-500 ease-editorial md:hidden",
+          "overflow-hidden border-t border-cream/[0.06] bg-gradient-to-b from-obsidian to-void transition-[max-height,opacity] duration-500 ease-editorial md:hidden",
           mobileOpen ? "max-h-[80vh] opacity-100" : "max-h-0 opacity-0",
         ].join(" ")}
       >
         <nav className="mx-auto flex max-w-[1600px] flex-col gap-1 px-6 py-5">
-          <span className="px-1 pb-1 font-satoshi text-[11px] font-medium uppercase tracking-[0.18em] text-cream/35">
+          <span className="px-1 pb-1 font-satoshi text-[12px] font-semibold tracking-tight text-cream/50">
             Mondes
           </span>
           {worlds.map((w, i) => (
@@ -290,11 +290,11 @@ export default function Header() {
                 {w.label}
               </span>
               {w.enabled ? (
-                <span className="font-satoshi text-[12px] tabular-nums text-cream/35">
+                <span className="font-satoshi text-[12px] tabular-nums text-cream/45">
                   {`0${i + 1}`}
                 </span>
               ) : (
-                <span className="rounded-full border border-cream/10 bg-cream/[0.04] px-2 py-[3px] font-satoshi text-[9px] font-medium tracking-tight text-cream/40">
+                <span className="rounded-full border border-cream/10 bg-cream/[0.04] px-2 py-[3px] font-satoshi text-[10px] font-medium tracking-tight text-cream/55">
                   Bientôt
                 </span>
               )}
@@ -302,7 +302,7 @@ export default function Header() {
           ))}
 
           {/* In-page sections */}
-          <span className="mt-4 px-1 pb-1 font-satoshi text-[11px] font-medium uppercase tracking-[0.18em] text-cream/35">
+          <span className="mt-4 px-1 pb-1 font-satoshi text-[12px] font-semibold tracking-tight text-cream/50">
             Sections
           </span>
           {SECTIONS.map((s) => (
@@ -348,39 +348,38 @@ export default function Header() {
 }
 
 /**
- * Small ringed-planet glyph for the "Mondes" nav item. The orbit ring + its
- * travelling dot rotate a quiet arc on hover (eased, no spin) — the three
- * worlds, abstracted. 1.2px strokes in currentColor so it inherits the label.
+ * Quiet glyph for the "Mondes" nav item — an aperture: a threshold framing a room
+ * within a room (the three museum "worlds" are doorways you step through), with a
+ * single key-light glint in the upper-left, echoing the site's one warm key light.
+ * On-metaphor, not a space cliché. 1.1–1.2px strokes in currentColor so it inherits
+ * the label; the inner frame brightens a touch on hover.
  */
-function PlanetGlyph() {
+function RoomsGlyph() {
   return (
     <svg
-      width="16"
-      height="16"
+      width="15"
+      height="15"
       viewBox="0 0 24 24"
       fill="none"
       aria-hidden
       className="-translate-y-[0.5px]"
     >
-      {/* planet body */}
-      <circle cx="12" cy="12" r="4.1" stroke="currentColor" strokeWidth="1.2" />
-      {/* orbit ring + dot — rotate together on hover */}
-      <g
-        className="transition-transform duration-700 ease-editorial group-hover/btn:rotate-[58deg]"
-        style={{ transformOrigin: "12px 12px", transformBox: "fill-box" }}
-      >
-        <ellipse
-          cx="12"
-          cy="12"
-          rx="9.4"
-          ry="3.6"
-          stroke="currentColor"
-          strokeWidth="1.1"
-          opacity="0.5"
-          transform="rotate(-22 12 12)"
-        />
-        <circle cx="21" cy="8.7" r="1.25" fill="currentColor" />
-      </g>
+      {/* outer threshold */}
+      <rect x="3.5" y="3.5" width="17" height="17" rx="4" stroke="currentColor" strokeWidth="1.2" />
+      {/* inner room — recedes; warms on hover */}
+      <rect
+        x="7.6"
+        y="7.6"
+        width="8.8"
+        height="8.8"
+        rx="2"
+        stroke="currentColor"
+        strokeWidth="1.1"
+        opacity="0.5"
+        className="transition-opacity duration-300 ease-editorial group-hover/btn:opacity-90"
+      />
+      {/* upper-left key-light glint */}
+      <path d="M6 6.4 L8.6 6.4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" opacity="0.85" />
     </svg>
   );
 }

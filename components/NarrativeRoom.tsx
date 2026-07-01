@@ -34,12 +34,7 @@ const smoothstep = (a: number, b: number, x: number) => {
 
 function Label({ children, center }: { children: React.ReactNode; center?: boolean }) {
   return (
-    <div className={`mb-8 flex items-center gap-3.5 ${center ? "justify-center" : ""}`}>
-      <span
-        aria-hidden
-        className="h-px w-12 flex-shrink-0"
-        style={{ background: "linear-gradient(90deg, rgba(232,178,58,0.75), rgba(232,178,58,0))" }}
-      />
+    <div className={`mb-8 flex items-center ${center ? "justify-center" : ""}`}>
       <span className="font-satoshi text-[1.05rem] font-semibold tracking-tight text-gold/90">
         {children}
       </span>
@@ -168,7 +163,7 @@ export default function NarrativeRoom() {
             <Parallax speed={0.22} className="flex justify-center md:justify-end">
               <Reveal y={48}>
                 <PaperArtifact variant="note" fastener="tape" tilt={-2.2} className="max-w-[27rem]">
-                  <blockquote className="text-balance font-didot text-[clamp(1.6rem,2.4vw,2.1rem)] font-normal leading-[1.3]">
+                  <blockquote className="text-balance font-didot text-[clamp(1.75rem,2.4vw,2.1rem)] font-normal leading-[1.3]">
                     {fr('"C\'est comme donner les clés d\'une bibliothèque immense à quelqu\'un qui n\'a pas appris à lire."')}
                   </blockquote>
                 </PaperArtifact>
@@ -215,10 +210,6 @@ export default function NarrativeRoom() {
         {/* ── La voie — pulsing orb + word-by-word reveal ── */}
         <Beat className="justify-center text-center">
           <div className="mx-auto flex max-w-5xl flex-col items-center">
-            {/* Anchor — the shared <JourneyThread> mark homes here (the compass
-                above « voie ») before it flies onto La Méthode's rail. */}
-            <span id="journey-voie" aria-hidden className="mb-12 block h-[78px] w-[78px]" />
-
             <p
               ref={voieLineRef}
               aria-label={fr(VOIE)}
@@ -239,6 +230,12 @@ export default function NarrativeRoom() {
                 );
               })}
             </p>
+
+            {/* Anchor — the shared <JourneyThread> mark homes here, BELOW « voie »
+                (the compass that searches for the third way), so its search→settle
+                →morph plays in the visible mid-viewport — not jammed up behind the
+                header — before the orb flies onto La Méthode's rail. */}
+            <span id="journey-voie" aria-hidden className="mt-14 block h-[104px] w-[104px]" />
           </div>
         </Beat>
       </div>

@@ -85,7 +85,7 @@ export default function FAQ() {
               FAQ
             </span>
           </div>
-          <h2 className="font-didot text-[clamp(2.2rem,4.4vw,3.8rem)] font-normal leading-[1.06] tracking-[-0.02em] text-cream">
+          <h2 className="section-title text-cream">
             Questions fréquentes
           </h2>
           <p className="mt-6 max-w-[32ch] font-satoshi text-[clamp(0.98rem,1.2vw,1.12rem)] leading-relaxed text-cream/55">

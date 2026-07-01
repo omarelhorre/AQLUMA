@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useReducedMotion } from "@/lib/useReducedMotion";
+import Kicker from "@/components/Kicker";
 import { fr } from "@/lib/typo";
 
 /**
@@ -33,15 +34,10 @@ const GESTES: Geste[] = [
 function Header() {
   return (
     <header>
-      <div className="mb-6 flex items-center gap-3.5">
-        <span className="font-satoshi text-[0.95rem] font-bold text-gold">La Méthode</span>
-        <span
-          aria-hidden
-          className="h-px w-12 flex-shrink-0"
-          style={{ background: "linear-gradient(90deg, rgba(232,178,58,0.7), rgba(232,178,58,0))" }}
-        />
+      <div className="mb-6">
+        <Kicker>La Méthode</Kicker>
       </div>
-      <h2 className="font-didot text-[clamp(2.2rem,4.4vw,3.8rem)] font-normal leading-[1.06] tracking-[-0.02em] text-cream">
+      <h2 className="section-title text-cream">
         La Méthode AQLUMA
       </h2>
       <p className="mt-6 max-w-[34ch] font-satoshi text-[clamp(1rem,1.3vw,1.2rem)] leading-relaxed text-cream/55">

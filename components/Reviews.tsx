@@ -5,6 +5,7 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { fr } from "@/lib/typo";
 import { useReducedMotion } from "@/lib/useReducedMotion";
+import Kicker from "@/components/Kicker";
 
 /**
  * AVIS — social proof between the programme and the FAQ. A premium, minimalist
@@ -24,8 +25,8 @@ const DEFAULT_AVATAR = "/avatars/default.svg";
 // The signature AQLUMA reveal: each glyph goes from a faint impression to solid
 // as a left→right sweep crosses it. Reused for the chosen testimonial so a picked
 // review writes itself in like the hero statements (per-character fill).
-const Q_FILL = "#14110C"; // near-black ink, written onto the light card
-const Q_GHOST = "rgba(20,17,12,0.16)"; // faint impression before the sweep
+const Q_FILL = "#080A0C"; // void — ink on the light card (matches the figcaption)
+const Q_GHOST = "rgba(8,10,12,0.16)"; // faint impression before the sweep
 function quoteFill(f: number): string {
   if (f >= 1) return `linear-gradient(90deg, ${Q_FILL}, ${Q_FILL})`;
   if (f <= 0) return `linear-gradient(90deg, ${Q_GHOST}, ${Q_GHOST})`;
@@ -300,10 +301,8 @@ export default function Reviews() {
         {/* LEFT — the section title + aggregate. Sticky on desktop so it holds
             beside the testimonial, like the act intros. */}
         <div className="lg:sticky lg:top-28 lg:self-start">
-          <p className="font-satoshi text-[0.95rem] font-bold text-gold">
-            Ils ont vécu AQLUMA
-          </p>
-          <h2 className="mt-5 max-w-[15ch] font-didot text-[clamp(2.6rem,5vw,4.6rem)] font-normal leading-[1.04] tracking-[-0.02em] text-cream">
+          <Kicker>Ils ont vécu AQLUMA</Kicker>
+          <h2 className="section-title mt-5 max-w-[15ch] text-cream">
             {fr("Ce qu'en disent les familles.")}
           </h2>
 
@@ -313,7 +312,7 @@ export default function Reviews() {
               <span className="font-didot text-[clamp(2.8rem,6vw,4.4rem)] font-normal leading-none text-cream">
                 {AVG}
               </span>
-              <span className="font-satoshi text-[1.1rem] font-medium text-cream/35">
+              <span className="font-satoshi text-[1.1rem] font-medium text-cream/55">
                 / 5
               </span>
             </div>
@@ -352,7 +351,7 @@ export default function Reviews() {
               then the reviewer with their rating. */}
           <figure
             role="tabpanel"
-            className="w-full max-w-[46rem] rounded-[1.75rem] bg-white p-8 shadow-[0_30px_70px_-24px_rgba(0,0,0,0.7)] md:p-10"
+            className="w-full max-w-[46rem] rounded-panel bg-cream p-8 shadow-[0_30px_70px_-24px_rgba(8,10,12,0.5)] md:p-10"
           >
             <span
               aria-hidden
@@ -362,7 +361,7 @@ export default function Reviews() {
             </span>
             <blockquote
               key={active}
-              className="mt-4 font-didot text-[clamp(1.6rem,2.7vw,2.3rem)] font-normal leading-[1.42] text-void/90"
+              className="mt-4 font-didot text-[clamp(1.75rem,2.7vw,2.3rem)] font-normal leading-[1.42] text-void/90"
             >
               {quoteModel.words.map((word, wi) => (
                 <span key={wi} className="mr-[0.26em] inline-block whitespace-nowrap">

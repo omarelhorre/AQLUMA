@@ -82,7 +82,7 @@ const RunwayRule = forwardRef<RunwayRuleHandle, Props>(function RunwayRule(
             className="absolute inset-0 origin-left bg-gold"
             style={{
               transform: "scaleX(0)",
-              boxShadow: "0 0 8px rgba(232,178,58,0.5)",
+              boxShadow: "0 0 6px rgba(232,178,58,0.32)",
             }}
           />
         </div>

@@ -5,6 +5,7 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import Reveal from "@/components/Reveal";
+import Kicker from "@/components/Kicker";
 import { fr } from "@/lib/typo";
 
 /**
@@ -64,13 +65,15 @@ const lerpPose = (a: Pose, b: Pose, u: number): Pose => ({
 });
 
 // Scatter offsets as fractions of the stage (back cards smaller + dimmer).
+// Creamy paper cards: depth comes from scale + offset, NOT low opacity (cream at
+// low alpha over the dark canvas muddies to grey). Keep every card near-opaque.
 const SCATTER: Pose[] = [
   { x: -0.16, y: -0.30, r: -9, s: 1.0, o: 1 },
-  { x: 0.18, y: -0.20, r: 8, s: 0.96, o: 0.9 },
+  { x: 0.18, y: -0.20, r: 8, s: 0.96, o: 0.96 },
   { x: -0.04, y: 0.02, r: -3, s: 1.05, o: 1 },
-  { x: -0.22, y: 0.22, r: 11, s: 0.82, o: 0.55 },
-  { x: 0.2, y: 0.26, r: -12, s: 0.8, o: 0.5 },
-  { x: 0.06, y: 0.44, r: 5, s: 0.9, o: 0.7 },
+  { x: -0.22, y: 0.22, r: 11, s: 0.82, o: 0.9 },
+  { x: 0.2, y: 0.26, r: -12, s: 0.8, o: 0.88 },
+  { x: 0.06, y: 0.44, r: 5, s: 0.9, o: 0.92 },
 ];
 
 export default function FamilyCards() {
@@ -103,11 +106,11 @@ export default function FamilyCards() {
     const apply = (p: number) => {
       const W = stage.clientWidth;
       const H = stage.clientHeight;
-      const cardW = Math.min(W * 0.78, 430);
+      const cardW = Math.min(W * 0.82, 470);
       const cx = W * 0.5 - cardW / 2;
-      const leftX = W * 0.02;
-      const stackRowH = (H * 0.9) / 6;
-      const finalRowH = (H * 0.62) / 3;
+      const colX = cx; // cards centred in their column — balanced, no lopsided rail
+      const stackRowH = (H * 0.96) / 6;
+      const finalRowH = (H * 0.66) / 3;
 
       const uAB = smoothstep(0.26, 0.42, p); // scatter → stack
       const uBC = smoothstep(0.6, 0.76, p); // stack → final
@@ -124,12 +127,12 @@ export default function FamilyCards() {
           s: SCATTER[i].s,
           o: SCATTER[i].o,
         };
-        const B: Pose = { x: leftX, y: H * 0.04 + i * stackRowH, r: 0, s: 1, o: 1 };
+        const B: Pose = { x: colX, y: H * 0.02 + i * stackRowH, r: 0, s: 1, o: 1 };
         const keepIdx = KEEP.indexOf(i);
         const C: Pose =
           keepIdx >= 0
-            ? { x: leftX, y: H * 0.16 + keepIdx * finalRowH, r: 0, s: 1.05, o: 1 }
-            : { x: leftX + (i % 2 === 0 ? -1 : 1) * W * 1.1, y: H * 0.04 + i * stackRowH, r: (i % 2 === 0 ? -1 : 1) * 16, s: 0.8, o: 0 };
+            ? { x: colX, y: H * 0.13 + keepIdx * finalRowH, r: 0, s: 1.05, o: 1 }
+            : { x: colX + (i % 2 === 0 ? -1 : 1) * W * 1.1, y: H * 0.04 + i * stackRowH, r: (i % 2 === 0 ? -1 : 1) * 16, s: 0.8, o: 0 };
 
         const pose = lerpPose(lerpPose(A, B, uAB), C, uBC);
         card.style.transform = `translate(${pose.x}px, ${pose.y}px) rotate(${pose.r}deg) scale(${pose.s})`;
@@ -184,7 +187,7 @@ export default function FamilyCards() {
         className="h-screen w-full"
         style={{ display: still ? "none" : "block" }}
       >
-        <div className="shell grid h-full grid-cols-[0.82fr_1.18fr] items-center gap-12">
+        <div className="mx-auto grid h-full w-full max-w-[1280px] grid-cols-[0.9fr_1fr] items-center gap-10 px-6 md:px-10">
           {/* Left — the three cross-fading titles, stacked in place. */}
           <div className="relative">
             {[
@@ -198,11 +201,10 @@ export default function FamilyCards() {
                 className={ti === 0 ? "relative" : "absolute inset-0"}
                 style={{ opacity: ti === 0 ? 1 : 0 }}
               >
-                <div className="mb-5 flex items-center gap-3.5">
-                  <span className="font-satoshi text-[0.9rem] font-bold tracking-tight text-gold">{t.k}</span>
-                  <span aria-hidden className="h-px w-12 flex-shrink-0" style={{ background: "linear-gradient(90deg, rgba(232,178,58,0.7), rgba(232,178,58,0))" }} />
+                <div className="mb-5">
+                  <Kicker>{t.k}</Kicker>
                 </div>
-                <h2 className="text-balance font-didot text-[clamp(2rem,3.6vw,3.4rem)] font-normal leading-[1.08] tracking-[-0.02em] text-cream">
+                <h2 className="section-title text-cream">
                   {fr(t.h)}
                 </h2>
                 {t.sub ? (
@@ -218,17 +220,16 @@ export default function FamilyCards() {
               <div
                 key={i}
                 ref={(el) => { cardRefs.current[i] = el; }}
-                className="absolute left-0 top-0 flex w-[min(78%,430px)] min-h-[88px] items-center rounded-2xl border border-cream/15 px-7 py-6 shadow-[0_40px_80px_-32px_rgba(0,0,0,0.95)] will-change-transform"
-                style={{ background: "#0F1417", minWidth: 260 }}
+                className="absolute left-0 top-0 flex w-[min(82%,470px)] min-h-[96px] items-center rounded-2xl border border-black/[0.06] bg-paper px-9 py-7 shadow-[0_40px_80px_-32px_rgba(0,0,0,0.85)] will-change-transform"
+                style={{ minWidth: 260 }}
               >
-                <span aria-hidden className="absolute left-0 top-6 h-7 w-px" style={{ background: "linear-gradient(180deg, rgba(232,178,58,0.9), rgba(232,178,58,0))" }} />
                 {[HOME[i], PRACTICE[i], KEEP.includes(i) ? PARENTS[KEEP.indexOf(i)] : ""].map((txt, li) => (
                   <span
                     key={li}
                     ref={(el) => { (layerRefs.current[i] ||= [])[li] = el; }}
                     className={[
-                      "absolute inset-0 flex items-center px-7 leading-snug",
-                      li === 0 ? "font-didot text-[clamp(1.15rem,1.5vw,1.45rem)] text-cream" : "font-satoshi text-[clamp(1rem,1.2vw,1.15rem)] text-cream/85",
+                      "absolute inset-0 flex items-center px-9 leading-snug",
+                      li === 0 ? "font-didot text-[clamp(1.15rem,1.5vw,1.45rem)] text-void" : "font-satoshi text-[clamp(1rem,1.2vw,1.15rem)] text-void/75",
                     ].join(" ")}
                     style={{ opacity: li === 0 ? 1 : 0 }}
                   >
@@ -254,17 +255,15 @@ export default function FamilyCards() {
 function StaticGroup({ kicker, title, sub, items, didot }: { kicker: string; title: string; sub?: string; items: string[]; didot?: boolean }) {
   return (
     <Reveal>
-      <div className="mb-7 flex items-center gap-3.5">
-        <span className="font-satoshi text-[0.9rem] font-bold tracking-tight text-gold">{kicker}</span>
-        <span aria-hidden className="h-px w-12 flex-shrink-0" style={{ background: "linear-gradient(90deg, rgba(232,178,58,0.7), rgba(232,178,58,0))" }} />
+      <div className="mb-7">
+        <Kicker>{kicker}</Kicker>
       </div>
-      <h2 className="text-balance font-didot text-[clamp(1.9rem,4vw,3rem)] font-normal leading-[1.1] tracking-[-0.02em] text-cream">{fr(title)}</h2>
+      <h2 className="section-title text-cream">{fr(title)}</h2>
       {sub ? <p className="mt-5 max-w-[44ch] font-satoshi text-[1.05rem] leading-relaxed text-cream/55">{fr(sub)}</p> : null}
       <div className="mt-8 grid gap-4 sm:grid-cols-2">
         {items.map((t) => (
-          <div key={t} className="relative rounded-2xl border border-cream/15 px-6 py-5" style={{ background: "#0F1417" }}>
-            <span aria-hidden className="absolute left-0 top-5 h-7 w-px" style={{ background: "linear-gradient(180deg, rgba(232,178,58,0.9), rgba(232,178,58,0))" }} />
-            <p className={didot ? "font-didot text-[1.3rem] text-cream" : "font-satoshi text-[1.05rem] text-cream/85"}>{fr(t)}</p>
+          <div key={t} className="rounded-2xl border border-black/[0.06] bg-paper px-8 py-6 shadow-[0_24px_60px_-32px_rgba(0,0,0,0.7)]">
+            <p className={didot ? "font-didot text-[1.3rem] text-void" : "font-satoshi text-[1.05rem] text-void/75"}>{fr(t)}</p>
           </div>
         ))}
       </div>

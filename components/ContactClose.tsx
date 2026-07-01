@@ -83,14 +83,14 @@ export default function ContactClose() {
       <div className="shell relative py-20 md:py-24">
         {/* Closing statement — the quiet last word + one final CTA. */}
         <div className="mb-16 max-w-3xl border-b border-cream/10 pb-14 md:mb-20 md:pb-16">
-          <p className="text-balance font-didot text-[clamp(1.8rem,3.8vw,3.1rem)] font-normal leading-[1.12] tracking-[-0.02em] text-cream">
+          <p className="section-title text-cream">
             {fr("L'IA sera dans sa vie.")}{" "}
             <span className="text-cream/55">
               {fr("La question est : avec quel jugement ?")}
             </span>
           </p>
           <div className="mt-9 flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:gap-7">
-            <CtaButton className="!px-6 !py-3 !text-[13px]" />
+            <CtaButton size="md" />
             <p className="max-w-[32ch] font-satoshi text-[0.9rem] leading-relaxed text-cream/45">
               {fr(CTA_SUPPORT_FINAL)}
             </p>
@@ -100,7 +100,7 @@ export default function ContactClose() {
         <div className="grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-[1.6fr_1fr_1fr_1.4fr] lg:gap-10">
           {/* Brand */}
           <div className="sm:col-span-2 lg:col-span-1">
-            <p className="font-didot text-[1.7rem] font-normal leading-none tracking-[0.04em] text-cream">
+            <p className="font-didot text-[1.75rem] font-normal leading-none tracking-[0.04em] text-cream">
               AQLUMA
             </p>
             <FooterManifesto />
@@ -145,8 +145,8 @@ export default function ContactClose() {
           <FooterCol title="Contact & statut">
             <span className="inline-flex w-fit items-center gap-2.5 rounded-full border border-cream/15 bg-cream/[0.04] px-3.5 py-2">
               <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400/70 motion-safe:animate-ping" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+                <span className="absolute inline-flex h-full w-full rounded-full bg-gold/40" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-gold" />
               </span>
               <span className="font-satoshi text-[0.85rem] font-medium text-cream/80">
                 {fr("Accepte les inscriptions")}
@@ -171,10 +171,10 @@ export default function ContactClose() {
 
         {/* Bottom bar */}
         <div className="mt-16 flex flex-col gap-4 border-t border-cream/10 pt-7 sm:flex-row sm:items-center sm:justify-between">
-          <p className="font-satoshi text-[0.78rem] tracking-[0.02em] text-cream/35">
+          <p className="font-satoshi text-[0.78rem] tracking-[0.02em] text-cream/55">
             © 2026 AQLUMA. {fr("Tous droits réservés.")}
           </p>
-          <p className="font-satoshi text-[0.78rem] tracking-[0.02em] text-cream/35">
+          <p className="font-satoshi text-[0.78rem] tracking-[0.02em] text-cream/55">
             Maroc
           </p>
         </div>
@@ -273,7 +273,7 @@ function FooterCol({
 }) {
   return (
     <div className="flex flex-col items-start gap-3.5">
-      <p className="font-satoshi text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-cream/40">
+      <p className="font-satoshi text-[0.8rem] font-semibold tracking-tight text-cream/55">
         {title}
       </p>
       {children}

@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import Parallax from "@/components/Parallax";
 import Reveal from "@/components/Reveal";
+import Kicker from "@/components/Kicker";
 import { fr } from "@/lib/typo";
 
 /**
@@ -36,33 +36,6 @@ const NEST = [
 ];
 
 export default function PourquoiNest() {
-  const gridRef = useRef<HTMLDivElement>(null);
-  const sweepRef = useRef<HTMLDivElement>(null);
-  const [narrow, setNarrow] = useState(false);
-
-  useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setNarrow(mq.matches);
-  }, []);
-
-  // Fire the gold light sweep once, when the cards scroll into view.
-  useEffect(() => {
-    const grid = gridRef.current;
-    const sweep = sweepRef.current;
-    if (!grid || !sweep || narrow) return;
-    const io = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          sweep.style.animation = "methode-sweep 1.5s cubic-bezier(0.16,1,0.3,1) forwards";
-          io.disconnect();
-        }
-      },
-      { threshold: 0.3 },
-    );
-    io.observe(grid);
-    return () => io.disconnect();
-  }, [narrow]);
-
   return (
     <section
       data-loupe
@@ -79,7 +52,7 @@ export default function PourquoiNest() {
               className={i % 2 === 1 ? "md:ml-auto md:text-right" : ""}
             >
               <Reveal className="max-w-[46ch]">
-                <h3 className="font-didot text-[clamp(1.7rem,3.4vw,2.9rem)] font-normal leading-[1.1] tracking-[-0.02em] text-cream">
+                <h3 className="font-didot text-[clamp(1.75rem,3.4vw,2.9rem)] font-normal leading-[1.1] tracking-[-0.02em] text-cream">
                   {fr(item.q)}
                 </h3>
                 <p
@@ -98,60 +71,35 @@ export default function PourquoiNest() {
         {/* ── Convergence → Ce qu'AQLUMA n'est pas ── */}
         <div>
           <Reveal className="mx-auto max-w-3xl text-center">
-            <div className="mb-6 flex items-center justify-center gap-3.5">
-              <span
-                aria-hidden
-                className="h-px w-10"
-                style={{ background: "linear-gradient(90deg, rgba(232,178,58,0), rgba(232,178,58,0.7))" }}
-              />
-              <span className="font-satoshi text-[0.9rem] font-bold tracking-tight text-gold">
-                Le cadre
-              </span>
-              <span
-                aria-hidden
-                className="h-px w-10"
-                style={{ background: "linear-gradient(90deg, rgba(232,178,58,0.7), rgba(232,178,58,0))" }}
-              />
+            <div className="mb-6 flex justify-center">
+              <Kicker>Le cadre</Kicker>
             </div>
-            <h2 className="font-didot text-[clamp(2.2rem,4.6vw,3.9rem)] font-normal leading-[1.06] tracking-[-0.02em] text-cream">
+            <h2 className="section-title text-cream">
               {fr("Ce qu'AQLUMA n'est pas")}
             </h2>
           </Reveal>
 
-          {/* Card grid with the single gold light pass. */}
-          <div ref={gridRef} className="relative mt-14">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {NEST.map((t, i) => (
-                <Reveal key={t} delay={i * 70}>
-                  <div className="group relative h-full overflow-hidden rounded-2xl border border-cream/12 bg-ink/60 px-7 py-7">
-                    <span
-                      aria-hidden
-                      className="mb-4 block h-5 w-5 rounded-full border border-cream/20 text-cream/30"
-                    >
-                      <svg viewBox="0 0 20 20" className="h-full w-full" aria-hidden>
-                        <path d="M6 6l8 8M14 6l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                      </svg>
-                    </span>
-                    <p className="font-satoshi text-[clamp(1.02rem,1.2vw,1.18rem)] leading-snug text-cream/80">
-                      {fr(t)}
-                    </p>
-                  </div>
-                </Reveal>
-              ))}
-            </div>
-
-            {/* Soft gold light — one left→right pass over the whole grid. */}
-            <div
-              ref={sweepRef}
-              aria-hidden
-              className="pointer-events-none absolute inset-y-0 z-10 w-1/3"
-              style={{
-                left: "-40%",
-                opacity: 0,
-                background:
-                  "linear-gradient(90deg, rgba(232,178,58,0) 0%, rgba(232,178,58,0.10) 50%, rgba(232,178,58,0) 100%)",
-              }}
-            />
+          {/* Negative-space cards — the SAME warm paper stock as the family deck,
+              so "what AQLUMA is not" reads consistently with the rest of the site.
+              Centred content, generous padding; a quiet ✕ keeps the negation cue. */}
+          <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {NEST.map((t, i) => (
+              <Reveal key={t} delay={i * 70}>
+                <div className="flex h-full flex-col items-center justify-center gap-5 rounded-2xl border border-black/[0.06] bg-paper px-8 py-12 text-center shadow-[0_24px_60px_-32px_rgba(0,0,0,0.7)]">
+                  <span
+                    aria-hidden
+                    className="block h-6 w-6 rounded-full border border-void/15 text-void/30"
+                  >
+                    <svg viewBox="0 0 20 20" className="h-full w-full" aria-hidden>
+                      <path d="M6 6l8 8M14 6l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                    </svg>
+                  </span>
+                  <p className="max-w-[22ch] font-satoshi text-[clamp(1.05rem,1.2vw,1.2rem)] leading-snug text-void/75">
+                    {fr(t)}
+                  </p>
+                </div>
+              </Reveal>
+            ))}
           </div>
         </div>
       </div>

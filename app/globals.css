@@ -1,13 +1,21 @@
-/* Satoshi via Fontshare CDN — fallback until local woff2 files are added (see §3 / README).
-   When you add the local files, swap this for next/font/local in app/fonts.ts. */
-@import url("https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700,900&display=swap");
-
+/* Satoshi + Didot are self-hosted via next/font/local (app/fonts.ts) and exposed
+   as --font-satoshi / --font-didot on <html>. No render-blocking CDN @import. */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --font-satoshi: "Satoshi", system-ui, sans-serif;
+  /* Brand colours as raw channels, so any one-off alpha (rgb(var(--cream-rgb) /
+     0.3)) references the SAME source of truth as the Tailwind tokens instead of
+     re-typing the literal. Keep in sync with tailwind.config.ts colors. */
+  --cream-rgb: 247 244 239;
+  --gold-rgb: 232 178 58;
+  --void-rgb: 8 10 12;
+  --ink-rgb: 15 20 23;
+
+  /* Same quiet editorial curve as Tailwind's `ease-editorial`, for plain-CSS
+     transitions (the loupe) so nothing falls back to the browser default. */
+  --ease-editorial: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @layer base {
@@ -18,7 +26,7 @@
     text-rendering: optimizeLegibility;
     /* Firefox — thin neutral pill, cream-tinted, on a transparent track. */
     scrollbar-width: thin;
-    scrollbar-color: rgba(247, 244, 239, 0.22) transparent;
+    scrollbar-color: rgb(var(--cream-rgb) / 0.22) transparent;
   }
 
   /* Premium scrollbar (WebKit/Chromium) — a slim, rounded cream pill on a
@@ -33,14 +41,14 @@
   }
 
   html::-webkit-scrollbar-thumb {
-    background: rgba(247, 244, 239, 0.16);
+    background: rgb(var(--cream-rgb) / 0.16);
     border-radius: 9999px;
     border: 2px solid transparent;
     background-clip: padding-box;
   }
 
   html::-webkit-scrollbar-thumb:hover {
-    background: rgba(247, 244, 239, 0.32);
+    background: rgb(var(--cream-rgb) / 0.32);
     background-clip: padding-box;
   }
 
@@ -87,6 +95,17 @@
   .shell {
     @apply mx-auto w-full max-w-[1600px] px-6 md:px-10;
   }
+
+  /* One consistent, prominent section title across the whole site. Didot
+     display, a single shared size, tight leading — so every section heading
+     carries the same weight instead of each inventing its own clamp. */
+  .section-title {
+    @apply font-didot font-normal;
+    font-size: clamp(2.5rem, 5vw, 4.25rem);
+    line-height: 1.04;
+    letter-spacing: -0.022em;
+    text-wrap: balance;
+  }
 }
 
 @layer utilities {
@@ -127,7 +146,7 @@
   }
 
   .loupe {
-    transition: opacity 0.22s ease;
+    transition: opacity 0.22s var(--ease-editorial);
     will-change: transform;
   }
   .loupe--hidden {
@@ -148,7 +167,7 @@
     left: 0;
     transform-origin: 0 0;
     opacity: 0;
-    transition: opacity 0.18s ease;
+    transition: opacity 0.18s var(--ease-editorial);
   }
   .loupe--active .loupe__mirror {
     opacity: 1;
@@ -163,7 +182,7 @@
       inset 0 0 0 3px rgba(232, 178, 58, 0.22),
       inset 0 8px 20px rgba(0, 0, 0, 0.3),
       0 10px 26px -6px rgba(0, 0, 0, 0.5);
-    transition: box-shadow 0.22s ease;
+    transition: box-shadow 0.22s var(--ease-editorial);
   }
   .loupe--active .loupe__rim {
     box-shadow:
