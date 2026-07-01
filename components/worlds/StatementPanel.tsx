@@ -1,41 +1,23 @@
 "use client";
 
-import {
-  forwardRef,
-  useImperativeHandle,
-  useMemo,
-  useRef,
-  type CSSProperties,
-} from "react";
+import { forwardRef, useImperativeHandle, useMemo, useRef } from "react";
 import { fr } from "@/lib/typo";
 import type { WorldStatement } from "@/lib/worldsData";
 
 /**
- * STATEMENT PANEL — one world's ragged-left statement that writes itself in
- * character by character, plus a support clip that bleeds in on the right,
- * feathered on every edge so it floats on the ribbon's canvas (never a box).
+ * STATEMENT PANEL — one world's statement, writing itself in character by
+ * character. In the ribbon it's the LEFT column of the opening beat, paired with
+ * the world's clip card beside it (see ClipCard) so the copy and its support clip
+ * read together, close and natural.
  *
- * Presentational: the ribbon drives the write-on and playback imperatively via
- * the ref (`setFill(0..1)`, `setPlaying(bool)`) so scrolling never re-renders.
- * `stacked` = the mobile/reduced-motion fallback: static filled type, no video.
+ * Presentational: the ribbon drives the write-on imperatively via the ref
+ * (`setFill(0..1)`) so scrolling never re-renders. `stacked` = the mobile /
+ * reduced-motion fallback: static filled type.
  */
 
 export type StatementHandle = {
   /** 0 → 1 sweep of the left-to-right character fill. */
   setFill: (g: number) => void;
-  /** Play/pause the support clip (only present in ribbon mode). */
-  setPlaying: (playing: boolean) => void;
-};
-
-// All four edges melt into the canvas: a long left ramp (so the type overlaps the
-// clip), a short right taper, and top/bottom feathers — a floating, frameless clip.
-const FEATHER: CSSProperties = {
-  WebkitMaskImage:
-    "linear-gradient(to right, transparent 0%, #000 30%, #000 86%, transparent 100%), linear-gradient(to bottom, transparent 0%, #000 10%, #000 90%, transparent 100%)",
-  maskImage:
-    "linear-gradient(to right, transparent 0%, #000 30%, #000 86%, transparent 100%), linear-gradient(to bottom, transparent 0%, #000 10%, #000 90%, transparent 100%)",
-  WebkitMaskComposite: "source-in",
-  maskComposite: "intersect",
 };
 
 // Per-character fill as a moving gradient. `f` (0..1) is how filled THIS glyph is;
@@ -56,7 +38,6 @@ const StatementPanel = forwardRef<StatementHandle, Props>(function StatementPane
   ref,
 ) {
   const charsRef = useRef<(HTMLSpanElement | null)[]>([]);
-  const videoRef = useRef<HTMLVideoElement>(null);
 
   // Flatten the lines into words (kept unbreakable) of characters, each carrying
   // its fill colour + a global sweep index.
@@ -92,12 +73,6 @@ const StatementPanel = forwardRef<StatementHandle, Props>(function StatementPane
           const f = Math.min(1, Math.max(0, sweep - i));
           el.style.backgroundImage = fillGradient(fills[i], s.ghost, f);
         }
-      },
-      setPlaying(playing: boolean) {
-        const v = videoRef.current;
-        if (!v) return;
-        if (playing) void v.play().catch(() => {});
-        else v.pause();
       },
     }),
     [model.total, fills, s.ghost],
@@ -164,48 +139,12 @@ const StatementPanel = forwardRef<StatementHandle, Props>(function StatementPane
     );
   }
 
-  // ── Ribbon: interactive write-on + bleeding clip ──
+  // ── Ribbon: the left-hand copy column; the ribbon centres it vertically and
+  //    sets the clip card beside it. ──
   return (
-    <div className="relative flex h-full w-full items-center overflow-hidden">
-      {/* Support clip — bleeds in on the right, feathered on every edge so it
-          floats on the canvas. Hidden on narrow screens (handled by fallback). */}
-      <div
-        className="absolute right-0 top-0 hidden h-full w-[min(60vw,980px)] will-change-[transform,opacity] md:block"
-        style={FEATHER}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element -- video, not img */}
-        <video
-          ref={videoRef}
-          className="h-full w-full object-cover"
-          src={s.video.src}
-          poster={s.video.poster}
-          muted
-          loop
-          playsInline
-          preload="metadata"
-          tabIndex={-1}
-        />
-      </div>
-
-      {/* Key light — art direction per world. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 z-[1]"
-        style={{ background: s.keyLight }}
-      />
-
-      {/* Left legibility wash so the copy reads cleanly over the melted edge. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 z-[2]"
-        style={{ background: s.wash }}
-      />
-
-      {/* Left: the statement — ragged left. */}
-      <div className={`relative z-10 w-full px-[min(6vw,5rem)] text-left ${s.columnClass}`}>
-        {marker}
-        {heading}
-      </div>
+    <div className="w-full text-left">
+      {marker}
+      {heading}
     </div>
   );
 });

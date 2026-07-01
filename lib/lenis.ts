@@ -13,6 +13,17 @@ let lenisInstance: Lenis | null = null;
 const LENIS_DURATION = 1.1;
 
 /**
+ * Freeze / resume the smooth-scroll driver — used by full-screen overlays (e.g.
+ * the worlds video lightbox) so the pinned ribbon underneath can't scroll while a
+ * modal is open. No-op when Lenis is off (reduced motion / SSR).
+ */
+export function setSmoothScrollPaused(paused: boolean) {
+  if (!lenisInstance) return;
+  if (paused) lenisInstance.stop();
+  else lenisInstance.start();
+}
+
+/**
  * Smoothly scroll to the top, or to a target (selector / element / offset).
  * Falls back to native scrolling when Lenis is off (reduced motion).
  */

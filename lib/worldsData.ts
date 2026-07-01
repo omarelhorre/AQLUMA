@@ -144,8 +144,11 @@ export const WORLDS: World[] = [
       {
         n: 3,
         fx: 0.9,
-        left: "99%",
-        v: { top: "30%" },
+        // Caption sits in the open wall to the RIGHT of the notebooks (the gallery
+        // no longer clips captions), so the copy reads on the bare canvas instead
+        // of overlapping the photo.
+        left: "101%",
+        v: { top: "34%" },
         img: "/responsive/briefing/3.jpeg",
         wide: true,
         widthClass: "w-[min(22rem,25vw)]",
@@ -188,7 +191,9 @@ export const WORLDS: World[] = [
       text: "Un silence de galerie. Les réponses inexactes sont exposées sur des piédestaux. On apprend à observer ce que les autres ignorent.",
     },
     image: "/musee-world.jpg",
-    zoomW: 185,
+    // Matches the other worlds' zoom (was 185): the pedestals sit far enough apart
+    // that each fills its own frame instead of crowding the view.
+    zoomW: 250,
     frameBlend: 52,
     blocks: [
       {
@@ -260,7 +265,9 @@ export const WORLDS: World[] = [
       text: "L'atelier de création. Papier, table, intention. Ici, l'IA n'est qu'un pinceau parmi d'autres. L'œuvre finale appartient à l'adolescent.",
     },
     image: "/studio-world.jpg",
-    zoomW: 165,
+    // Matches Briefing's zoom (was 165): objects sit ~85vw apart so each fills its
+    // own frame instead of neighbours overflowing into view.
+    zoomW: 250,
     frameBlend: 52,
     focusY: 0.33,
     blocks: [
@@ -293,8 +300,11 @@ export const WORLDS: World[] = [
       {
         n: 3,
         fx: 0.85,
-        left: "97%",
-        v: { top: "40%" },
+        // Sits in the open wall to the RIGHT of the portfolio sheets (captions are
+        // no longer clipped), so the copy reads on the bare canvas instead of
+        // overlapping the photo. The pin's final stop frames both.
+        left: "102%",
+        v: { top: "34%" },
         img: "/responsive/studio/3.jpeg",
         wide: true,
         widthClass: "w-[min(22rem,25vw)]",
