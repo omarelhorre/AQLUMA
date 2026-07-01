@@ -72,6 +72,15 @@ function hexToRgb(hex: string): [number, number, number] {
 const RGBS = WORLDS.map((w) => hexToRgb(w.bg));
 const RGB0 = `${RGBS[0][0]} ${RGBS[0][1]} ${RGBS[0][2]}`;
 
+// Colour of the clip card's thick hover border, chosen per world to pop against
+// its wall: white on terracotta (Briefing), gold on the void (Musée), ink on
+// paper (Studio).
+const CLIP_HOVER: Record<string, string> = {
+  briefing: "#F7F4EF",
+  musee: "#E8B23A",
+  studio: "#1A1714",
+};
+
 type Span = { l: number; r: number; c: number };
 type Seg = { d: number; a: number; b: number; io: boolean };
 type Cap = { el: HTMLElement; c: number }; // caption element + its focus centre (track px)
@@ -386,8 +395,8 @@ export default function WorldsRibbon() {
     // midpoint between their objects, then the outgoing one is fully gone well
     // before its neighbour's object reaches centre.
     const applyCaptions = (cx: number) => {
-      const hold = geo.innerW * 0.22; // full while roughly centred
-      const fade = geo.innerW * 0.34; // dissolve over the next third of a screen
+      const hold = geo.innerW * 0.33; // full while the caption owns the frame
+      const fade = geo.innerW * 0.19; // then a quick dissolve as it leaves centre
       for (const cap of geo.caps) {
         const dist = Math.abs(cap.c - cx);
         cap.el.style.opacity = String(clamp01(1 - (dist - hold) / fade));
@@ -504,6 +513,7 @@ export default function WorldsRibbon() {
                       }}
                       video={world.statement.video}
                       tone={world.tone}
+                      hoverBorder={CLIP_HOVER[world.id]}
                       onOpen={() => setLightbox(world.statement.video.src)}
                     />
                   </div>

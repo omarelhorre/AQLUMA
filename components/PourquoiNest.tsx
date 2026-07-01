@@ -35,6 +35,36 @@ const NEST = [
   "Une application ou un abonnement numérique.",
 ];
 
+// lg+ orbit stations around the centred title — six points on a wide ellipse,
+// each drifting on a slow, phase-offset path (see globals `aq-orbit-*`).
+const ORBIT = [
+  { left: "50%", top: "11%", anim: "aq-orbit-a 17s ease-in-out 0s infinite" },
+  { left: "87%", top: "30%", anim: "aq-orbit-b 21s ease-in-out -5s infinite" },
+  { left: "87%", top: "70%", anim: "aq-orbit-a 19s ease-in-out -11s infinite" },
+  { left: "50%", top: "89%", anim: "aq-orbit-b 20s ease-in-out -3s infinite" },
+  { left: "13%", top: "70%", anim: "aq-orbit-a 22s ease-in-out -8s infinite" },
+  { left: "13%", top: "30%", anim: "aq-orbit-b 18s ease-in-out -14s infinite" },
+];
+
+/** One negative-space card — unchanged design; the warm paper stock + quiet ✕. */
+function NestCard({ t }: { t: string }) {
+  return (
+    <div className="flex h-full flex-col items-center justify-center gap-5 rounded-2xl border border-black/[0.06] bg-paper px-8 py-12 text-center shadow-[0_24px_60px_-32px_rgba(0,0,0,0.7)]">
+      <span
+        aria-hidden
+        className="block h-6 w-6 rounded-full border border-void/15 text-void/30"
+      >
+        <svg viewBox="0 0 20 20" className="h-full w-full" aria-hidden>
+          <path d="M6 6l8 8M14 6l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+      </span>
+      <p className="max-w-[22ch] font-satoshi text-[clamp(1.05rem,1.2vw,1.2rem)] leading-snug text-void/75">
+        {fr(t)}
+      </p>
+    </div>
+  );
+}
+
 export default function PourquoiNest() {
   return (
     <section
@@ -68,38 +98,67 @@ export default function PourquoiNest() {
           ))}
         </div>
 
-        {/* ── Convergence → Ce qu'AQLUMA n'est pas ── */}
+        {/* ── Convergence → Ce qu'AQLUMA n'est pas ──
+            lg+: the title holds dead-centre while the six cards orbit it on slow,
+            phase-offset paths. Below lg (and under reduced motion, which freezes
+            the drift) the cards fall back to the calm static grid. */}
         <div>
-          <Reveal className="mx-auto max-w-3xl text-center">
-            <div className="mb-6 flex justify-center">
-              <Kicker>Le cadre</Kicker>
-            </div>
-            <h2 className="section-title text-cream">
-              {fr("Ce qu'AQLUMA n'est pas")}
-            </h2>
-          </Reveal>
+          {/* lg+ · orbit */}
+          <div className="relative mx-auto hidden h-[46rem] max-w-[72rem] lg:block">
+            {/* faint centre light — the gravitational middle of the system */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute left-1/2 top-1/2 h-[34rem] w-[34rem] -translate-x-1/2 -translate-y-1/2"
+              style={{
+                background:
+                  "radial-gradient(closest-side, rgba(232,178,58,0.08), rgba(8,10,12,0) 70%)",
+              }}
+            />
 
-          {/* Negative-space cards — the SAME warm paper stock as the family deck,
-              so "what AQLUMA is not" reads consistently with the rest of the site.
-              Centred content, generous padding; a quiet ✕ keeps the negation cue. */}
-          <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {NEST.map((t, i) => (
-              <Reveal key={t} delay={i * 70}>
-                <div className="flex h-full flex-col items-center justify-center gap-5 rounded-2xl border border-black/[0.06] bg-paper px-8 py-12 text-center shadow-[0_24px_60px_-32px_rgba(0,0,0,0.7)]">
-                  <span
-                    aria-hidden
-                    className="block h-6 w-6 rounded-full border border-void/15 text-void/30"
-                  >
-                    <svg viewBox="0 0 20 20" className="h-full w-full" aria-hidden>
-                      <path d="M6 6l8 8M14 6l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                    </svg>
-                  </span>
-                  <p className="max-w-[22ch] font-satoshi text-[clamp(1.05rem,1.2vw,1.2rem)] leading-snug text-void/75">
-                    {fr(t)}
-                  </p>
+            {/* centred title */}
+            <div className="absolute left-1/2 top-1/2 z-10 w-[min(28rem,60%)] -translate-x-1/2 -translate-y-1/2 text-center">
+              <div className="mb-6 flex justify-center">
+                <Kicker>Le cadre</Kicker>
+              </div>
+              <h2 className="section-title text-cream">
+                {fr("Ce qu'AQLUMA n'est pas")}
+              </h2>
+            </div>
+
+            {/* orbiting cards */}
+            {NEST.map((t, i) => {
+              const o = ORBIT[i];
+              return (
+                <div
+                  key={t}
+                  className="absolute w-[clamp(15rem,19vw,17rem)] -translate-x-1/2 -translate-y-1/2 will-change-transform"
+                  style={{ left: o.left, top: o.top }}
+                >
+                  <div style={{ animation: o.anim }} className="will-change-transform">
+                    <NestCard t={t} />
+                  </div>
                 </div>
-              </Reveal>
-            ))}
+              );
+            })}
+          </div>
+
+          {/* < lg · static grid (unchanged design) */}
+          <div className="lg:hidden">
+            <Reveal className="mx-auto max-w-3xl text-center">
+              <div className="mb-6 flex justify-center">
+                <Kicker>Le cadre</Kicker>
+              </div>
+              <h2 className="section-title text-cream">
+                {fr("Ce qu'AQLUMA n'est pas")}
+              </h2>
+            </Reveal>
+            <div className="mt-14 grid gap-5 sm:grid-cols-2">
+              {NEST.map((t, i) => (
+                <Reveal key={t} delay={i * 70}>
+                  <NestCard t={t} />
+                </Reveal>
+              ))}
+            </div>
           </div>
         </div>
       </div>

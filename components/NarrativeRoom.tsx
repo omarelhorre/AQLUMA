@@ -8,6 +8,8 @@ import { fr } from "@/lib/typo";
 import PaperArtifact from "@/components/PaperArtifact";
 import Parallax from "@/components/Parallax";
 import Reveal from "@/components/Reveal";
+import ScrollFill from "@/components/ScrollFill";
+import CopierCue from "@/components/CopierCue";
 
 /**
  * SECTION 1 — Le constat → Une nouvelle réalité → La fausse solution → la voie.
@@ -21,6 +23,15 @@ import Reveal from "@/components/Reveal";
  */
 
 const VOIE = "Il faut une troisième voie.";
+
+// Fill targets = each paragraph's own resting colour, so the write-in changes the
+// motion, never the design. GHOST is the faint impression before the sweep.
+const CREAM = "rgb(247,244,239)";
+const CREAM_60 = "rgba(247,244,239,0.6)";
+const CREAM_55 = "rgba(247,244,239,0.55)";
+const GHOST = "rgba(247,244,239,0.12)";
+// Stable (module-scoped) so ScrollFill's memo/effect don't churn on re-render.
+const COPIER_RE = /copier/i;
 
 const CLAUSES: [string, string][] = [
   ["Lui interdire l'accès ?", "C'est le couper du monde qui vient."],
@@ -64,22 +75,23 @@ export default function NarrativeRoom() {
     gsap.registerPlugin(ScrollTrigger);
 
     const ctx = gsap.context(() => {
-      // Clauses — both occupy the SAME centred spot (a sticky stage holds them
-      // in place); scroll crossfades clause 1 → clause 2 through a blur, so the
-      // first transforms into the second without moving.
+      // Clauses — a sticky stage holds them centred while scroll drives a
+      // HORIZONTAL hand-off: clause 1 slides fully off the left as clause 2
+      // arrives from the right. The two sit exactly one viewport apart, so the
+      // outgoing sentence leaves the page completely (no gap, no blur).
       const region = clauseRegionRef.current;
       const c1 = clauseRefs.current[0];
       const c2 = clauseRefs.current[1];
       if (region && c1 && c2) {
-        // A single progress crossfades the two sentences in the SAME spot: as
-        // clause 1 blurs + fades out, clause 2 sharpens + fades in (both ~50% at
-        // the midpoint) — one sentence morphs into the other, no movement.
+        // Progress → a single left shift shared by both clauses. clause 1 travels
+        // 0 → -100vw (fully off the left edge); clause 2 travels +100vw → 0 (in
+        // from the right). Eased ends give each sentence a beat to read before /
+        // after it moves. The section's `overflow-x-clip` clips the exit.
         const apply = (p: number) => {
-          const s = smoothstep(0.22, 0.72, p);
-          c1.style.opacity = String(1 - s);
-          c1.style.filter = `blur(${s * 16}px)`;
-          c2.style.opacity = String(s);
-          c2.style.filter = `blur(${(1 - s) * 16}px)`;
+          const s = smoothstep(0.1, 0.9, p);
+          const w = window.innerWidth || 1200;
+          c1.style.transform = `translate3d(${-s * w}px,0,0)`;
+          c2.style.transform = `translate3d(${(1 - s) * w}px,0,0)`;
         };
         ScrollTrigger.create({
           trigger: region,
@@ -134,33 +146,35 @@ export default function NarrativeRoom() {
   return (
     <section id="constat" className="relative w-full overflow-x-clip bg-void">
       <div className="shell">
-        {/* ── Le constat ── */}
+        {/* ── Le constat — signature write-in; « copier » triggers the macOS copy cue ── */}
         <Beat>
-          <Reveal className="max-w-4xl">
-            <Label>Le constat</Label>
-            <h2 className="text-balance font-didot text-[clamp(2.4rem,5.4vw,4.6rem)] font-normal leading-[1.06] tracking-[-0.02em] text-cream">
-              {fr("Vous voyez votre adolescent copier-coller des réponses sans même les lire.")}
-            </h2>
-            <p className="mt-10 max-w-[46ch] text-pretty font-satoshi text-[clamp(1.2rem,1.7vw,1.65rem)] leading-relaxed text-cream/60">
-              {fr("L'IA est devenue un raccourci qui éteint l'effort. On croit qu'il travaille. Il ne fait que déléguer.")}
-            </p>
-          </Reveal>
+          <div className="max-w-4xl">
+            <Reveal>
+              <Label>Le constat</Label>
+            </Reveal>
+            <ScrollFill
+              as="h2"
+              className="text-balance font-didot text-[clamp(2.4rem,5.4vw,4.6rem)] font-normal leading-[1.06] tracking-[-0.02em]"
+              fill={CREAM}
+              ghost={GHOST}
+              highlight={COPIER_RE}
+              renderHighlight={(active) => <CopierCue active={active} />}
+              text="Vous voyez votre adolescent copier-coller des réponses sans même les lire."
+            />
+            <ScrollFill
+              as="p"
+              className="mt-10 max-w-[46ch] text-pretty font-satoshi text-[clamp(1.2rem,1.7vw,1.65rem)] leading-relaxed"
+              fill={CREAM_60}
+              ghost={GHOST}
+              text="L'IA est devenue un raccourci qui éteint l'effort. On croit qu'il travaille. Il ne fait que déléguer."
+            />
+          </div>
         </Beat>
 
-        {/* ── Une nouvelle réalité — statement + the library note ── */}
+        {/* ── Une nouvelle réalité — card LEFT, statement RIGHT (write-in) ── */}
         <Beat>
-          <div className="grid items-center gap-16 md:grid-cols-[1.1fr_0.9fr]">
-            <Reveal className="max-w-2xl">
-              <Label>Une nouvelle réalité</Label>
-              <p className="text-balance font-didot text-[clamp(1.9rem,3.4vw,3.1rem)] font-normal leading-[1.16] tracking-[-0.015em] text-cream">
-                {fr("Ces outils sont déjà dans sa chambre. La question n'est plus s'il les utilisera, mais comment.")}
-              </p>
-              <p className="mt-8 max-w-[44ch] font-satoshi text-[clamp(1.1rem,1.5vw,1.4rem)] leading-relaxed text-cream/55">
-                {fr("Il les utilise pour ses devoirs, ses exposés, ses questions.")}
-              </p>
-            </Reveal>
-
-            <Parallax speed={0.22} className="flex justify-center md:justify-end">
+          <div className="grid items-center gap-16 md:grid-cols-[0.9fr_1.1fr]">
+            <Parallax speed={0.22} className="flex justify-center md:justify-start">
               <Reveal y={48}>
                 <PaperArtifact variant="note" fastener="tape" tilt={-2.2} className="max-w-[27rem]">
                   <blockquote className="text-balance font-didot text-[clamp(1.75rem,2.4vw,2.1rem)] font-normal leading-[1.3]">
@@ -169,6 +183,26 @@ export default function NarrativeRoom() {
                 </PaperArtifact>
               </Reveal>
             </Parallax>
+
+            <div className="max-w-2xl">
+              <Reveal>
+                <Label>Une nouvelle réalité</Label>
+              </Reveal>
+              <ScrollFill
+                as="p"
+                className="text-balance font-didot text-[clamp(1.9rem,3.4vw,3.1rem)] font-normal leading-[1.16] tracking-[-0.015em]"
+                fill={CREAM}
+                ghost={GHOST}
+                text="Ces outils sont déjà dans sa chambre. La question n'est plus s'il les utilisera, mais comment."
+              />
+              <ScrollFill
+                as="p"
+                className="mt-8 max-w-[44ch] font-satoshi text-[clamp(1.1rem,1.5vw,1.4rem)] leading-relaxed"
+                fill={CREAM_55}
+                ghost={GHOST}
+                text="Il les utilise pour ses devoirs, ses exposés, ses questions."
+              />
+            </div>
           </div>
         </Beat>
 
@@ -194,8 +228,8 @@ export default function NarrativeRoom() {
                   <p
                     key={i}
                     ref={(el) => { clauseRefs.current[i] = el; }}
-                    className="absolute inset-0 mx-auto flex max-w-[22ch] items-center justify-center font-didot text-[clamp(2rem,4.2vw,3.6rem)] font-normal leading-[1.18] text-cream/55 will-change-[filter,transform,opacity]"
-                    style={{ opacity: i === 0 ? 1 : 0 }}
+                    className="absolute inset-0 mx-auto flex max-w-[22ch] items-center justify-center font-didot text-[clamp(2rem,4.2vw,3.6rem)] font-normal leading-[1.18] text-cream/55 will-change-transform"
+                    style={{ transform: i === 0 ? "translateX(0)" : "translateX(105vw)" }}
                   >
                     <span>
                       <span className="text-cream">{fr(c[0])}</span> {fr(c[1])}

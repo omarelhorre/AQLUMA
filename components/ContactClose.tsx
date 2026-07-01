@@ -7,6 +7,7 @@ import { config } from "@fortawesome/fontawesome-svg-core";
 import "@fortawesome/fontawesome-svg-core/styles.css";
 import { fr } from "@/lib/typo";
 import CtaButton from "@/components/CtaButton";
+import PromptTransform from "@/components/PromptTransform";
 import { CTA_SUPPORT_FINAL } from "@/lib/contact";
 import { smoothScrollTo } from "@/lib/lenis";
 import { useReducedMotion } from "@/lib/useReducedMotion";
@@ -39,7 +40,7 @@ const SITEMAP = [
   { label: "La Méthode", href: "#methode" },
   { label: "Les Mondes", href: "#mondes" },
   // { label: "Le Programme", href: "#programme" }, — parked with the Program section
-  { label: "Avis", href: "#avis" },
+  // { label: "Avis", href: "#avis" }, — testimonials removed
   { label: "FAQ", href: "#faq" },
   { label: "Contact", href: "#contact" },
 ];
@@ -81,19 +82,29 @@ export default function ContactClose() {
       </span>
 
       <div className="shell relative py-20 md:py-24">
-        {/* Closing statement — the quiet last word + one final CTA. */}
-        <div className="mb-16 max-w-3xl border-b border-cream/10 pb-14 md:mb-20 md:pb-16">
-          <p className="section-title text-cream">
-            {fr("L'IA sera dans sa vie.")}{" "}
-            <span className="text-cream/55">
-              {fr("La question est : avec quel jugement ?")}
-            </span>
-          </p>
-          <div className="mt-9 flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:gap-7">
-            <CtaButton size="md" />
-            <p className="max-w-[32ch] font-satoshi text-[0.9rem] leading-relaxed text-cream/45">
-              {fr(CTA_SUPPORT_FINAL)}
-            </p>
+        {/* Closing statement — the quiet last word + one final CTA on the left,
+            the « L'IA sera dans sa vie » transformation filling the right-hand
+            negative space (lg+). */}
+        <div className="mb-16 border-b border-cream/10 pb-14 md:mb-20 md:pb-16">
+          <div className="grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
+            <div className="max-w-3xl">
+              <p className="section-title text-cream">
+                {fr("L'IA sera dans sa vie.")}{" "}
+                <span className="text-cream/55">
+                  {fr("La question est : avec quel jugement ?")}
+                </span>
+              </p>
+              <div className="mt-9 flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:gap-7">
+                <CtaButton size="md" />
+                <p className="max-w-[32ch] font-satoshi text-[0.9rem] leading-relaxed text-cream/45">
+                  {fr(CTA_SUPPORT_FINAL)}
+                </p>
+              </div>
+            </div>
+
+            <div className="hidden lg:block">
+              <PromptTransform />
+            </div>
           </div>
         </div>
 

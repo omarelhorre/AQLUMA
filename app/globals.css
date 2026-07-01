@@ -244,6 +244,41 @@
   }
 }
 
+/* ── « Ce qu'AQLUMA n'est pas » orbit — the six cards drift on slow, phase-
+   offset elliptical paths around the centred title, like planets holding station
+   around a centre (see PourquoiNest). Small amplitude so the copy stays readable;
+   the global reduced-motion block below freezes them at rest. ── */
+@keyframes aq-orbit-a {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  25% {
+    transform: translate3d(7px, -10px, 0);
+  }
+  50% {
+    transform: translate3d(-4px, 6px, 0);
+  }
+  75% {
+    transform: translate3d(-8px, -4px, 0);
+  }
+}
+@keyframes aq-orbit-b {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  25% {
+    transform: translate3d(-8px, -6px, 0);
+  }
+  50% {
+    transform: translate3d(5px, 8px, 0);
+  }
+  75% {
+    transform: translate3d(7px, -5px, 0);
+  }
+}
+
 /* One-shot gold light pass across a card grid (PourquoiNest). */
 @keyframes methode-sweep {
   0% {

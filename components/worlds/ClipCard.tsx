@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef } from "react";
+import { forwardRef, type CSSProperties } from "react";
 import type { WorldStatement } from "@/lib/worldsData";
 
 /**
@@ -14,6 +14,8 @@ import type { WorldStatement } from "@/lib/worldsData";
 type Props = {
   video: WorldStatement["video"];
   tone: "dark" | "light";
+  /** Colour of the thick border that appears on hover (per world). */
+  hoverBorder: string;
   /** Open the full-screen lightbox for this clip. */
   onOpen: () => void;
 };
@@ -40,7 +42,7 @@ function ExpandIcon({ light }: { light: boolean }) {
 }
 
 const ClipCard = forwardRef<HTMLVideoElement, Props>(function ClipCard(
-  { video, tone, onOpen },
+  { video, tone, hoverBorder, onOpen },
   ref,
 ) {
   const light = tone === "light";
@@ -49,16 +51,19 @@ const ClipCard = forwardRef<HTMLVideoElement, Props>(function ClipCard(
       type="button"
       onClick={onOpen}
       aria-label="Agrandir la vidéo en plein écran"
-      className="group relative block w-full cursor-pointer overflow-hidden rounded-[1.4rem]"
+      // A near-invisible hairline at rest thickens into a bold, world-coloured
+      // border on hover. `box-border` (Tailwind default) means the border grows
+      // INWARD, so the card's outer box never shifts — no reflow.
+      className={`group relative block w-full cursor-pointer overflow-hidden rounded-[0.75rem] border-[1.5px] transition-[border-color,border-width] duration-300 ease-editorial hover:border-[3px] hover:border-[color:var(--clip-hover)] ${
+        light ? "border-[rgba(26,23,20,0.08)]" : "border-[rgba(247,244,239,0.10)]"
+      }`}
       style={{
         aspectRatio: "16 / 10",
-        border: light
-          ? "2px solid rgba(26,23,20,0.22)"
-          : "2px solid rgba(247,244,239,0.5)",
+        ["--clip-hover" as string]: hoverBorder,
         boxShadow: light
-          ? "0 30px 64px -32px rgba(26,23,20,0.4)"
-          : "0 32px 66px -32px rgba(0,0,0,0.65)",
-      }}
+          ? "0 24px 54px -34px rgba(26,23,20,0.36)"
+          : "0 26px 58px -34px rgba(0,0,0,0.6)",
+      } as CSSProperties}
     >
       {/* eslint-disable-next-line @next/next/no-img-element -- video, not img */}
       <video

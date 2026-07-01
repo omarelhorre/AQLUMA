@@ -11,8 +11,8 @@ import { fr } from "@/lib/typo";
  * LA MÉTHODE — six gestes (id="methode").
  *
  * A pinned, scrubbed section. The six gestes sit as a column of hairline rows;
- * each starts faint + blurred and resolves to full focus one at a time as the
- * page scrolls, the earlier ones holding once revealed. A gold rail runs down the
+ * each slides in from the right and fades up, one at a time as the page scrolls,
+ * the earlier ones holding once revealed. A gold rail runs down the
  * left of the column with a glowing marker that travels alongside the geste being
  * revealed — an elegant progress thread, not a flashy reveal.
  *
@@ -92,16 +92,18 @@ export default function LaMethode() {
     const N = GESTES.length;
 
     const apply = (p: number) => {
-      // active position runs 0 → N across the scrub; each row reveals as the
-      // sweep passes it and holds once revealed.
+      // active position runs 0 → N across the scrub; each row slides in from the
+      // RIGHT and fades up as the sweep reaches it, then holds once revealed. The
+      // +0.6 lead keeps the first row partly in on entry so the column is never
+      // fully empty.
       const active = p * N;
       for (let i = 0; i < N; i++) {
         const el = cardsRef.current[i];
         if (!el) continue;
-        const r = Math.min(1, Math.max(0, active - i));
-        el.style.filter = `blur(${(1 - r) * 7}px)`;
-        el.style.opacity = String(0.28 + 0.72 * r);
-        el.style.transform = `translateY(${(1 - r) * 18}px)`;
+        const r = Math.min(1, Math.max(0, active - i + 0.6));
+        const e = r * r * (3 - 2 * r); // ease the slide-in
+        el.style.opacity = String(e);
+        el.style.transform = `translateX(${(1 - e) * 100}px)`;
       }
       const rail = railRef.current;
       if (rail) {
@@ -143,7 +145,7 @@ export default function LaMethode() {
         className="h-screen w-full"
         style={{ display: still ? "none" : "block" }}
       >
-        <div className="shell grid h-full grid-cols-[0.62fr_1.38fr] items-center gap-20">
+        <div className="mx-auto grid h-full w-full max-w-[1200px] grid-cols-[0.72fr_1fr] items-center gap-16 px-6 md:px-10">
           <Header />
 
           <div className="flex items-stretch gap-8">
@@ -169,7 +171,7 @@ export default function LaMethode() {
                   ref={(el) => {
                     cardsRef.current[i] = el;
                   }}
-                  className="will-change-[transform,opacity,filter]"
+                  className="will-change-[transform,opacity]"
                 >
                   <GesteRow g={g} />
                 </div>

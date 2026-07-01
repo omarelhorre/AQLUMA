@@ -10,7 +10,7 @@ import { CAL_LINK, CAL_CONFIG } from "@/lib/cal";
 // to live section ids; clicks smooth-scroll with the fixed-header offset.
 const SECTIONS = [
   { id: "programme", label: "Le Programme" },
-  { id: "avis", label: "Avis" },
+  // { id: "avis", label: "Avis" }, — testimonials removed
   { id: "faq", label: "FAQ" },
 ];
 

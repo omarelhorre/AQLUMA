@@ -228,8 +228,11 @@ export default function FamilyCards() {
                     key={li}
                     ref={(el) => { (layerRefs.current[i] ||= [])[li] = el; }}
                     className={[
-                      "absolute inset-0 flex items-center px-9 leading-snug",
-                      li === 0 ? "font-didot text-[clamp(1.15rem,1.5vw,1.45rem)] text-void" : "font-satoshi text-[clamp(1rem,1.2vw,1.15rem)] text-void/75",
+                      // Uniform type across all three morph states — one family
+                      // + one size, so a card's text never changes font as it
+                      // reorganises (only the colour weight distinguishes them).
+                      "absolute inset-0 flex items-center px-9 font-didot text-[clamp(1.15rem,1.5vw,1.45rem)] leading-snug",
+                      li === 0 ? "text-void" : "text-void/75",
                     ].join(" ")}
                     style={{ opacity: li === 0 ? 1 : 0 }}
                   >
