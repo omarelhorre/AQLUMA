@@ -239,7 +239,8 @@ export default function FamilyCards() {
                         // Uniform type across all three morph states — one family
                         // + one size, so a card's text never changes font as it
                         // reorganises (only the colour weight distinguishes them).
-                        "absolute inset-0 flex items-center px-9 font-didot text-[clamp(1.15rem,1.5vw,1.45rem)] leading-snug",
+                        // Satoshi bold: the same voice as the FAQ questions.
+                        "absolute inset-0 flex items-center px-9 font-satoshi text-[clamp(1.05rem,1.35vw,1.3rem)] font-bold leading-snug tracking-tight",
                         li === 0 ? "text-void" : "text-void/75",
                       ].join(" ")}
                       style={{ opacity: li === 0 ? 1 : 0 }}
@@ -256,7 +257,7 @@ export default function FamilyCards() {
 
       {/* ── Static rendering (reduced motion / narrow) ── */}
       <div className="shell flex-col gap-16 py-24 md:py-32" style={{ display: still ? "flex" : "none" }}>
-        <StaticGroup kicker="Famille" title="Ce que vous entendez à la maison" items={HOME.slice(0, 3)} didot />
+        <StaticGroup kicker="Famille" title="Ce que vous entendez à la maison" items={HOME.slice(0, 3)} />
         <StaticGroup kicker="Pratique" title="Ce que chaque adolescent pratique" sub="À chaque session, il ne subit pas l'IA — il la travaille." items={PRACTICE} />
         <StaticGroup kicker="Parents" title="Ce que les parents reçoivent" items={PARENTS} />
       </div>
@@ -264,7 +265,7 @@ export default function FamilyCards() {
   );
 }
 
-function StaticGroup({ kicker, title, sub, items, didot }: { kicker: string; title: string; sub?: string; items: string[]; didot?: boolean }) {
+function StaticGroup({ kicker, title, sub, items }: { kicker: string; title: string; sub?: string; items: string[] }) {
   return (
     <Reveal>
       <div className="mb-7">
@@ -275,7 +276,8 @@ function StaticGroup({ kicker, title, sub, items, didot }: { kicker: string; tit
       <div className="mt-8 grid gap-4 sm:grid-cols-2">
         {items.map((t) => (
           <div key={t} className="rounded-2xl border border-black/[0.06] bg-paper px-8 py-6 shadow-[0_24px_60px_-32px_rgba(0,0,0,0.7)]">
-            <p className={didot ? "font-didot text-[1.3rem] text-void" : "font-satoshi text-[1.05rem] text-void/75"}>{fr(t)}</p>
+            {/* Satoshi bold — the same voice as the FAQ questions and the deck. */}
+            <p className="font-satoshi text-[1.05rem] font-bold tracking-tight text-void/80">{fr(t)}</p>
           </div>
         ))}
       </div>

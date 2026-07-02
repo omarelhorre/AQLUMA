@@ -4,6 +4,7 @@ import { type CSSProperties } from "react";
 import Parallax from "@/components/Parallax";
 import Reveal from "@/components/Reveal";
 import Kicker from "@/components/Kicker";
+import CompassMark from "@/components/CompassMark";
 import { fr } from "@/lib/typo";
 
 /**
@@ -112,10 +113,16 @@ export default function Worlds() {
           <Reveal delay={60}>
             <h2 className="font-didot text-[clamp(2.4rem,5vw,4.2rem)] font-normal leading-[1.04] tracking-[-0.02em] text-cream">
               Trois mondes à{" "}
-              <span className="underline decoration-2 underline-offset-[8px] decoration-gold">
-                explorer
+              {/* nowrap: the compass stays glued to « explorer. » instead of
+                  ever wrapping alone onto its own line */}
+              <span className="whitespace-nowrap">
+                <span className="underline decoration-[3px] underline-offset-[8px] decoration-gold">
+                  explorer
+                </span>
+                .
+                {/* the needle searches, then settles toward the worlds below */}
+                <CompassMark className="ml-4 inline-block h-[0.6em] w-[0.6em] -translate-y-[0.05em] align-baseline" />
               </span>
-              .
             </h2>
           </Reveal>
           <Reveal delay={120}>

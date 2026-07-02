@@ -1,4 +1,5 @@
 import Header from "@/components/Header";
+import IntroReveal from "@/components/IntroReveal";
 import ActDoor from "@/components/ActDoor";
 import NarrativeRoom from "@/components/NarrativeRoom";
 import LaMethode from "@/components/LaMethode";
@@ -40,6 +41,9 @@ import ContactClose from "@/components/ContactClose";
 export default function Home() {
   return (
     <>
+      {/* Premium loading beat — black screen, the mark wakes, aperture reveal.
+          One play per page load (see IntroReveal). */}
+      <IntroReveal />
       <Header />
       <JourneyThread />
       <main id="top" className="relative">

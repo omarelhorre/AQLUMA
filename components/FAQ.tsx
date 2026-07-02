@@ -81,7 +81,7 @@ export default function FAQ() {
         {/* LEFT — section header, sticky beside the questions like the act intros. */}
         <header className="lg:sticky lg:top-28 lg:self-start" style={enter(0, 16)}>
           <div className="mb-6 flex items-center gap-3.5">
-            <span className="font-satoshi text-[0.95rem] font-bold text-gold">
+            <span className="font-satoshi text-[0.95rem] font-bold tracking-tight text-gold">
               FAQ
             </span>
           </div>

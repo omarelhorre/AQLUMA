@@ -19,11 +19,14 @@ import { fr } from "@/lib/typo";
  * the grain shows through the strokes. An aged-edge vignette and a soft fold
  * crease finish the sheet, so it reads as written by hand, not typeset.
  *
- * On enter it plays ONCE, physically: the pin sets, the sheet swings the last few
- * degrees into place from the pin (soft, no bounce, one tiny settle), then the
- * quote WRITES itself — each word wipes on left→right at a pen-like pace
- * (duration ∝ word length, a beat between words, a longer one at line ends) —
- * and a single warm light passes across the sheet. Then everything is still.
+ * On enter the pin sets and the sheet swings the last few degrees into place
+ * (soft, no bounce, one tiny settle) — once. The quote then writes itself
+ * SCRUBBED BY SCROLL: a pen-pace model (per-character costs — wide glyphs slow,
+ * thin ones quick — a breath between words, a longer travel at line ends, and a
+ * sine-eased velocity inside each word so the pen accelerates mid-word) maps
+ * scroll progress to left→right wipes; the soft scrub catch-up keeps the nib
+ * moving between scroll ticks. Stop scrolling and the pen rests mid-sentence.
+ * When the last word lands, a single warm light passes across the sheet — once.
  * On desktop the sheet holds an almost-imperceptible cursor parallax (<1° tilt,
  * the ambient shadow + sheen shifting with it). Reduced motion → at rest, fully
  * written.
@@ -59,13 +62,45 @@ const JITTER = [
 ];
 const jitterFor = (li: number, wi: number) => JITTER[(li * 3 + wi) % JITTER.length];
 
+// ── Pen-pace model ───────────────────────────────────────────────────────────
+// Each word's writing time is the sum of its characters' costs: wide glyphs
+// (loops, capitals, guillemets) slow the pen, thin strokes are quick, and a
+// cycled wobble keeps the speed human. Between words the pen breathes (+0.85);
+// at line ends it travels to the next line (+2.4). Costs are normalised into
+// [0,1] thresholds so scroll progress can drive the whole quote.
+const PACE = [1, 1.18, 0.86, 1.08, 0.78, 1.22, 0.94, 1.12];
+const charCost = (ch: string, k: number) =>
+  (/[mwMWGOQ«»bhq]/.test(ch) ? 1.35 : /[iljt'’.,;:  ]/.test(ch) ? 0.6 : 1) *
+  PACE[k % PACE.length];
+
+const WRITE = (() => {
+  let acc = 0;
+  let k = 0;
+  const words: { start: number; cost: number }[] = [];
+  LINES.forEach((line) => {
+    fr(line.t)
+      .split(" ")
+      .forEach((w) => {
+        const cost = [...w].reduce((s, ch) => s + charCost(ch, k++), 0);
+        words.push({ start: acc, cost });
+        acc += cost + 0.85;
+      });
+    acc += 2.4;
+  });
+  return { words, total: acc };
+})();
+
+// sine in-out — the nib accelerates through the middle of a word and eases at
+// its first and last strokes.
+const penEase = (v: number) => 0.5 - Math.cos(Math.PI * v) / 2;
+
 const TILT = -2.2; // resting tilt of the pinned sheet (deg)
 const PIN_X = "47%"; // the pin is a touch off-centre — nobody pins dead-centre
 
-// Write-on clip states — generous vertical overshoot so ascenders/descenders and
-// the per-line rotation are never clipped mid-wipe.
+// Write-on clip resting state — generous vertical overshoot so ascenders,
+// descenders and the per-line rotation are never clipped mid-wipe. The scrubbed
+// paint() sweeps the right inset 102% → -3% as the pen crosses each word.
 const WORD_HIDDEN = "inset(-30% 102% -30% -3%)";
-const WORD_SHOWN = "inset(-30% -3% -30% -3%)";
 
 // Layered shadow: tight contact + mid + soft ambient — believable depth, not one blur.
 const PAPER_SHADOW =
@@ -79,12 +114,50 @@ export default function PaperNote({ className = "" }: { className?: string }) {
   const reduced = useReducedMotion();
   const wrapRef = useRef<HTMLDivElement>(null);
   const paperRef = useRef<HTMLDivElement>(null);
+  const quoteRef = useRef<HTMLQuoteElement>(null);
   const shadowRef = useRef<HTMLDivElement>(null);
   const pinRef = useRef<HTMLDivElement>(null);
   const sheenRef = useRef<HTMLDivElement>(null);
   const sweepRef = useRef<HTMLDivElement>(null);
   // words grouped per line, so the writing rhythm can pause at line ends
   const wordRefs = useRef<(HTMLSpanElement | null)[][]>([]);
+
+  // ── Fit the script to the sheet ──
+  // The handwriting must OCCUPY the sheet: measure every line's true width in
+  // the loaded Caveat face (canvas, no layout thrash) and size the font so the
+  // widest line — indent included — spans the writing width. Runs at mount, when
+  // the webfont's real metrics land, and on any resize of the sheet.
+  useEffect(() => {
+    const quote = quoteRef.current;
+    const paper = paperRef.current;
+    if (!quote || !paper) return;
+
+    const ctx2d = document.createElement("canvas").getContext("2d");
+    if (!ctx2d) return;
+    const PROBE = 100;
+
+    const fit = () => {
+      const cs = getComputedStyle(quote);
+      const inner =
+        quote.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+      if (inner <= 0) return;
+      ctx2d.font = `${cs.fontWeight} ${PROBE}px ${cs.fontFamily}`;
+      let size = Infinity;
+      for (const line of LINES) {
+        const em = ctx2d.measureText(fr(line.t)).width / PROBE;
+        if (em > 0) size = Math.min(size, (inner - line.indent) / em);
+      }
+      if (!isFinite(size)) return;
+      // 0.965 leaves the hair of right margin a hand would; clamp for sanity.
+      quote.style.fontSize = `${Math.min(Math.max(size * 0.965, 18), 72)}px`;
+    };
+
+    fit();
+    document.fonts?.ready.then(fit).catch(() => {});
+    const ro = new ResizeObserver(fit);
+    ro.observe(paper);
+    return () => ro.disconnect();
+  }, []);
 
   // ── Entrance (once) ──
   useEffect(() => {
@@ -95,41 +168,55 @@ export default function PaperNote({ className = "" }: { className?: string }) {
     gsap.registerPlugin(ScrollTrigger);
 
     const ctx = gsap.context(() => {
-      const lineWords = wordRefs.current.map(
-        (l) => (l || []).filter(Boolean) as HTMLSpanElement[],
-      );
+      const words = wordRefs.current
+        .flatMap((l) => l || [])
+        .filter(Boolean) as HTMLSpanElement[];
       gsap.set(paper, { rotation: TILT + 4.5, transformOrigin: `${PIN_X} 18px` });
       gsap.set(pinRef.current, { opacity: 0, scale: 0.55, transformOrigin: "50% 50%" });
-      gsap.set(lineWords.flat(), { clipPath: WORD_HIDDEN });
+      gsap.set(words, { clipPath: WORD_HIDDEN });
       gsap.set(sweepRef.current, { xPercent: -140, opacity: 0 });
 
-      const tl = gsap.timeline({ paused: true });
-
-      // the pin sets first…
-      tl.to(pinRef.current, { opacity: 1, scale: 1, duration: 0.32, ease: "power2.out" }, 0);
-      // …the sheet swings into place from it, then one tiny settle (no bounce)
-      tl.to(paper, { rotation: TILT - 0.6, duration: 0.95, ease: "power3.out" }, 0.1)
+      // ── The physical entrance — once. The pin sets, the sheet swings in. ──
+      const hang = gsap.timeline({ paused: true });
+      hang
+        .to(pinRef.current, { opacity: 1, scale: 1, duration: 0.32, ease: "power2.out" }, 0)
+        .to(paper, { rotation: TILT - 0.6, duration: 0.95, ease: "power3.out" }, 0.1)
         .to(paper, { rotation: TILT, duration: 0.55, ease: "power2.inOut" }, 1.05);
+      ScrollTrigger.create({ trigger: wrap, start: "top 80%", once: true, onEnter: () => hang.play() });
 
-      // …then the quote writes itself, word by word, at a pen's pace
-      let t = 1.0;
-      lineWords.forEach((words) => {
-        words.forEach((w) => {
-          const len = (w.textContent || "").length;
-          const d = Math.max(0.16, len * 0.04);
-          tl.to(w, { clipPath: WORD_SHOWN, duration: d, ease: "power1.inOut" }, t);
-          t += d + 0.055;
-        });
-        t += 0.1; // the pen travels to the next line
+      // ── The writing — scrubbed by scroll at the pen's pace. ──
+      const { words: model, total } = WRITE;
+      const prev: number[] = new Array(words.length).fill(-1);
+      let swept = false;
+      const paint = (p: number) => {
+        for (let i = 0; i < words.length; i++) {
+          const m = model[i];
+          if (!m) break;
+          const v = Math.min(1, Math.max(0, (p * total - m.start) / m.cost));
+          if (v === prev[i]) continue;
+          prev[i] = v;
+          const e = v <= 0 ? 0 : v >= 1 ? 1 : penEase(v);
+          words[i].style.clipPath = `inset(-30% ${102 - e * 105}% -30% -3%)`;
+        }
+        // the last word lands → one warm light passes across the sheet, once
+        if (p > 0.995 && !swept) {
+          swept = true;
+          gsap
+            .timeline()
+            .to(sweepRef.current, { opacity: 1, duration: 0.4, ease: "power1.out" }, 0)
+            .to(sweepRef.current, { xPercent: 240, duration: 1.9, ease: "power1.inOut" }, 0)
+            .to(sweepRef.current, { opacity: 0, duration: 0.6, ease: "power1.in" }, 1.3);
+        }
+      };
+
+      const proxy = { p: 0 };
+      gsap.to(proxy, {
+        p: 1,
+        ease: "none",
+        scrollTrigger: { trigger: wrap, start: "top 72%", end: "center 40%", scrub: 0.45 },
+        onUpdate: () => paint(proxy.p),
       });
-
-      // one warm light passes across the sheet, then stops
-      const sweepAt = t + 0.35;
-      tl.to(sweepRef.current, { opacity: 1, duration: 0.4, ease: "power1.out" }, sweepAt)
-        .to(sweepRef.current, { xPercent: 240, duration: 1.9, ease: "power1.inOut" }, sweepAt)
-        .to(sweepRef.current, { opacity: 0, duration: 0.6, ease: "power1.in" }, sweepAt + 1.3);
-
-      ScrollTrigger.create({ trigger: wrap, start: "top 80%", once: true, onEnter: () => tl.play() });
+      paint(0);
     }, wrap);
 
     return () => ctx.revert();
@@ -167,7 +254,14 @@ export default function PaperNote({ className = "" }: { className?: string }) {
   }, [reduced]);
 
   return (
-    <div ref={wrapRef} className={`relative isolate ${className}`} style={{ perspective: "1100px" }}>
+    <div
+      ref={wrapRef}
+      className={`relative isolate ${className}`}
+      // inline-size container: the handwriting is sized in cqi against the
+      // SHEET's width (below), so the script keeps one proportion at any note
+      // size instead of growing with the viewport until lines wrap.
+      style={{ perspective: "1100px", containerType: "inline-size" }}
+    >
       {/* soft ambient shadow — shifts with the parallax to sell depth */}
       <div
         ref={shadowRef}
@@ -265,13 +359,16 @@ export default function PaperNote({ className = "" }: { className?: string }) {
         />
 
         <blockquote
+          ref={quoteRef}
           className="relative z-10 px-9 pb-10 pt-12 font-semibold"
           style={{
             // Inline var (not Tailwind's `font-hand`): utilities from a config
             // edit only exist after a dev-server restart; the next/font variable
             // is always on <html>, so the handwriting can never fall back.
             fontFamily: "var(--font-hand)",
-            fontSize: "clamp(1.7rem, 2.6vw, 2.65rem)",
+            // Pre-JS fallback only — the fit effect above replaces this with a
+            // measured size so the widest line spans the sheet's writing width.
+            fontSize: "clamp(1.35rem, 8.1cqi, 2.6rem)",
             lineHeight: 1.3,
             // warm ink + a sub-pixel bleed halo — pen soaked into fibre. Multiply
             // lets the paper grain show through the strokes, so the writing sits

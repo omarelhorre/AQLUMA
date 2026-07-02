@@ -188,17 +188,21 @@ export default function NarrativeRoom() {
             {/* Paper drops to the statement's baseline (past the label) so the note
                 and the copy sit on one shared editorial line, not two. A whisper of
                 parallax lets the paper drift against the statement for depth. */}
-            <div className="flex justify-center md:justify-start md:pt-[3.75rem]">
+            <div className="flex justify-center md:pt-[3.75rem]">
               {/* w-full capped by max-w (not a fixed w + max-w-full): a fixed
-                  width sets the grid track's min-content floor to 31rem, which
-                  overflows narrow viewports — the track ignores % max-widths
-                  while sizing itself. */}
-              <Parallax speed={0.06} className="w-full max-w-[31rem]">
+                  width sets the grid track's min-content floor, which overflows
+                  narrow viewports — the track ignores % max-widths while sizing
+                  itself. Centred in its track so the leftover column space
+                  distributes evenly around the artifact. */}
+              <Parallax speed={0.06} className="w-full max-w-[30rem]">
                 <PaperNote className="w-full" />
               </Parallax>
             </div>
 
-            <div className="max-w-3xl">
+            {/* Full track (no max-w cap): the statement's lines run the column,
+                so the band ends where the shell ends instead of leaving a dark
+                strip on the right. */}
+            <div>
               <Reveal>
                 <Label>Une nouvelle réalité</Label>
               </Reveal>

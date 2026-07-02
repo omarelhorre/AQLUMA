@@ -1,14 +1,11 @@
 "use client";
 
-import { Fragment, useMemo, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFacebookF, faInstagram, faLinkedinIn, faWhatsapp } from "@fortawesome/free-brands-svg-icons";
 import { config } from "@fortawesome/fontawesome-svg-core";
 import "@fortawesome/fontawesome-svg-core/styles.css";
 import { fr } from "@/lib/typo";
 import { smoothScrollTo } from "@/lib/lenis";
-import { useReducedMotion } from "@/lib/useReducedMotion";
-import { useScrubbedFill } from "@/lib/useScrubbedFill";
 
 // We import the Font Awesome CSS ourselves, so disable its runtime auto-injection
 // (prevents the icons flashing oversized before the stylesheet loads).
@@ -164,82 +161,16 @@ export default function ContactClose() {
   );
 }
 
-// ── footer manifesto write-in ────────────────────────────────────────────────
-// The brand line writes itself in (per-character, left→right) as the footer
-// scrolls into view — the same signature sweep as the heroes / Programme, scrubbed
-// by scroll. Kept in the footer's quiet register: it fills to a soft cream (≈ the
-// original cream/55), rising from a faint ghost. Reduced motion → solid.
+// ── footer manifesto ─────────────────────────────────────────────────────────
+// A plain, quiet paragraph — the write-in fill was removed on purpose (at rest
+// mid-fill it read as broken, not as motion). Soft cream, regular weight.
 const FOOT_LINE =
   "Refuser de se fondre dans la machine. Nous formons des esprits qui pensent avec l'IA, sans jamais lui céder leur voix.";
-const FOOT_FILL = "rgba(247,244,239,0.6)"; // soft cream — matches the quiet tone
-const FOOT_GHOST = "rgba(247,244,239,0.14)"; // faint impression before it fills
-
-function footerFill(fill: string, f: number): string {
-  if (f >= 1) return `linear-gradient(90deg, ${fill}, ${fill})`;
-  if (f <= 0) return `linear-gradient(90deg, ${FOOT_GHOST}, ${FOOT_GHOST})`;
-  const a = Math.max(0, f * 100 - 2);
-  const b = Math.min(100, f * 100 + 2);
-  return `linear-gradient(90deg, ${fill} 0%, ${fill} ${a}%, ${FOOT_GHOST} ${b}%, ${FOOT_GHOST} 100%)`;
-}
 
 function FooterManifesto() {
-  const reduced = useReducedMotion();
-  const pRef = useRef<HTMLParagraphElement>(null);
-  const spans = useRef<(HTMLSpanElement | null)[]>([]);
-  const words = useMemo(() => {
-    let i = 0;
-    return fr(FOOT_LINE)
-      .split(" ")
-      .map((w) => ({ chars: [...w].map((ch) => ({ ch, i: i++ })) }));
-  }, []);
-  const total = useMemo(
-    () => words.reduce((n, w) => n + w.chars.length, 0),
-    [words],
-  );
-  const fills = useMemo(
-    () => words.flatMap((w) => w.chars.map(() => FOOT_FILL)),
-    [words],
-  );
-  useScrubbedFill({
-    enabled: !reduced,
-    containerRef: pRef,
-    spansRef: spans,
-    fills,
-    total,
-    fillGradient: footerFill,
-  });
   return (
-    <p
-      ref={pRef}
-      className="mt-5 max-w-[34ch] text-pretty font-satoshi text-[0.95rem] leading-relaxed"
-    >
-      {words.map((word, wi) => (
-        <Fragment key={wi}>
-          <span className="inline-block whitespace-nowrap">
-            {word.chars.map((c) => (
-              <span
-                key={c.i}
-                ref={(el) => {
-                  spans.current[c.i] = el;
-                }}
-                style={
-                  reduced
-                    ? { color: FOOT_FILL }
-                    : {
-                        backgroundImage: footerFill(FOOT_FILL, 0),
-                        WebkitBackgroundClip: "text",
-                        backgroundClip: "text",
-                        color: "transparent",
-                        WebkitTextFillColor: "transparent",
-                      }
-                }
-              >
-                {c.ch}
-              </span>
-            ))}
-          </span>{" "}
-        </Fragment>
-      ))}
+    <p className="mt-5 max-w-[34ch] text-pretty font-satoshi text-[0.95rem] leading-relaxed text-cream/60">
+      {fr(FOOT_LINE)}
     </p>
   );
 }
@@ -254,7 +185,7 @@ function FooterCol({
 }) {
   return (
     <div className="flex flex-col items-start gap-3.5">
-      <p className="font-satoshi text-[0.8rem] font-semibold tracking-tight text-cream/55">
+      <p className="font-satoshi text-[0.8rem] font-bold tracking-tight text-cream/55">
         {title}
       </p>
       {children}

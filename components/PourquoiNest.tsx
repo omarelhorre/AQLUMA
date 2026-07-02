@@ -71,7 +71,8 @@ function NestCard({ t }: { t: string }) {
           <path d="M6 6l8 8M14 6l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
         </svg>
       </span>
-      <p className="max-w-[22ch] font-satoshi text-[clamp(1.05rem,1.2vw,1.2rem)] leading-snug text-void/75">
+      {/* Satoshi bold — the same voice as the FAQ questions. */}
+      <p className="max-w-[22ch] font-satoshi text-[clamp(1.05rem,1.2vw,1.2rem)] font-bold leading-snug tracking-tight text-void/75">
         {fr(t)}
       </p>
     </div>
