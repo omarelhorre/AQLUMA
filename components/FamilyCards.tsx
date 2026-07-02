@@ -217,28 +217,36 @@ export default function FamilyCards() {
           {/* Right — the card stage. */}
           <div ref={stageRef} className="relative h-[74vh]" style={{ perspective: 1300 }}>
             {Array.from({ length: 6 }).map((_, i) => (
+              // Positioner — carries the scrubbed morph transform / opacity / z.
               <div
                 key={i}
                 ref={(el) => { cardRefs.current[i] = el; }}
-                className="absolute left-0 top-0 flex w-[min(82%,470px)] min-h-[96px] items-center rounded-2xl border border-black/[0.06] bg-paper px-9 py-7 shadow-[0_40px_80px_-32px_rgba(0,0,0,0.85)] will-change-transform"
+                className="absolute left-0 top-0 w-[min(82%,470px)] will-change-transform"
                 style={{ minWidth: 260 }}
               >
-                {[HOME[i], PRACTICE[i], KEEP.includes(i) ? PARENTS[KEEP.indexOf(i)] : ""].map((txt, li) => (
-                  <span
-                    key={li}
-                    ref={(el) => { (layerRefs.current[i] ||= [])[li] = el; }}
-                    className={[
-                      // Uniform type across all three morph states — one family
-                      // + one size, so a card's text never changes font as it
-                      // reorganises (only the colour weight distinguishes them).
-                      "absolute inset-0 flex items-center px-9 font-didot text-[clamp(1.15rem,1.5vw,1.45rem)] leading-snug",
-                      li === 0 ? "text-void" : "text-void/75",
-                    ].join(" ")}
-                    style={{ opacity: li === 0 ? 1 : 0 }}
-                  >
-                    {fr(txt)}
-                  </span>
-                ))}
+                {/* Surface — the visible paper card, breathing on its own slow loop
+                    (desynced per card) so the deck stays alive at rest. */}
+                <div
+                  className="aq-card-breathe relative flex min-h-[96px] items-center rounded-2xl border border-black/[0.06] bg-paper px-9 py-7 shadow-[0_40px_80px_-32px_rgba(0,0,0,0.85)]"
+                  style={{ animationDelay: `${(-1.9 * i).toFixed(2)}s` }}
+                >
+                  {[HOME[i], PRACTICE[i], KEEP.includes(i) ? PARENTS[KEEP.indexOf(i)] : ""].map((txt, li) => (
+                    <span
+                      key={li}
+                      ref={(el) => { (layerRefs.current[i] ||= [])[li] = el; }}
+                      className={[
+                        // Uniform type across all three morph states — one family
+                        // + one size, so a card's text never changes font as it
+                        // reorganises (only the colour weight distinguishes them).
+                        "absolute inset-0 flex items-center px-9 font-didot text-[clamp(1.15rem,1.5vw,1.45rem)] leading-snug",
+                        li === 0 ? "text-void" : "text-void/75",
+                      ].join(" ")}
+                      style={{ opacity: li === 0 ? 1 : 0 }}
+                    >
+                      {fr(txt)}
+                    </span>
+                  ))}
+                </div>
               </div>
             ))}
           </div>

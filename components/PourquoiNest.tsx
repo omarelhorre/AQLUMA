@@ -1,8 +1,11 @@
 "use client";
 
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import Parallax from "@/components/Parallax";
 import Reveal from "@/components/Reveal";
 import Kicker from "@/components/Kicker";
+import Annotate from "@/components/Annotate";
+import { useReducedMotion } from "@/lib/useReducedMotion";
 import { fr } from "@/lib/typo";
 
 /**
@@ -15,7 +18,7 @@ import { fr } from "@/lib/typo";
  * pass, not a loop. Reduced motion: the cards are simply shown, no sweep.
  */
 
-const POURQUOI = [
+const POURQUOI: { q: string; body: string; mark?: string }[] = [
   {
     q: "Pourquoi 15 adolescents ?",
     body: "Le jugement ne s'enseigne pas à la chaîne. Chaque élève reçoit une attention particulière. Chaque doute est exploré. Chaque production est examinée individuellement. Ce n'est pas de la rareté artificielle : c'est une décision pédagogique.",
@@ -23,8 +26,24 @@ const POURQUOI = [
   {
     q: "Pourquoi payer si l'IA est gratuite ?",
     body: "L'IA est gratuite. La méthode est rare. Vous payez pour un cadre, une discipline et un accompagnement humain qui transforme un outil en compétence durable. Ce que l'adolescent apprend ici, aucune interface ne peut l'enseigner.",
+    // « rare » gets the highlighter swipe — the one word this argument turns on.
+    mark: "rare",
   },
 ];
+
+/** Render a body paragraph, wrapping its single `mark` word in a marker swipe. */
+function renderBody(body: string, mark?: string): ReactNode {
+  if (!mark) return fr(body);
+  const i = body.indexOf(mark);
+  if (i < 0) return fr(body);
+  return (
+    <>
+      {fr(body.slice(0, i))}
+      <Annotate type="marker">{fr(mark)}</Annotate>
+      {fr(body.slice(i + mark.length))}
+    </>
+  );
+}
 
 const NEST = [
   "Un cours de codage ou de programmation.",
@@ -36,14 +55,16 @@ const NEST = [
 ];
 
 // lg+ orbit stations around the centred title — six points on a wide ellipse,
-// each drifting on a slow, phase-offset path (see globals `aq-orbit-*`).
+// each drifting on a slow, phase-offset path (see globals `aq-orbit-*`). `enter`
+// is the radial-outward offset each card settles IN from when the system first
+// enters view (a satellite arriving + stabilising), before the calm drift begins.
 const ORBIT = [
-  { left: "50%", top: "11%", anim: "aq-orbit-a 17s ease-in-out 0s infinite" },
-  { left: "87%", top: "30%", anim: "aq-orbit-b 21s ease-in-out -5s infinite" },
-  { left: "87%", top: "70%", anim: "aq-orbit-a 19s ease-in-out -11s infinite" },
-  { left: "50%", top: "89%", anim: "aq-orbit-b 20s ease-in-out -3s infinite" },
-  { left: "13%", top: "70%", anim: "aq-orbit-a 22s ease-in-out -8s infinite" },
-  { left: "13%", top: "30%", anim: "aq-orbit-b 18s ease-in-out -14s infinite" },
+  { left: "50%", top: "11%", anim: "aq-orbit-a 30s ease-in-out 0s infinite", enter: { x: 0, y: -48, r: -3 } },
+  { left: "87%", top: "30%", anim: "aq-orbit-b 36s ease-in-out -6s infinite", enter: { x: 54, y: -26, r: 4 } },
+  { left: "87%", top: "70%", anim: "aq-orbit-a 33s ease-in-out -12s infinite reverse", enter: { x: 54, y: 26, r: -4 } },
+  { left: "50%", top: "89%", anim: "aq-orbit-b 31s ease-in-out -4s infinite", enter: { x: 0, y: 48, r: 3 } },
+  { left: "13%", top: "70%", anim: "aq-orbit-a 37s ease-in-out -9s infinite reverse", enter: { x: -54, y: 26, r: 4 } },
+  { left: "13%", top: "30%", anim: "aq-orbit-b 28s ease-in-out -15s infinite", enter: { x: -54, y: -26, r: -3 } },
 ];
 
 /** One negative-space card — unchanged design; the warm paper stock + quiet ✕. */
@@ -66,6 +87,32 @@ function NestCard({ t }: { t: string }) {
 }
 
 export default function PourquoiNest() {
+  const reduced = useReducedMotion();
+  const orbitRef = useRef<HTMLDivElement>(null);
+  // `live` gates the arrival: cards settle in from `enter` only once the orbit
+  // system scrolls into view, and the perpetual drift is held paused until then.
+  const [live, setLive] = useState(false);
+
+  useEffect(() => {
+    if (reduced) {
+      setLive(true);
+      return;
+    }
+    const el = orbitRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (e.isIntersecting) {
+          setLive(true);
+          io.disconnect();
+        }
+      },
+      { threshold: 0.28 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [reduced]);
+
   return (
     <section
       data-loupe
@@ -91,7 +138,7 @@ export default function PourquoiNest() {
                     i % 2 === 1 ? "md:ml-auto" : "",
                   ].join(" ")}
                 >
-                  {fr(item.body)}
+                  {renderBody(item.body, item.mark)}
                 </p>
               </Reveal>
             </Parallax>
@@ -104,7 +151,7 @@ export default function PourquoiNest() {
             the drift) the cards fall back to the calm static grid. */}
         <div>
           {/* lg+ · orbit */}
-          <div className="relative mx-auto hidden h-[46rem] max-w-[72rem] lg:block">
+          <div ref={orbitRef} className="relative mx-auto hidden h-[46rem] max-w-[72rem] lg:block">
             {/* faint centre light — the gravitational middle of the system */}
             <div
               aria-hidden
@@ -125,7 +172,10 @@ export default function PourquoiNest() {
               </h2>
             </div>
 
-            {/* orbiting cards */}
+            {/* orbiting cards. Three nested layers keep the motions from fighting:
+                (1) positioner centres the card on its station, (2) settle wrapper
+                flies it in from `enter` on a decelerating curve, (3) drift wrapper
+                runs the calm perpetual orbit — held paused until arrival. */}
             {NEST.map((t, i) => {
               const o = ORBIT[i];
               return (
@@ -134,8 +184,22 @@ export default function PourquoiNest() {
                   className="absolute w-[clamp(15rem,19vw,17rem)] -translate-x-1/2 -translate-y-1/2 will-change-transform"
                   style={{ left: o.left, top: o.top }}
                 >
-                  <div style={{ animation: o.anim }} className="will-change-transform">
-                    <NestCard t={t} />
+                  <div
+                    className="will-change-transform"
+                    style={{
+                      transform: live
+                        ? "translate3d(0,0,0) scale(1) rotate(0deg)"
+                        : `translate3d(${o.enter.x}px,${o.enter.y}px,0) scale(0.9) rotate(${o.enter.r}deg)`,
+                      opacity: live ? 1 : 0,
+                      transition: `transform 1.15s cubic-bezier(0.16,1,0.3,1) ${i * 90}ms, opacity 0.9s ease ${i * 90}ms`,
+                    }}
+                  >
+                    <div
+                      className="will-change-transform"
+                      style={{ animation: o.anim, animationPlayState: live ? "running" : "paused" }}
+                    >
+                      <NestCard t={t} />
+                    </div>
                   </div>
                 </div>
               );

@@ -5,6 +5,7 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import Kicker from "@/components/Kicker";
+import Annotate from "@/components/Annotate";
 import { fr } from "@/lib/typo";
 
 /**
@@ -41,7 +42,9 @@ function Header() {
         La Méthode AQLUMA
       </h2>
       <p className="mt-6 max-w-[34ch] font-satoshi text-[clamp(1rem,1.3vw,1.2rem)] leading-relaxed text-cream/55">
-        {fr("Six gestes pour transformer l'IA en partenaire de réflexion.")}
+        {fr("Six gestes pour transformer l'IA en ")}
+        <Annotate type="underline">partenaire</Annotate>
+        {fr(" de réflexion.")}
       </p>
     </header>
   );
@@ -154,13 +157,17 @@ export default function LaMethode() {
             <div
               id="journey-rail"
               ref={railRef}
-              className="relative w-px flex-shrink-0 self-stretch bg-cream/12"
+              className="relative w-[2px] flex-shrink-0 self-stretch rounded-full bg-cream/[0.1]"
             >
               <div
                 id="journey-rail-fill"
                 ref={railFillRef}
-                className="absolute left-0 top-0 w-px"
-                style={{ height: 0, background: "linear-gradient(180deg, rgba(232,178,58,0.9), rgba(232,178,58,0.4))" }}
+                className="absolute left-0 top-0 w-[2px] rounded-full"
+                style={{
+                  height: 0,
+                  background: "linear-gradient(180deg, rgba(232,178,58,1), rgba(232,178,58,0.6))",
+                  boxShadow: "0 0 9px rgba(232,178,58,0.5)",
+                }}
               />
             </div>
 

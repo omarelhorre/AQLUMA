@@ -10,6 +10,8 @@ import Parallax from "@/components/Parallax";
 import Reveal from "@/components/Reveal";
 import ScrollFill from "@/components/ScrollFill";
 import CopierCue from "@/components/CopierCue";
+import Annotate, { AnnotationMark } from "@/components/Annotate";
+import MacContextMenu from "@/components/MacContextMenu";
 
 /**
  * SECTION 1 — Le constat → Une nouvelle réalité → La fausse solution → la voie.
@@ -146,12 +148,15 @@ export default function NarrativeRoom() {
   return (
     <section id="constat" className="relative w-full overflow-x-clip bg-void">
       <div className="shell">
-        {/* ── Le constat — signature write-in; « copier » triggers the macOS copy cue ── */}
+        {/* ── Le constat — signature write-in; « copier » reads as a selected word
+            (CopierCue), with the native macOS menu resting in the right negative
+            space of the headline (xl+), pointer poised over « Copier ». ── */}
         <Beat>
-          <div className="max-w-4xl">
-            <Reveal>
-              <Label>Le constat</Label>
-            </Reveal>
+          <div className="relative">
+            <div className="max-w-4xl">
+              <Reveal>
+                <Label>Le constat</Label>
+              </Reveal>
             <ScrollFill
               as="h2"
               className="text-balance font-didot text-[clamp(2.4rem,5.4vw,4.6rem)] font-normal leading-[1.06] tracking-[-0.02em]"
@@ -163,18 +168,24 @@ export default function NarrativeRoom() {
             />
             <ScrollFill
               as="p"
-              className="mt-10 max-w-[46ch] text-pretty font-satoshi text-[clamp(1.2rem,1.7vw,1.65rem)] leading-relaxed"
+              className="mt-8 max-w-[46ch] text-pretty font-satoshi text-[clamp(1.08rem,1.45vw,1.32rem)] leading-relaxed"
               fill={CREAM_60}
               ghost={GHOST}
               text="L'IA est devenue un raccourci qui éteint l'effort. On croit qu'il travaille. Il ne fait que déléguer."
             />
+            </div>
+            {/* the OS menu lives in the headline's right negative space — bigger and
+                pushed further into the space on wide (2xl) screens */}
+            <MacContextMenu className="absolute left-[58rem] top-1/2 hidden origin-left -translate-y-1/2 xl:block 2xl:left-[62rem] 2xl:scale-[1.32]" />
           </div>
         </Beat>
 
         {/* ── Une nouvelle réalité — card LEFT, statement RIGHT (write-in) ── */}
         <Beat>
-          <div className="grid items-center gap-16 md:grid-cols-[0.9fr_1.1fr]">
-            <Parallax speed={0.22} className="flex justify-center md:justify-start">
+          <div className="grid items-start gap-16 md:grid-cols-[0.9fr_1.1fr]">
+            {/* Paper drops to the statement's baseline (past the label) so the note
+                and the copy sit on one shared editorial line, not two. */}
+            <Parallax speed={0.22} className="flex justify-center md:justify-start md:pt-[3.75rem]">
               <Reveal y={48}>
                 <PaperArtifact variant="note" fastener="tape" tilt={-2.2} className="max-w-[27rem]">
                   <blockquote className="text-balance font-didot text-[clamp(1.75rem,2.4vw,2.1rem)] font-normal leading-[1.3]">
@@ -193,11 +204,13 @@ export default function NarrativeRoom() {
                 className="text-balance font-didot text-[clamp(1.9rem,3.4vw,3.1rem)] font-normal leading-[1.16] tracking-[-0.015em]"
                 fill={CREAM}
                 ghost={GHOST}
+                highlight={/comment/i}
+                renderHighlight={(active) => <AnnotationMark type="circle" active={active} />}
                 text="Ces outils sont déjà dans sa chambre. La question n'est plus s'il les utilisera, mais comment."
               />
               <ScrollFill
                 as="p"
-                className="mt-8 max-w-[44ch] font-satoshi text-[clamp(1.1rem,1.5vw,1.4rem)] leading-relaxed"
+                className="mt-8 max-w-[46ch] text-pretty font-satoshi text-[clamp(1.08rem,1.45vw,1.32rem)] leading-relaxed"
                 fill={CREAM_55}
                 ghost={GHOST}
                 text="Il les utilise pour ses devoirs, ses exposés, ses questions."
@@ -259,7 +272,7 @@ export default function NarrativeRoom() {
                     className={`mx-[0.22em] inline-block will-change-[transform,filter,opacity] ${isVoie ? "text-gold" : ""}`}
                     style={reduced ? undefined : { opacity: 0 }}
                   >
-                    {w}
+                    {isVoie ? <Annotate type="dotted">{w}</Annotate> : w}
                   </span>
                 );
               })}

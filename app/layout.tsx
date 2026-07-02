@@ -3,6 +3,8 @@ import { didot, satoshi } from "./fonts";
 import "./globals.css";
 import SmoothScroll from "@/components/SmoothScroll";
 import Grid from "@/components/Grid";
+import Ambient from "@/components/Ambient";
+import PointerGlow from "@/components/PointerGlow";
 import Grain from "@/components/Grain";
 import Loupe from "@/components/Loupe";
 import ContactModal from "@/components/ContactModal";
@@ -58,6 +60,10 @@ export default function RootLayout({
         {/* Blueprint grid — a true backdrop: paints behind <main> (which is
             transparent) over the body's void, so media occludes it. */}
         <Grid />
+        {/* Unified ambient lighting + cursor spotlight — site-wide light layers,
+            below Grain, above section fills. */}
+        <Ambient />
+        <PointerGlow />
         {children}
         <Grain />
         <Loupe />

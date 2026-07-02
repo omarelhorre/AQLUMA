@@ -8,6 +8,7 @@ import "@fortawesome/fontawesome-svg-core/styles.css";
 import { fr } from "@/lib/typo";
 import CtaButton from "@/components/CtaButton";
 import PromptTransform from "@/components/PromptTransform";
+import { GradientWord } from "@/components/Annotate";
 import { CTA_SUPPORT_FINAL } from "@/lib/contact";
 import { smoothScrollTo } from "@/lib/lenis";
 import { useReducedMotion } from "@/lib/useReducedMotion";
@@ -91,7 +92,9 @@ export default function ContactClose() {
               <p className="section-title text-cream">
                 {fr("L'IA sera dans sa vie.")}{" "}
                 <span className="text-cream/55">
-                  {fr("La question est : avec quel jugement ?")}
+                  {fr("La question est : avec quel ")}
+                  <GradientWord>jugement</GradientWord>
+                  {fr(" ?")}
                 </span>
               </p>
               <div className="mt-9 flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:gap-7">

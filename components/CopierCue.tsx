@@ -1,86 +1,68 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { gsap } from "gsap";
+import { useEffect, useState } from "react";
+import { useReducedMotion } from "@/lib/useReducedMotion";
 
 /**
- * CopierCue — a small, believable macOS copy interaction anchored to the word
- * « copier ». When the scroll write-in reaches the word (`active`), the word
- * reads as SELECTED, a native-looking context menu rises with « Copier · ⌘C »,
- * the row flashes as ⌘C is pressed, then the menu dismisses and a quiet « Copié »
- * confirmation floats up. It plays once per activation (remounts on `active`).
+ * CopierCue — « copier » shown as a *selected* word (not a copy animation).
  *
- * Purely decorative: pointer-events-none, aria-hidden. Font-size + family are
- * reset to system UI so the chip reads as real macOS chrome over the big Didot.
+ * The word carries a permanent native text-selection highlight. On mobile the iOS
+ * selection callout bubble + teardrop grab handles sit on it; on desktop the macOS
+ * contextual menu lives separately, in the headline's right negative space (see
+ * MacContextMenu), so the typography stays clean — here we keep only the selection.
+ *
+ * Fades in once when the write-in front reaches the word (`active`) — or
+ * immediately under reduced motion — then stays put. Purely decorative:
+ * aria-hidden, pointer-events-none, system font so the chrome reads as real.
  */
 
 const MENU_FONT = '-apple-system, "SF Pro Text", system-ui, sans-serif';
 
+// iOS selection callout (mobile).
+const IOS_ITEMS = ["Copier", "Coller", "Rechercher"];
+
 export default function CopierCue({ active }: { active: boolean }) {
-  const rootRef = useRef<HTMLSpanElement>(null);
-  const selRef = useRef<HTMLSpanElement>(null);
-  const menuRef = useRef<HTMLSpanElement>(null);
-  const rowRef = useRef<HTMLSpanElement>(null);
-  const toastRef = useRef<HTMLSpanElement>(null);
+  const reduced = useReducedMotion();
+  const [shown, setShown] = useState(false);
 
   useEffect(() => {
-    if (!active) return;
-    const ctx = gsap.context(() => {
-      gsap.set(selRef.current, { opacity: 0 });
-      gsap.set(menuRef.current, { opacity: 0, y: 6, scale: 0.96, transformOrigin: "50% 100%" });
-      gsap.set(rowRef.current, { backgroundColor: "rgba(0,0,0,0)", color: "#1d1d1f" });
-      gsap.set(toastRef.current, { opacity: 0, y: 4 });
-
-      const tl = gsap.timeline({ defaults: { ease: "power2.out" } });
-      // word selects
-      tl.to(selRef.current, { opacity: 1, duration: 0.28 }, 0);
-      // menu rises
-      tl.to(menuRef.current, { opacity: 1, y: 0, scale: 1, duration: 0.32 }, 0.34);
-      // ⌘C press — the row flashes macOS-selection blue, then releases
-      tl.to(rowRef.current, { backgroundColor: "#0a69ff", color: "#ffffff", duration: 0.11, ease: "power1.out" }, 1.04);
-      tl.to(rowRef.current, { backgroundColor: "rgba(0,0,0,0)", color: "#1d1d1f", duration: 0.2 }, 1.3);
-      // menu dismisses, confirmation floats up
-      tl.to(menuRef.current, { opacity: 0, y: -4, duration: 0.3, ease: "power2.in" }, 1.44);
-      tl.to(toastRef.current, { opacity: 1, y: -2, duration: 0.3 }, 1.52);
-      tl.to(toastRef.current, { opacity: 0, y: -12, duration: 0.55, ease: "power1.in" }, 2.15);
-      // selection releases
-      tl.to(selRef.current, { opacity: 0, duration: 0.5 }, 2.05);
-    }, rootRef);
-    return () => ctx.revert();
-  }, [active]);
-
-  if (!active) return null;
+    if (active || reduced) setShown(true);
+  }, [active, reduced]);
 
   return (
-    <span ref={rootRef} aria-hidden className="pointer-events-none absolute inset-0 z-30 select-none">
-      {/* selection highlight behind « copier » */}
-      <span
-        ref={selRef}
-        className="absolute -inset-x-[0.09em] -inset-y-[0.05em] rounded-[4px] bg-[#4a90ff]/30"
-      />
+    <span
+      aria-hidden
+      className="pointer-events-none absolute inset-0 z-30 select-none"
+      style={{ opacity: shown ? 1 : 0, transition: "opacity 0.6s ease" }}
+    >
+      {/* permanent native selection highlight behind « copier » */}
+      <span className="absolute -inset-x-[0.09em] -inset-y-[0.05em] rounded-[4px] bg-[#4a90ff]/30" />
 
-      {/* macOS context menu, floating above the word */}
-      <span
-        ref={menuRef}
-        style={{ fontFamily: MENU_FONT }}
-        className="absolute bottom-[calc(100%+0.5em)] left-1/2 -translate-x-1/2 whitespace-nowrap rounded-[8px] border border-black/10 bg-[#f7f7f8]/95 p-1 text-[13px] font-normal leading-none shadow-[0_12px_34px_-10px_rgba(0,0,0,0.5)] backdrop-blur-md"
-      >
-        <span
-          ref={rowRef}
-          className="flex items-center justify-between gap-7 rounded-[5px] px-2.5 py-[7px]"
-        >
-          <span>Copier</span>
-          <span className="text-[#9a9a9f]">⌘C</span>
+      {/* ── Mobile · iOS selection: teardrop handles + callout bubble ── */}
+      <span className="md:hidden">
+        {/* grab handles on the selection ends */}
+        <span className="absolute -left-[0.12em] -top-[0.06em] bottom-[-0.06em] w-[10px] -translate-x-1/2">
+          <span className="absolute bottom-0 left-1/2 top-0 w-[2px] -translate-x-1/2 rounded-full bg-[#0a69ff]" />
+          <span className="absolute left-1/2 top-0 h-[10px] w-[10px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#0a69ff] shadow-[0_1px_3px_rgba(0,0,0,0.35)]" />
         </span>
-      </span>
+        <span className="absolute -right-[0.12em] -top-[0.06em] bottom-[-0.06em] w-[10px] translate-x-1/2">
+          <span className="absolute bottom-0 left-1/2 top-0 w-[2px] -translate-x-1/2 rounded-full bg-[#0a69ff]" />
+          <span className="absolute bottom-0 left-1/2 h-[10px] w-[10px] -translate-x-1/2 translate-y-1/2 rounded-full bg-[#0a69ff] shadow-[0_1px_3px_rgba(0,0,0,0.35)]" />
+        </span>
 
-      {/* quiet confirmation */}
-      <span
-        ref={toastRef}
-        style={{ fontFamily: MENU_FONT }}
-        className="absolute bottom-[calc(100%+0.55em)] left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-white/10 bg-black/70 px-2.5 py-1 text-[11px] font-medium leading-none text-white/90 backdrop-blur-sm"
-      >
-        Copié
+        {/* callout bubble */}
+        <span
+          style={{ fontFamily: MENU_FONT, animation: reduced ? undefined : "aq-os-float 11s ease-in-out infinite" }}
+          className="absolute bottom-[calc(100%+0.7em)] left-1/2 flex -translate-x-1/2 items-stretch overflow-hidden rounded-[11px] bg-[#2b2b2e]/95 text-[13px] font-normal leading-none text-white shadow-[0_10px_30px_-8px_rgba(0,0,0,0.6)] backdrop-blur-md"
+        >
+          {IOS_ITEMS.map((label, i) => (
+            <span key={label} className={`px-3.5 py-[9px] ${i > 0 ? "border-l border-white/15" : ""}`}>
+              {label}
+            </span>
+          ))}
+          {/* down-pointing tail toward the selection */}
+          <span className="absolute left-1/2 top-full h-[9px] w-[9px] -translate-x-1/2 -translate-y-1/2 rotate-45 bg-[#2b2b2e]/95" />
+        </span>
       </span>
     </span>
   );

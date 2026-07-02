@@ -226,6 +226,33 @@
     animation: hint-pulse 2s ease-in-out infinite;
   }
 
+  /* Unified ambient lighting (see Ambient.tsx). Two soft, feathered pools — a warm
+     gold high-left and a cool slate low-right — on a soft-light blend so they read
+     as one room's light across every section. `--p` (scroll progress 0→1, set in
+     JS) drifts them vertically, so the light slowly evolves down the page without
+     any hard per-section colour change. Kept faint on purpose. */
+  .ambient {
+    --p: 0;
+    mix-blend-mode: soft-light;
+    background:
+      radial-gradient(
+        58% 44% at 20% calc(16% + var(--p) * 44%),
+        rgba(232, 178, 58, 0.14),
+        rgba(232, 178, 58, 0) 70%
+      ),
+      radial-gradient(
+        54% 48% at 84% calc(90% - var(--p) * 50%),
+        rgba(120, 150, 178, 0.1),
+        rgba(120, 150, 178, 0) 72%
+      );
+  }
+
+  /* Ambient breathing for the suspended family-deck cards (see FamilyCards). */
+  .aq-card-breathe {
+    animation: aq-card-breathe 7s ease-in-out infinite;
+    will-change: transform;
+  }
+
   /* Film-grain shimmer: the grain layer reshuffles ~16x/s so dark areas read as
      moving celluloid rather than a static dirty screen (see Grain.tsx). Stepped
      timing gives discrete grain "frames"; reduced-motion freezes it (below). */
@@ -244,38 +271,91 @@
   }
 }
 
-/* ── « Ce qu'AQLUMA n'est pas » orbit — the six cards drift on slow, phase-
-   offset elliptical paths around the centred title, like planets holding station
-   around a centre (see PourquoiNest). Small amplitude so the copy stays readable;
-   the global reduced-motion block below freezes them at rest. ── */
+/* ── « Ce qu'AQLUMA n'est pas » orbit — each card holds station around the centred
+   title and slowly orbits its own anchor: a small circular translate (constant
+   angular speed → a real orbit, not a back-and-forth wobble) with a subtle
+   perspective tilt (rotateX/Y) and a whisper of depth (scale), so the cards read
+   as gently suspended in space. `perspective()` is baked into the transform so no
+   ancestor 3D context is needed. Almost imperceptible by design; per-card duration
+   / phase / direction (see PourquoiNest ORBIT) keep them out of lockstep. The
+   reduced-motion block below freezes them. ── */
 @keyframes aq-orbit-a {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0);
+  0% {
+    transform: perspective(700px) translate(9px, 0) rotateY(2.2deg) rotateX(0deg) scale(1);
   }
   25% {
-    transform: translate3d(7px, -10px, 0);
+    transform: perspective(700px) translate(0, 9px) rotateY(0deg) rotateX(1.6deg) scale(1.012);
   }
   50% {
-    transform: translate3d(-4px, 6px, 0);
+    transform: perspective(700px) translate(-9px, 0) rotateY(-2.2deg) rotateX(0deg) scale(1);
   }
   75% {
-    transform: translate3d(-8px, -4px, 0);
+    transform: perspective(700px) translate(0, -9px) rotateY(0deg) rotateX(-1.6deg) scale(0.99);
+  }
+  100% {
+    transform: perspective(700px) translate(9px, 0) rotateY(2.2deg) rotateX(0deg) scale(1);
   }
 }
 @keyframes aq-orbit-b {
+  0% {
+    transform: perspective(700px) translate(-11px, 0) rotateY(-2.4deg) rotateX(0deg) scale(1);
+  }
+  25% {
+    transform: perspective(700px) translate(0, -11px) rotateY(0deg) rotateX(-1.8deg) scale(0.988);
+  }
+  50% {
+    transform: perspective(700px) translate(11px, 0) rotateY(2.4deg) rotateX(0deg) scale(1);
+  }
+  75% {
+    transform: perspective(700px) translate(0, 11px) rotateY(0deg) rotateX(1.8deg) scale(1.014);
+  }
+  100% {
+    transform: perspective(700px) translate(-11px, 0) rotateY(-2.4deg) rotateX(0deg) scale(1);
+  }
+}
+
+/* The peripheral OS context menu (OsMenu) breathes on a slow vertical float, so
+   it drifts like something suspended in the negative space rather than a fixed
+   panel. Small amplitude — it stays almost hidden. Reduced-motion freezes it. */
+@keyframes aq-os-float {
   0%,
   100% {
     transform: translate3d(0, 0, 0);
   }
-  25% {
-    transform: translate3d(-8px, -6px, 0);
+  50% {
+    transform: translate3d(0, -6px, 0);
+  }
+}
+
+/* A whisper of independent drift for the macOS pointer resting on the context
+   menu — just enough to parallax against the menu's own float (see
+   MacContextMenu). Reduced-motion freezes it. */
+@keyframes aq-cursor-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
   }
   50% {
-    transform: translate3d(5px, 8px, 0);
+    transform: translate3d(1px, -3px, 0);
   }
-  75% {
-    transform: translate3d(7px, -5px, 0);
+}
+
+/* Family-deck ambient breathing — each paper card drifts + tilts a hair on a slow
+   loop so the suspended deck reads as alive in still air even when the scroll (and
+   with it the scrubbed morph) is at rest. Tiny amplitude; a per-card negative
+   animation-delay desyncs them so they never breathe in unison. This lives on the
+   card SURFACE, composed under the scrubbed transform on its positioner parent, so
+   the two motions never fight. Reduced-motion freezes it. */
+@keyframes aq-card-breathe {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  33% {
+    transform: translate3d(0, -3px, 0) rotate(0.5deg);
+  }
+  66% {
+    transform: translate3d(0, 2px, 0) rotate(-0.4deg);
   }
 }
 
