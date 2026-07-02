@@ -279,38 +279,18 @@
    ancestor 3D context is needed. Almost imperceptible by design; per-card duration
    / phase / direction (see PourquoiNest ORBIT) keep them out of lockstep. The
    reduced-motion block below freezes them. ── */
-@keyframes aq-orbit-a {
-  0% {
-    transform: perspective(700px) translate(9px, 0) rotateY(2.2deg) rotateX(0deg) scale(1);
-  }
-  25% {
-    transform: perspective(700px) translate(0, 9px) rotateY(0deg) rotateX(1.6deg) scale(1.012);
-  }
-  50% {
-    transform: perspective(700px) translate(-9px, 0) rotateY(-2.2deg) rotateX(0deg) scale(1);
-  }
-  75% {
-    transform: perspective(700px) translate(0, -9px) rotateY(0deg) rotateX(-1.6deg) scale(0.99);
-  }
-  100% {
-    transform: perspective(700px) translate(9px, 0) rotateY(2.2deg) rotateX(0deg) scale(1);
+/* Continuous, seamless rotation for the orbit arm + its counter-rotation. Linear
+   so the angular speed is constant (a real orbit, no eased pulsing), and a 360°
+   loop has no visible seam. Paired opposite (arm spins one way, the card counter-
+   spins the other) so the card orbits its station while staying upright. */
+@keyframes aq-spin {
+  to {
+    transform: rotate(360deg);
   }
 }
-@keyframes aq-orbit-b {
-  0% {
-    transform: perspective(700px) translate(-11px, 0) rotateY(-2.4deg) rotateX(0deg) scale(1);
-  }
-  25% {
-    transform: perspective(700px) translate(0, -11px) rotateY(0deg) rotateX(-1.8deg) scale(0.988);
-  }
-  50% {
-    transform: perspective(700px) translate(11px, 0) rotateY(2.4deg) rotateX(0deg) scale(1);
-  }
-  75% {
-    transform: perspective(700px) translate(0, 11px) rotateY(0deg) rotateX(1.8deg) scale(1.014);
-  }
-  100% {
-    transform: perspective(700px) translate(-11px, 0) rotateY(-2.4deg) rotateX(0deg) scale(1);
+@keyframes aq-spin-rev {
+  to {
+    transform: rotate(-360deg);
   }
 }
 

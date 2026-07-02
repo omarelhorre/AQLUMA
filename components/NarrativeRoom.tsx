@@ -5,12 +5,12 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { fr } from "@/lib/typo";
-import PaperArtifact from "@/components/PaperArtifact";
+import PaperNote from "@/components/PaperNote";
 import Parallax from "@/components/Parallax";
 import Reveal from "@/components/Reveal";
 import ScrollFill from "@/components/ScrollFill";
 import CopierCue from "@/components/CopierCue";
-import Annotate, { AnnotationMark } from "@/components/Annotate";
+import { AnnotationMark } from "@/components/Annotate";
 import MacContextMenu from "@/components/MacContextMenu";
 
 /**
@@ -30,7 +30,6 @@ const VOIE = "Il faut une troisième voie.";
 // motion, never the design. GHOST is the faint impression before the sweep.
 const CREAM = "rgb(247,244,239)";
 const CREAM_60 = "rgba(247,244,239,0.6)";
-const CREAM_55 = "rgba(247,244,239,0.55)";
 const GHOST = "rgba(247,244,239,0.12)";
 // Stable (module-scoped) so ScrollFill's memo/effect don't churn on re-render.
 const COPIER_RE = /copier/i;
@@ -146,7 +145,7 @@ export default function NarrativeRoom() {
   }, [reduced]);
 
   return (
-    <section id="constat" className="relative w-full overflow-x-clip bg-void">
+    <section id="constat" className="relative w-full overflow-x-clip">
       <div className="shell">
         {/* ── Le constat — signature write-in; « copier » reads as a selected word
             (CopierCue), with the native macOS menu resting in the right negative
@@ -174,9 +173,12 @@ export default function NarrativeRoom() {
               text="L'IA est devenue un raccourci qui éteint l'effort. On croit qu'il travaille. Il ne fait que déléguer."
             />
             </div>
-            {/* the OS menu lives in the headline's right negative space — bigger and
-                pushed further into the space on wide (2xl) screens */}
-            <MacContextMenu className="absolute left-[58rem] top-1/2 hidden origin-left -translate-y-1/2 xl:block 2xl:left-[62rem] 2xl:scale-[1.32]" />
+            {/* The OS menu lives in the headline's right negative space — bigger
+                and pushed further into the space on wide (2xl) screens (xl stays
+                modest — 1280 is too tight for the 4xl headline + a large menu
+                without clipping). Sat a little below centre with a whisper of
+                tilt, so it reads as placed on the page rather than pinned to it. */}
+            <MacContextMenu className="absolute left-[61rem] top-[56%] hidden origin-left -translate-y-1/2 rotate-[-1.5deg] xl:block 2xl:scale-[2]" />
           </div>
         </Beat>
 
@@ -184,34 +186,33 @@ export default function NarrativeRoom() {
         <Beat>
           <div className="grid items-start gap-16 md:grid-cols-[0.9fr_1.1fr]">
             {/* Paper drops to the statement's baseline (past the label) so the note
-                and the copy sit on one shared editorial line, not two. */}
-            <Parallax speed={0.22} className="flex justify-center md:justify-start md:pt-[3.75rem]">
-              <Reveal y={48}>
-                <PaperArtifact variant="note" fastener="tape" tilt={-2.2} className="max-w-[27rem]">
-                  <blockquote className="text-balance font-didot text-[clamp(1.75rem,2.4vw,2.1rem)] font-normal leading-[1.3]">
-                    {fr('"C\'est comme donner les clés d\'une bibliothèque immense à quelqu\'un qui n\'a pas appris à lire."')}
-                  </blockquote>
-                </PaperArtifact>
-              </Reveal>
-            </Parallax>
+                and the copy sit on one shared editorial line, not two. A whisper of
+                parallax lets the paper drift against the statement for depth. */}
+            <div className="flex justify-center md:justify-start md:pt-[3.75rem]">
+              <Parallax speed={0.06} className="w-[31rem] max-w-full">
+                <PaperNote className="w-full" />
+              </Parallax>
+            </div>
 
-            <div className="max-w-2xl">
+            <div className="max-w-3xl">
               <Reveal>
                 <Label>Une nouvelle réalité</Label>
               </Reveal>
+              {/* Same statement recipe as « Le constat » so the two narrative
+                  beats carry equal weight (matched size, leading, tracking). */}
               <ScrollFill
                 as="p"
-                className="text-balance font-didot text-[clamp(1.9rem,3.4vw,3.1rem)] font-normal leading-[1.16] tracking-[-0.015em]"
+                className="text-balance font-didot text-[clamp(2.4rem,5.4vw,4.6rem)] font-normal leading-[1.06] tracking-[-0.02em]"
                 fill={CREAM}
                 ghost={GHOST}
                 highlight={/comment/i}
-                renderHighlight={(active) => <AnnotationMark type="circle" active={active} />}
+                renderHighlight={(active) => <AnnotationMark active={active} />}
                 text="Ces outils sont déjà dans sa chambre. La question n'est plus s'il les utilisera, mais comment."
               />
               <ScrollFill
                 as="p"
                 className="mt-8 max-w-[46ch] text-pretty font-satoshi text-[clamp(1.08rem,1.45vw,1.32rem)] leading-relaxed"
-                fill={CREAM_55}
+                fill={CREAM_60}
                 ghost={GHOST}
                 text="Il les utilise pour ses devoirs, ses exposés, ses questions."
               />
@@ -223,12 +224,17 @@ export default function NarrativeRoom() {
             crossfades clause 1 → clause 2 in place (sticky stage, no pin). ── */}
         {reduced ? (
           <Beat className="justify-center text-center">
-            <div className="mx-auto flex max-w-4xl flex-col items-center gap-12">
+            <div className="mx-auto flex max-w-6xl flex-col items-center gap-12">
               <Label center>La fausse solution</Label>
               {CLAUSES.map((c, i) => (
-                <p key={i} className="mx-auto max-w-[22ch] font-didot text-[clamp(2rem,4.2vw,3.6rem)] font-normal leading-[1.18] text-cream/55">
-                  <span className="text-cream">{fr(c[0])}</span> {fr(c[1])}
-                </p>
+                <div key={i} className="flex flex-col items-center gap-3.5">
+                  <p className="whitespace-nowrap font-didot text-[clamp(1.7rem,4.6vw,3.6rem)] font-normal leading-[1.1] text-cream">
+                    {fr(c[0])}
+                  </p>
+                  <p className="font-didot text-[clamp(1.7rem,4.6vw,3.6rem)] font-normal leading-[1.2] text-cream/55 sm:whitespace-nowrap">
+                    {fr(c[1])}
+                  </p>
+                </div>
               ))}
             </div>
           </Beat>
@@ -236,17 +242,16 @@ export default function NarrativeRoom() {
           <div ref={clauseRegionRef} className="relative h-[200vh]">
             <div className="sticky top-0 flex h-screen flex-col items-center justify-center text-center">
               <Label center>La fausse solution</Label>
-              <div className="relative mt-10 flex min-h-[3.6em] w-full max-w-4xl items-center justify-center">
+              <div className="relative mt-10 flex min-h-[5em] w-full max-w-6xl items-center justify-center">
                 {CLAUSES.map((c, i) => (
                   <p
                     key={i}
                     ref={(el) => { clauseRefs.current[i] = el; }}
-                    className="absolute inset-0 mx-auto flex max-w-[22ch] items-center justify-center font-didot text-[clamp(2rem,4.2vw,3.6rem)] font-normal leading-[1.18] text-cream/55 will-change-transform"
+                    className="absolute inset-0 mx-auto flex flex-col items-center justify-center gap-3.5 font-didot text-[clamp(1.7rem,4.6vw,3.6rem)] font-normal leading-[1.2] will-change-transform"
                     style={{ transform: i === 0 ? "translateX(0)" : "translateX(105vw)" }}
                   >
-                    <span>
-                      <span className="text-cream">{fr(c[0])}</span> {fr(c[1])}
-                    </span>
+                    <span className="whitespace-nowrap leading-[1.1] text-cream">{fr(c[0])}</span>
+                    <span className="text-cream/55 sm:whitespace-nowrap">{fr(c[1])}</span>
                   </p>
                 ))}
               </div>
@@ -272,7 +277,7 @@ export default function NarrativeRoom() {
                     className={`mx-[0.22em] inline-block will-change-[transform,filter,opacity] ${isVoie ? "text-gold" : ""}`}
                     style={reduced ? undefined : { opacity: 0 }}
                   >
-                    {isVoie ? <Annotate type="dotted">{w}</Annotate> : w}
+                    {w}
                   </span>
                 );
               })}

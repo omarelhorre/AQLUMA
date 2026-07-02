@@ -39,5 +39,20 @@ export default function Ambient() {
     };
   }, []);
 
-  return <div ref={ref} aria-hidden className="ambient pointer-events-none fixed inset-0 z-[45]" />;
+  return (
+    <>
+      <div ref={ref} aria-hidden className="ambient pointer-events-none fixed inset-0 z-[45]" />
+      {/* Vignette — a whisper of darkness feathered into the frame's edges so the
+          eye settles on the centre. Static, faint, and warm-neutral (the void
+          colour), so it reads as photographic focus, not an effect. */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 z-[45]"
+        style={{
+          background:
+            "radial-gradient(120% 95% at 50% 45%, rgba(8,10,12,0) 62%, rgba(8,10,12,0.3) 100%)",
+        }}
+      />
+    </>
+  );
 }

@@ -36,6 +36,8 @@ const config: Config = {
         didot: ["var(--font-didot)", "Georgia", "serif"],
         // Satoshi — body / UI / nav / labels.
         satoshi: ["var(--font-satoshi)", "Satoshi", "system-ui", "sans-serif"],
+        // Caveat — handwriting, only for the pinned paper note.
+        hand: ["var(--font-hand)", "cursive"],
       },
       borderRadius: {
         // One radius scale so cards/panels stop re-inventing arbitrary rounds.

@@ -43,7 +43,7 @@ function Header() {
       </h2>
       <p className="mt-6 max-w-[34ch] font-satoshi text-[clamp(1rem,1.3vw,1.2rem)] leading-relaxed text-cream/55">
         {fr("Six gestes pour transformer l'IA en ")}
-        <Annotate type="underline">partenaire</Annotate>
+        <Annotate>partenaire</Annotate>
         {fr(" de réflexion.")}
       </p>
     </header>
@@ -139,7 +139,7 @@ export default function LaMethode() {
       ref={sectionRef}
       id="methode"
       data-loupe
-      className="relative w-full overflow-hidden border-t border-cream/[0.06] bg-void"
+      className="relative w-full overflow-hidden border-t border-cream/[0.06]"
       aria-label="La Méthode AQLUMA"
     >
       {/* ── Pinned scrubbed rendering ── */}
@@ -165,8 +165,7 @@ export default function LaMethode() {
                 className="absolute left-0 top-0 w-[2px] rounded-full"
                 style={{
                   height: 0,
-                  background: "linear-gradient(180deg, rgba(232,178,58,1), rgba(232,178,58,0.6))",
-                  boxShadow: "0 0 9px rgba(232,178,58,0.5)",
+                  background: "rgba(232,178,58,0.9)",
                 }}
               />
             </div>

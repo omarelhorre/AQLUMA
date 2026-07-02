@@ -6,10 +6,11 @@ import { fr } from "@/lib/typo";
 /**
  * CTA CARD — the cohort invitation, as one large solid-white rounded card.
  *
- * A premium, centred composition (not a copy of the reference): an eyebrow rail
- * of cohort facts, a Didot headline, a supporting line, then the canonical
- * CtaButton (inverted to dark on the light card) with its microcopy. Everything
- * is centre-aligned for a calm, confident close.
+ * A near-full-bleed slab: the card spans the viewport with only a sliver of the
+ * dark wall left at its edges (the Flow-hero gesture), and stands a full screen
+ * tall with the composition centred inside it — an eyebrow rail of cohort facts,
+ * a Didot headline, a supporting line, then the canonical CtaButton (inverted to
+ * dark on the light card) with its microcopy. A calm, confident close.
  */
 
 const FACTS = ["Programme en ligne", "13–17 ans", "Maroc", "15 adolescents", "Suivi avec attention"];
@@ -18,21 +19,15 @@ export default function CtaCard() {
   return (
     <section
       data-loupe
-      className="relative w-full overflow-hidden border-t border-cream/[0.06] bg-void py-24 md:py-32"
+      className="relative w-full overflow-hidden border-t border-cream/[0.06] py-2.5 md:py-4"
       aria-label="Rejoindre le premier groupe AQLUMA"
     >
-      <div className="shell">
-        <Reveal>
-          <div className="relative overflow-hidden rounded-slab bg-cream px-7 py-16 text-center text-void md:rounded-slab-lg md:px-20 md:py-24">
-            {/* Faint warm tint + gold inner frame on the white. */}
-            <div
-              aria-hidden
-              className="pointer-events-none absolute inset-0"
-              style={{
-                background:
-                  "radial-gradient(90% 100% at 50% 0%, rgba(201,97,46,0.06), rgba(247,244,239,0) 60%)",
-              }}
-            />
+      <div className="w-full px-2.5 md:px-4">
+        {/* The card expands into place from a slightly smaller scale — one clean,
+            confident zoom (the shared editorial curve; no bounce, no overshoot). */}
+        <Reveal y={0} scale={0.96}>
+          <div className="relative flex min-h-[88vh] flex-col items-center justify-center overflow-hidden rounded-slab bg-cream px-7 py-16 text-center text-void md:rounded-slab-lg md:px-20 md:py-24">
+            {/* Gold inner frame on the white. */}
             <div
               aria-hidden
               className="pointer-events-none absolute inset-3 rounded-frame border border-clay/15 md:inset-5 md:rounded-frame-lg"
@@ -64,7 +59,7 @@ export default function CtaCard() {
               </p>
 
               <div className="mt-11 flex flex-col items-center gap-5">
-                <CtaButton variant="dark" size="lg" />
+                <CtaButton variant="dark" size="xl" />
                 <p className="max-w-[34ch] font-satoshi text-[0.92rem] leading-relaxed text-void/45">
                   {fr(CTA_SUPPORT_COHORT)}
                 </p>

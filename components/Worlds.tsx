@@ -100,7 +100,7 @@ export default function Worlds() {
   return (
     <section
       id="mondes"
-      className="relative w-full overflow-hidden border-t border-cream/[0.06] bg-void py-28 md:py-40"
+      className="relative w-full overflow-hidden border-t border-cream/[0.06] py-28 md:py-40"
       aria-label="AQLUMA, les trois mondes"
     >
       <div className="shell relative">

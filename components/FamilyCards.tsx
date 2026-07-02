@@ -177,8 +177,9 @@ export default function FamilyCards() {
   return (
     <section
       ref={sectionRef}
+      id="transformation"
       data-loupe
-      className="relative w-full overflow-hidden border-t border-cream/[0.06] bg-void"
+      className="relative w-full overflow-hidden border-t border-cream/[0.06]"
       aria-label="Ce que vit votre adolescent"
     >
       {/* ── Pinned scatter → stack morph ── */}
@@ -191,9 +192,9 @@ export default function FamilyCards() {
           {/* Left — the three cross-fading titles, stacked in place. */}
           <div className="relative">
             {[
-              { k: "FAMILLE", h: "Ce que vous entendez à la maison", sub: "" },
-              { k: "PRATIQUE", h: "Ce que chaque adolescent pratique", sub: "À chaque session, il ne subit pas l'IA — il la travaille." },
-              { k: "PARENTS", h: "Ce que les parents reçoivent", sub: "" },
+              { k: "Famille", h: "Ce que vous entendez à la maison", sub: "" },
+              { k: "Pratique", h: "Ce que chaque adolescent pratique", sub: "À chaque session, il ne subit pas l'IA — il la travaille." },
+              { k: "Parents", h: "Ce que les parents reçoivent", sub: "" },
             ].map((t, ti) => (
               <div
                 key={t.k}
@@ -255,9 +256,9 @@ export default function FamilyCards() {
 
       {/* ── Static rendering (reduced motion / narrow) ── */}
       <div className="shell flex-col gap-16 py-24 md:py-32" style={{ display: still ? "flex" : "none" }}>
-        <StaticGroup kicker="FAMILLE" title="Ce que vous entendez à la maison" items={HOME.slice(0, 3)} didot />
-        <StaticGroup kicker="PRATIQUE" title="Ce que chaque adolescent pratique" sub="À chaque session, il ne subit pas l'IA — il la travaille." items={PRACTICE} />
-        <StaticGroup kicker="PARENTS" title="Ce que les parents reçoivent" items={PARENTS} />
+        <StaticGroup kicker="Famille" title="Ce que vous entendez à la maison" items={HOME.slice(0, 3)} didot />
+        <StaticGroup kicker="Pratique" title="Ce que chaque adolescent pratique" sub="À chaque session, il ne subit pas l'IA — il la travaille." items={PRACTICE} />
+        <StaticGroup kicker="Parents" title="Ce que les parents reçoivent" items={PARENTS} />
       </div>
     </section>
   );

@@ -26,13 +26,15 @@ import CtaButton from "@/components/CtaButton";
  * a calm static hero (the problem shown, door at its poster).
  */
 
-// The four traits, scattered on the right at md+ (original ActDoor positions);
-// a centred stack below md. Positions/sizes recovered from git (commit c70db4d).
+// The four traits, scattered on the right at lg+ (original ActDoor positions);
+// a centred stack below lg. Positions/sizes recovered from git (commit c70db4d).
+// Side-by-side starts at lg (not md): on portrait tablets the door's crop leaves
+// the gutters too narrow for a text column, so 768–1023 keeps the centred stack.
 const TRAITS = [
-  { word: "Créatif", pos: "md:top-[28%] md:right-[9vw] md:text-[clamp(2.1rem,4.9vw,4.2rem)]" },
-  { word: "Lucide", pos: "md:top-[43%] md:right-[18vw] md:text-[clamp(1.7rem,3.7vw,3.2rem)]" },
-  { word: "Méthodique", pos: "md:top-[57%] md:right-[7vw] md:text-[clamp(1.95rem,4.3vw,3.8rem)]" },
-  { word: "Concentré", pos: "md:top-[70%] md:right-[15vw] md:text-[clamp(1.7rem,3.8vw,3.3rem)]" },
+  { word: "Créatif", pos: "lg:top-[28%] lg:right-[9vw] lg:text-[clamp(2.1rem,4.9vw,4.2rem)]" },
+  { word: "Lucide", pos: "lg:top-[43%] lg:right-[18vw] lg:text-[clamp(1.7rem,3.7vw,3.2rem)]" },
+  { word: "Méthodique", pos: "lg:top-[57%] lg:right-[7vw] lg:text-[clamp(1.95rem,4.3vw,3.8rem)]" },
+  { word: "Concentré", pos: "lg:top-[70%] lg:right-[15vw] lg:text-[clamp(1.7rem,3.8vw,3.3rem)]" },
 ];
 
 const BLUR_HIDDEN = { opacity: 0, filter: "blur(14px)", y: 22 };
@@ -155,10 +157,10 @@ export default function ActDoor() {
         }}
       />
 
-      {/* Mobile-only legibility scrim (copy is centred over the clip on phones). */}
+      {/* Legibility scrim below lg (copy is centred over the clip there). */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 z-10 md:hidden"
+        className="pointer-events-none absolute inset-0 z-10 lg:hidden"
         style={{
           background:
             "linear-gradient(to bottom, rgba(8,10,12,0.84) 0%, rgba(8,10,12,0.5) 30%, rgba(8,10,12,0.42) 50%, rgba(8,10,12,0.5) 70%, rgba(8,10,12,0.86) 100%)",
@@ -171,20 +173,25 @@ export default function ActDoor() {
         <div
           ref={leftRef}
           style={{ opacity: 1 }}
-          className="absolute inset-x-0 top-[12%] px-6 text-center will-change-[transform,opacity,filter] md:inset-x-auto md:left-[6vw] md:top-1/2 md:max-w-[46%] md:-translate-y-1/2 md:px-0 md:text-left"
+          className="absolute inset-x-0 top-[12%] px-6 text-center will-change-[transform,opacity,filter] lg:inset-x-auto lg:left-[6vw] lg:top-1/2 lg:max-w-[32vw] lg:-translate-y-1/2 lg:px-0 lg:text-left"
         >
-          <h1 className="font-didot text-[clamp(2rem,4.5vw,3.9rem)] leading-[1.08] tracking-[-0.018em] text-cream">
+          {/* 32vw column + 3.4vw type: the longest forced line (≈8.9em) stays
+              inside the left gutter — the door's left edge never sits under copy. */}
+          <h1 className="font-didot text-[clamp(2.15rem,3.4vw,4.3rem)] leading-[1.07] tracking-[-0.018em] text-cream">
             {fr("Une réponse propre ne")}
-            <br className="hidden md:block" />{" "}
+            <br className="hidden lg:block" />{" "}
             {fr("veut pas dire qu’il a")}
-            <br className="hidden md:block" />{" "}
+            <br className="hidden lg:block" />{" "}
             {fr("compris.")}
           </h1>
-          <p className="mx-auto mt-8 max-w-[44ch] text-pretty font-satoshi text-[clamp(1.05rem,1.4vw,1.3rem)] font-medium leading-relaxed text-cream/75 md:mx-0">
+          <p className="mx-auto mt-8 max-w-[52ch] text-pretty font-satoshi text-[clamp(1.1rem,1.5vw,1.4rem)] font-medium leading-relaxed text-cream/75 lg:mx-0">
             {fr("AQLUMA apprend aux adolescents de 13 à 17 ans à utiliser l’IA avec jugement.")}
           </p>
-          <div className="mt-9">
-            <CtaButton className="pointer-events-auto" />
+          <p className="mx-auto mt-4 max-w-[50ch] text-pretty font-satoshi text-[clamp(0.98rem,1.15vw,1.15rem)] font-medium leading-relaxed text-cream/55 lg:mx-0">
+            {fr("Un programme en ligne, au Maroc, pour apprendre à vérifier, reformuler, expliquer et créer.")}
+          </p>
+          <div className="mt-10">
+            <CtaButton className="pointer-events-auto" size="xl" />
           </div>
         </div>
 
@@ -192,7 +199,7 @@ export default function ActDoor() {
         <p
           ref={devenirRef}
           style={{ opacity: reduced ? 0 : 0 }}
-          className="absolute inset-x-0 top-[52%] px-6 text-center font-didot leading-[1.16] tracking-[-0.015em] will-change-[transform,opacity,filter] md:inset-x-auto md:left-auto md:right-[6vw] md:top-[42%] md:max-w-[38%] md:px-0 md:text-right"
+          className="absolute inset-x-0 top-[52%] px-6 text-center font-didot leading-[1.16] tracking-[-0.015em] will-change-[transform,opacity,filter] lg:inset-x-auto lg:left-auto lg:right-[6vw] lg:top-[42%] lg:max-w-[30vw] lg:px-0 lg:text-right"
         >
           <span className="block text-[clamp(1rem,1.9vw,1.55rem)] text-cream/55">
             Ici, votre adolescent
@@ -202,8 +209,8 @@ export default function ActDoor() {
           </span>
         </p>
 
-        {/* The four traits — scattered on the right at md+, a centred stack below. */}
-        <div className="absolute inset-x-0 top-[50%] z-20 flex flex-col items-center gap-1.5 px-6 md:contents">
+        {/* The four traits — scattered on the right at lg+, a centred stack below. */}
+        <div className="absolute inset-x-0 top-[50%] z-20 flex flex-col items-center gap-1.5 px-6 lg:contents">
           {TRAITS.map((t, i) => (
             <div
               key={t.word}
@@ -211,7 +218,7 @@ export default function ActDoor() {
                 traitRefs.current[i] = el;
               }}
               style={{ opacity: reduced ? 0 : 0 }}
-              className={`font-didot text-[clamp(1.6rem,6.5vw,2.5rem)] leading-[1.04] tracking-[-0.015em] text-cream will-change-[transform,opacity,filter] md:absolute ${t.pos}`}
+              className={`font-didot text-[clamp(1.6rem,6.5vw,2.5rem)] leading-[1.04] tracking-[-0.015em] text-cream will-change-[transform,opacity,filter] lg:absolute ${t.pos}`}
             >
               {t.word}
             </div>
@@ -222,7 +229,7 @@ export default function ActDoor() {
         <div
           ref={climaxRef}
           style={{ opacity: 0 }}
-          className="absolute inset-x-0 top-1/2 z-20 -translate-y-1/2 px-6 text-center will-change-[transform,opacity,filter] md:inset-x-auto md:left-auto md:right-[6vw] md:max-w-[44%] md:px-0 md:text-right"
+          className="absolute inset-x-0 top-1/2 z-20 -translate-y-1/2 px-6 text-center will-change-[transform,opacity,filter] lg:inset-x-auto lg:left-auto lg:right-[6vw] lg:max-w-[32vw] lg:px-0 lg:text-right"
         >
           <span className="block font-didot text-[clamp(2.9rem,7.4vw,6.2rem)] font-normal leading-[1.0] tracking-[-0.025em] text-clay">
             AQLUMA

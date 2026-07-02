@@ -20,6 +20,26 @@ export const didot = localFont({
 });
 
 /**
+ * Handwriting — Caveat (variable, 400–700), used ONLY for the pinned paper note
+ * in the problem section. Self-hosted from /public/fonts (latin woff2 pulled from
+ * Google Fonts — OFL, same licensing family as GFS Didot; the latin subset covers
+ * French accents, guillemets and the thin no-break spaces fr() inserts).
+ * Exposed as `--font-hand`, wired to Tailwind's `font-hand`.
+ */
+export const caveat = localFont({
+  src: [
+    {
+      path: "../public/fonts/Caveat-Latin.woff2",
+      weight: "400 700",
+      style: "normal",
+    },
+  ],
+  variable: "--font-hand",
+  display: "swap",
+  fallback: ["Segoe Script", "Comic Sans MS", "cursive"],
+});
+
+/**
  * Body / UI / labels — Satoshi, self-hosted from /public/fonts (woff2 pulled from
  * the Fontshare CDN, latin). Only the weights the UI actually uses are shipped:
  * 400 (normal), 500 (medium), 700 (bold). `font-semibold` (600) has no Satoshi

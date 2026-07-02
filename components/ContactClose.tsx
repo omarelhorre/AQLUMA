@@ -8,7 +8,6 @@ import "@fortawesome/fontawesome-svg-core/styles.css";
 import { fr } from "@/lib/typo";
 import CtaButton from "@/components/CtaButton";
 import PromptTransform from "@/components/PromptTransform";
-import { GradientWord } from "@/components/Annotate";
 import { CTA_SUPPORT_FINAL } from "@/lib/contact";
 import { smoothScrollTo } from "@/lib/lenis";
 import { useReducedMotion } from "@/lib/useReducedMotion";
@@ -68,32 +67,17 @@ const PHONE_TEL = "+212600000000"; // PLACEHOLDER
  */
 export default function ContactClose() {
   return (
-    <footer
-      id="contact"
-      data-loupe
-      className="relative w-full overflow-hidden border-t border-cream/10"
-      aria-label="AQLUMA, contact"
-    >
-      {/* Oversized wordmark watermark — clipped by the footer's overflow-hidden. */}
-      <span
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 bottom-[-0.08em] select-none whitespace-nowrap text-center font-didot text-[12vw] font-normal leading-none tracking-[-0.03em] text-cream/[0.03]"
-      >
-        AQLUMA
-      </span>
-
-      <div className="shell relative py-20 md:py-24">
-        {/* Closing statement — the quiet last word + one final CTA on the left,
-            the « L'IA sera dans sa vie » transformation filling the right-hand
-            negative space (lg+). */}
-        <div className="mb-16 border-b border-cream/10 pb-14 md:mb-20 md:pb-16">
+    <footer id="contact" data-loupe className="relative w-full" aria-label="AQLUMA, contact">
+      {/* Closing statement — the last beat, kept on the dark wall (the grid shows
+          behind it), distinct from the solid footer panel below. */}
+      <div className="shell border-t border-cream/10 py-20 md:py-28">
           <div className="grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
             <div className="max-w-3xl">
               <p className="section-title text-cream">
                 {fr("L'IA sera dans sa vie.")}{" "}
                 <span className="text-cream/55">
                   {fr("La question est : avec quel ")}
-                  <GradientWord>jugement</GradientWord>
+                  <span className="text-gold">jugement</span>
                   {fr(" ?")}
                 </span>
               </p>
@@ -109,9 +93,20 @@ export default function ContactClose() {
               <PromptTransform />
             </div>
           </div>
-        </div>
+      </div>
 
-        <div className="grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-[1.6fr_1fr_1fr_1.4fr] lg:gap-10">
+      {/* Footer proper — a distinguished solid panel so it reads as the footer,
+          not more of the dark canvas. The wordmark watermark sits behind it. */}
+      <div className="relative overflow-hidden border-t border-cream/10 bg-ink">
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 bottom-[-0.08em] select-none whitespace-nowrap text-center font-didot text-[12vw] font-normal leading-none tracking-[-0.03em] text-cream/[0.03]"
+        >
+          AQLUMA
+        </span>
+
+        <div className="shell relative py-14 md:py-16">
+          <div className="grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-[1.6fr_1fr_1fr_1.4fr] lg:gap-10">
           {/* Brand */}
           <div className="sm:col-span-2 lg:col-span-1">
             <p className="font-didot text-[1.75rem] font-normal leading-none tracking-[0.04em] text-cream">
@@ -183,14 +178,15 @@ export default function ContactClose() {
           </FooterCol>
         </div>
 
-        {/* Bottom bar */}
-        <div className="mt-16 flex flex-col gap-4 border-t border-cream/10 pt-7 sm:flex-row sm:items-center sm:justify-between">
-          <p className="font-satoshi text-[0.78rem] tracking-[0.02em] text-cream/55">
-            © 2026 AQLUMA. {fr("Tous droits réservés.")}
-          </p>
-          <p className="font-satoshi text-[0.78rem] tracking-[0.02em] text-cream/55">
-            Maroc
-          </p>
+          {/* Bottom bar */}
+          <div className="mt-12 flex flex-col gap-4 border-t border-cream/10 pt-7 sm:flex-row sm:items-center sm:justify-between">
+            <p className="font-satoshi text-[0.78rem] tracking-[0.02em] text-cream/55">
+              © 2026 AQLUMA. {fr("Tous droits réservés.")}
+            </p>
+            <p className="font-satoshi text-[0.78rem] tracking-[0.02em] text-cream/55">
+              Maroc
+            </p>
+          </div>
         </div>
       </div>
     </footer>

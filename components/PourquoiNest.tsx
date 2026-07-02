@@ -1,24 +1,29 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import Parallax from "@/components/Parallax";
 import Reveal from "@/components/Reveal";
 import Kicker from "@/components/Kicker";
-import Annotate from "@/components/Annotate";
+import ScrollFill from "@/components/ScrollFill";
+import { AnnotationMark } from "@/components/Annotate";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { fr } from "@/lib/typo";
 
 /**
  * POURQUOI → CE QU'AQLUMA N'EST PAS.
  *
- * A normal-scroll section. Two "Pourquoi…" arguments enter in a zig-zag (left,
- * then right) on parallax, then everything converges on the centred title
- * « Ce qu'AQLUMA n'est pas » and six negative-space cards. As the cards scroll
- * into view a soft gold light sweeps across them left → right — a single, quiet
- * pass, not a loop. Reduced motion: the cards are simply shown, no sweep.
+ * Two "Pourquoi…" arguments enter in a zig-zag on parallax; their bodies use the
+ * site's signature write-in (ScrollFill), so the fill follows the reading. Then
+ * everything converges on « Ce qu'AQLUMA n'est pas » with six negative-space cards
+ * that slowly orbit the centred title like satellites — a true circular path
+ * (rotating arm + counter-rotation to stay upright), each on its own radius, depth
+ * and period, so nothing loops in lockstep. Reduced motion / narrow: static grid.
  */
 
-const POURQUOI: { q: string; body: string; mark?: string }[] = [
+const CREAM_65 = "rgba(247,244,239,0.65)";
+const GHOST = "rgba(247,244,239,0.12)";
+
+const POURQUOI: { q: string; body: string; mark?: RegExp }[] = [
   {
     q: "Pourquoi 15 adolescents ?",
     body: "Le jugement ne s'enseigne pas à la chaîne. Chaque élève reçoit une attention particulière. Chaque doute est exploré. Chaque production est examinée individuellement. Ce n'est pas de la rareté artificielle : c'est une décision pédagogique.",
@@ -26,24 +31,10 @@ const POURQUOI: { q: string; body: string; mark?: string }[] = [
   {
     q: "Pourquoi payer si l'IA est gratuite ?",
     body: "L'IA est gratuite. La méthode est rare. Vous payez pour un cadre, une discipline et un accompagnement humain qui transforme un outil en compétence durable. Ce que l'adolescent apprend ici, aucune interface ne peut l'enseigner.",
-    // « rare » gets the highlighter swipe — the one word this argument turns on.
-    mark: "rare",
+    // « rare » is highlighted as the fill front reaches it (same signal as « copier »).
+    mark: /rare/i,
   },
 ];
-
-/** Render a body paragraph, wrapping its single `mark` word in a marker swipe. */
-function renderBody(body: string, mark?: string): ReactNode {
-  if (!mark) return fr(body);
-  const i = body.indexOf(mark);
-  if (i < 0) return fr(body);
-  return (
-    <>
-      {fr(body.slice(0, i))}
-      <Annotate type="marker">{fr(mark)}</Annotate>
-      {fr(body.slice(i + mark.length))}
-    </>
-  );
-}
 
 const NEST = [
   "Un cours de codage ou de programmation.",
@@ -54,27 +45,23 @@ const NEST = [
   "Une application ou un abonnement numérique.",
 ];
 
-// lg+ orbit stations around the centred title — six points on a wide ellipse,
-// each drifting on a slow, phase-offset path (see globals `aq-orbit-*`). `enter`
-// is the radial-outward offset each card settles IN from when the system first
-// enters view (a satellite arriving + stabilising), before the calm drift begins.
+// lg+ orbit stations around the centred title. Each card slowly revolves its own
+// small circle (r), on its own period (dur), direction (cw) and apparent depth
+// (scale) — see globals `aq-spin` / `aq-spin-rev`. `enter` is the radial arrival.
 const ORBIT = [
-  { left: "50%", top: "11%", anim: "aq-orbit-a 30s ease-in-out 0s infinite", enter: { x: 0, y: -48, r: -3 } },
-  { left: "87%", top: "30%", anim: "aq-orbit-b 36s ease-in-out -6s infinite", enter: { x: 54, y: -26, r: 4 } },
-  { left: "87%", top: "70%", anim: "aq-orbit-a 33s ease-in-out -12s infinite reverse", enter: { x: 54, y: 26, r: -4 } },
-  { left: "50%", top: "89%", anim: "aq-orbit-b 31s ease-in-out -4s infinite", enter: { x: 0, y: 48, r: 3 } },
-  { left: "13%", top: "70%", anim: "aq-orbit-a 37s ease-in-out -9s infinite reverse", enter: { x: -54, y: 26, r: 4 } },
-  { left: "13%", top: "30%", anim: "aq-orbit-b 28s ease-in-out -15s infinite", enter: { x: -54, y: -26, r: -3 } },
+  { left: "50%", top: "12%", r: 9, dur: 74, cw: true, depth: 1.02, enter: { x: 0, y: -48, rot: -3 } },
+  { left: "86%", top: "31%", r: 12, dur: 92, cw: false, depth: 0.96, enter: { x: 54, y: -26, rot: 4 } },
+  { left: "86%", top: "69%", r: 8, dur: 84, cw: true, depth: 1.04, enter: { x: 54, y: 26, rot: -4 } },
+  { left: "50%", top: "88%", r: 11, dur: 100, cw: false, depth: 0.98, enter: { x: 0, y: 48, rot: 3 } },
+  { left: "14%", top: "69%", r: 10, dur: 88, cw: true, depth: 1.0, enter: { x: -54, y: 26, rot: 4 } },
+  { left: "14%", top: "31%", r: 13, dur: 96, cw: false, depth: 0.94, enter: { x: -54, y: -26, rot: -3 } },
 ];
 
 /** One negative-space card — unchanged design; the warm paper stock + quiet ✕. */
 function NestCard({ t }: { t: string }) {
   return (
     <div className="flex h-full flex-col items-center justify-center gap-5 rounded-2xl border border-black/[0.06] bg-paper px-8 py-12 text-center shadow-[0_24px_60px_-32px_rgba(0,0,0,0.7)]">
-      <span
-        aria-hidden
-        className="block h-6 w-6 rounded-full border border-void/15 text-void/30"
-      >
+      <span aria-hidden className="block h-6 w-6 rounded-full border border-void/15 text-void/30">
         <svg viewBox="0 0 20 20" className="h-full w-full" aria-hidden>
           <path d="M6 6l8 8M14 6l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
         </svg>
@@ -89,8 +76,8 @@ function NestCard({ t }: { t: string }) {
 export default function PourquoiNest() {
   const reduced = useReducedMotion();
   const orbitRef = useRef<HTMLDivElement>(null);
-  // `live` gates the arrival: cards settle in from `enter` only once the orbit
-  // system scrolls into view, and the perpetual drift is held paused until then.
+  // `live` gates the arrival: cards settle in from `enter` once the system scrolls
+  // into view, and the perpetual orbit is held paused until then.
   const [live, setLive] = useState(false);
 
   useEffect(() => {
@@ -114,91 +101,95 @@ export default function PourquoiNest() {
   }, [reduced]);
 
   return (
-    <section
-      data-loupe
-      className="relative w-full overflow-hidden border-t border-cream/[0.06] bg-void py-28 md:py-40"
-      aria-label="Pourquoi AQLUMA"
-    >
-      <div className="shell flex flex-col gap-28 md:gap-40">
-        {/* ── Zig-zag arguments ── */}
-        <div className="flex flex-col gap-24 md:gap-32">
+    <>
+      {/* ── « Pourquoi » — the parti-pris arguments (id=pourquoi / « Le parti
+          pris »). Its own section so the next beat's cards never bleed in. ── */}
+      <section
+        id="pourquoi"
+        data-loupe
+        className="relative w-full overflow-hidden border-t border-cream/[0.06] py-28 md:py-36"
+        aria-label="Pourquoi AQLUMA"
+      >
+        <div className="shell flex flex-col gap-24 md:gap-32">
           {POURQUOI.map((item, i) => (
-            <Parallax
-              key={item.q}
-              speed={0.1}
-              className={i % 2 === 1 ? "md:ml-auto md:text-right" : ""}
-            >
+            <Parallax key={item.q} speed={0.1} className={i % 2 === 1 ? "md:ml-auto md:text-right" : ""}>
               <Reveal className="max-w-[46ch]">
                 <h3 className="font-didot text-[clamp(1.75rem,3.4vw,2.9rem)] font-normal leading-[1.1] tracking-[-0.02em] text-cream">
                   {fr(item.q)}
                 </h3>
-                <p
+                <ScrollFill
+                  as="p"
                   className={[
-                    "mt-6 text-pretty font-satoshi text-[clamp(1.05rem,1.4vw,1.3rem)] leading-relaxed text-cream/65",
+                    "mt-6 text-pretty font-satoshi text-[clamp(1.08rem,1.45vw,1.32rem)] leading-relaxed",
                     i % 2 === 1 ? "md:ml-auto" : "",
                   ].join(" ")}
-                >
-                  {renderBody(item.body, item.mark)}
-                </p>
+                  fill={CREAM_65}
+                  ghost={GHOST}
+                  highlight={item.mark}
+                  renderHighlight={item.mark ? (active) => <AnnotationMark active={active} /> : undefined}
+                  text={item.body}
+                />
               </Reveal>
             </Parallax>
           ))}
         </div>
+      </section>
 
-        {/* ── Convergence → Ce qu'AQLUMA n'est pas ──
-            lg+: the title holds dead-centre while the six cards orbit it on slow,
-            phase-offset paths. Below lg (and under reduced motion, which freezes
-            the drift) the cards fall back to the calm static grid. */}
-        <div>
-          {/* lg+ · orbit */}
+      {/* ── « Ce qu'AQLUMA n'est pas » — a distinct section (the header's « Nos
+          bordures » beat), with the site's standard border divider + generous
+          padding so the orbiting cards stay wholly inside their own screen and
+          never bleed up into the « Pourquoi » questions above. ── */}
+      <section
+        id="cadre"
+        data-loupe
+        className="relative w-full overflow-hidden border-t border-cream/[0.06] py-36 md:py-52"
+        aria-label="Ce qu'AQLUMA n'est pas"
+      >
+        <div className="shell">
+          {/* lg+ · orbit, centred in its own tall stage */}
           <div ref={orbitRef} className="relative mx-auto hidden h-[46rem] max-w-[72rem] lg:block">
-            {/* faint centre light — the gravitational middle of the system */}
-            <div
-              aria-hidden
-              className="pointer-events-none absolute left-1/2 top-1/2 h-[34rem] w-[34rem] -translate-x-1/2 -translate-y-1/2"
-              style={{
-                background:
-                  "radial-gradient(closest-side, rgba(232,178,58,0.08), rgba(8,10,12,0) 70%)",
-              }}
-            />
-
             {/* centred title */}
             <div className="absolute left-1/2 top-1/2 z-10 w-[min(28rem,60%)] -translate-x-1/2 -translate-y-1/2 text-center">
               <div className="mb-6 flex justify-center">
                 <Kicker>Le cadre</Kicker>
               </div>
-              <h2 className="section-title text-cream">
-                {fr("Ce qu'AQLUMA n'est pas")}
-              </h2>
+              <h2 className="section-title text-cream">{fr("Ce qu'AQLUMA n'est pas")}</h2>
             </div>
 
-            {/* orbiting cards. Three nested layers keep the motions from fighting:
-                (1) positioner centres the card on its station, (2) settle wrapper
-                flies it in from `enter` on a decelerating curve, (3) drift wrapper
-                runs the calm perpetual orbit — held paused until arrival. */}
+            {/* orbiting cards — settle wrapper (arrival + depth) › arm (revolves the
+                station) › offset (the radius) › counter (keeps the card upright) */}
             {NEST.map((t, i) => {
               const o = ORBIT[i];
+              const armKf = o.cw ? "aq-spin" : "aq-spin-rev";
+              const revKf = o.cw ? "aq-spin-rev" : "aq-spin";
               return (
                 <div
                   key={t}
-                  className="absolute w-[clamp(15rem,19vw,17rem)] -translate-x-1/2 -translate-y-1/2 will-change-transform"
+                  className="absolute w-[clamp(15rem,19vw,17rem)] -translate-x-1/2 -translate-y-1/2"
                   style={{ left: o.left, top: o.top }}
                 >
                   <div
                     className="will-change-transform"
                     style={{
                       transform: live
-                        ? "translate3d(0,0,0) scale(1) rotate(0deg)"
-                        : `translate3d(${o.enter.x}px,${o.enter.y}px,0) scale(0.9) rotate(${o.enter.r}deg)`,
+                        ? `translate3d(0,0,0) scale(${o.depth}) rotate(0deg)`
+                        : `translate3d(${o.enter.x}px,${o.enter.y}px,0) scale(${o.depth * 0.9}) rotate(${o.enter.rot}deg)`,
                       opacity: live ? 1 : 0,
-                      transition: `transform 1.15s cubic-bezier(0.16,1,0.3,1) ${i * 90}ms, opacity 0.9s ease ${i * 90}ms`,
+                      transition: `transform 1.2s cubic-bezier(0.16,1,0.3,1) ${i * 90}ms, opacity 0.9s ease ${i * 90}ms`,
                     }}
                   >
                     <div
                       className="will-change-transform"
-                      style={{ animation: o.anim, animationPlayState: live ? "running" : "paused" }}
+                      style={{ animation: `${armKf} ${o.dur}s linear infinite`, animationPlayState: live ? "running" : "paused" }}
                     >
-                      <NestCard t={t} />
+                      <div style={{ transform: `translateX(${o.r}px)` }}>
+                        <div
+                          className="will-change-transform"
+                          style={{ animation: `${revKf} ${o.dur}s linear infinite`, animationPlayState: live ? "running" : "paused" }}
+                        >
+                          <NestCard t={t} />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -212,9 +203,7 @@ export default function PourquoiNest() {
               <div className="mb-6 flex justify-center">
                 <Kicker>Le cadre</Kicker>
               </div>
-              <h2 className="section-title text-cream">
-                {fr("Ce qu'AQLUMA n'est pas")}
-              </h2>
+              <h2 className="section-title text-cream">{fr("Ce qu'AQLUMA n'est pas")}</h2>
             </Reveal>
             <div className="mt-14 grid gap-5 sm:grid-cols-2">
               {NEST.map((t, i) => (
@@ -225,7 +214,7 @@ export default function PourquoiNest() {
             </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </>
   );
 }

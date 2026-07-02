@@ -4,8 +4,10 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 
 /**
- * Reveal — fades + lifts its children in the first time they enter the viewport.
- * A quiet, editorial entrance for normally-scrolling content (no GSAP, no pin).
+ * Reveal — fades + lifts its children in the first time they enter the viewport,
+ * settling from a soft blur into sharpness (and, optionally, expanding from a
+ * slightly smaller scale — a clean confident zoom, no overshoot). A quiet,
+ * editorial entrance for normally-scrolling content (no GSAP, no pin).
  * Honours reduced motion by rendering its children plainly.
  */
 export default function Reveal({
@@ -13,6 +15,7 @@ export default function Reveal({
   className = "",
   delay = 0,
   y = 28,
+  scale = 1,
 }: {
   children: ReactNode;
   className?: string;
@@ -20,6 +23,8 @@ export default function Reveal({
   delay?: number;
   /** Initial downward offset, in px. */
   y?: number;
+  /** Initial scale — set below 1 for an expand-into-place entrance. */
+  scale?: number;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const reduced = useReducedMotion();
@@ -51,9 +56,10 @@ export default function Reveal({
       className={className}
       style={{
         opacity: shown ? 1 : 0,
-        transform: shown ? "none" : `translateY(${y}px)`,
+        transform: shown ? "none" : `translateY(${y}px) scale(${scale})`,
+        filter: shown ? "none" : "blur(8px)",
         transition:
-          "opacity 0.9s cubic-bezier(0.16,1,0.3,1), transform 0.9s cubic-bezier(0.16,1,0.3,1)",
+          "opacity 0.9s cubic-bezier(0.16,1,0.3,1), transform 0.9s cubic-bezier(0.16,1,0.3,1), filter 0.9s cubic-bezier(0.16,1,0.3,1)",
         transitionDelay: `${delay}ms`,
       }}
     >

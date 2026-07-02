@@ -1,17 +1,21 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
-import { worlds } from "@/lib/worlds";
 import { smoothScrollTo } from "@/lib/lenis";
 import { CAL_LINK, CAL_CONFIG } from "@/lib/cal";
 
-// In-page sections surfaced in the nav (besides the Mondes dropdown). Anchors map
-// to live section ids; clicks smooth-scroll with the fixed-header offset.
-const SECTIONS = [
-  { id: "programme", label: "Le Programme" },
-  // { id: "avis", label: "Avis" }, — testimonials removed
-  { id: "faq", label: "FAQ" },
+// The story beats, in scroll order. Anchors map to live section ids; clicks
+// smooth-scroll with the fixed-header offset and the item lights up while its
+// section is in view (see the scroll-spy below). Concise, editorial labels.
+// « Mondes » is now a plain section link (its old dropdown is gone).
+const NAV = [
+  { id: "constat", label: "Le problème" },
+  { id: "methode", label: "La méthode d’AQLUMA" },
+  { id: "mondes", label: "Mondes" },
+  { id: "transformation", label: "La transformation" },
+  { id: "pourquoi", label: "Le parti pris" },
+  { id: "cadre", label: "Nos bordures" },
 ];
 
 /**
@@ -20,38 +24,31 @@ const SECTIONS = [
  * shadow, so copy and worlds read cleanly over every section. Past the hero it
  * deepens its border/shadow a touch for premium separation.
  *
- * Nav: the AQLUMA mark (scrolls to top), the "Mondes" dropdown listing the three
- * worlds, and a single solid-white CTA that scrolls to the contact section.
+ * Nav: the AQLUMA mark (scrolls to top), the story-beat links (including a simple
+ * "Mondes" link), and a single solid-white CTA that opens the cal.com booking.
  */
 export default function Header() {
   const [scrolled, setScrolled] = useState(false);
-  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 24);
+    // header state + scroll-spy: the active item is the last section whose top has
+    // crossed a line ~a third down the viewport.
+    const onScroll = () => {
+      setScrolled(window.scrollY > 24);
+      const line = window.innerHeight * 0.35;
+      let cur = "";
+      for (const s of NAV) {
+        const el = document.getElementById(s.id);
+        if (el && el.getBoundingClientRect().top <= line) cur = s.id;
+      }
+      setActive(cur);
+    };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
-
-  // close the dropdown on outside click / escape
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
-    window.addEventListener("mousedown", onDown);
-    window.addEventListener("keydown", onKey);
-    return () => {
-      window.removeEventListener("mousedown", onDown);
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
 
   // mobile sheet: lock body scroll + close on escape
   useEffect(() => {
@@ -71,15 +68,7 @@ export default function Header() {
     smoothScrollTo(0);
   };
 
-  const goWorld = (id: string, enabled: boolean) => {
-    if (!enabled) return;
-    setOpen(false);
-    setMobileOpen(false);
-    smoothScrollTo(`#${id}`, { offset: 0 });
-  };
-
   const goSection = (id: string) => {
-    setOpen(false);
     setMobileOpen(false);
     smoothScrollTo(`#${id}`, { offset: -80 });
   };
@@ -111,100 +100,33 @@ export default function Header() {
           />
         </button>
 
-        {/* Desktop nav — hidden under md, replaced by the hamburger sheet. */}
-        <div className="hidden items-center gap-3 md:flex md:gap-5">
-          {/* In-page section links — smooth-scroll with the fixed-header offset. */}
-          {SECTIONS.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              onClick={() => goSection(s.id)}
-              className="rounded-sm px-1 py-2 font-satoshi text-[14px] font-medium tracking-tight text-cream/75 outline-none transition-colors duration-300 ease-editorial hover:text-cream focus-visible:ring-1 focus-visible:ring-cream/30"
-            >
-              {s.label}
-            </button>
-          ))}
-
-          {/* Mondes — expandable dropdown */}
-          <div
-            ref={menuRef}
-            className="relative"
-            onMouseEnter={() => setOpen(true)}
-            onMouseLeave={() => setOpen(false)}
-          >
-            <button
-              type="button"
-              onClick={() => setOpen((v) => !v)}
-              aria-haspopup="menu"
-              aria-expanded={open}
-              className="group/btn flex items-center gap-2.5 rounded-sm px-1 py-2 font-satoshi text-[14px] font-medium tracking-tight text-cream/75 outline-none transition-colors duration-300 ease-editorial hover:text-cream focus-visible:ring-1 focus-visible:ring-cream/30"
-            >
-              <RoomsGlyph />
-              Mondes
-              <svg
-                width="10"
-                height="10"
-                viewBox="0 0 10 10"
-                aria-hidden
+        {/* Desktop nav — richer now, so it appears at xl; hamburger sheet below. */}
+        <div className="hidden items-center gap-3 xl:flex xl:gap-4">
+          {/* Story-beat links — smooth-scroll + active-state highlight while scrolling. */}
+          {NAV.map((s) => {
+            const on = active === s.id;
+            return (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => goSection(s.id)}
+                aria-current={on ? "true" : undefined}
                 className={[
-                  "translate-y-[1px] text-cream/45 transition-transform duration-300 ease-editorial group-hover/btn:text-cream/70",
-                  open ? "rotate-180" : "rotate-0",
+                  "relative rounded-sm px-1 py-2 font-satoshi text-[14px] font-medium tracking-tight outline-none transition-colors duration-300 ease-editorial focus-visible:ring-1 focus-visible:ring-cream/30",
+                  on ? "text-cream" : "text-cream/70 hover:text-cream",
                 ].join(" ")}
               >
-                <path
-                  d="M1 3l4 4 4-4"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+                {s.label}
+                <span
+                  aria-hidden
+                  className={[
+                    "absolute -bottom-0.5 left-1 right-1 h-px origin-left bg-gold/70 transition-transform duration-300 ease-editorial",
+                    on ? "scale-x-100" : "scale-x-0",
+                  ].join(" ")}
                 />
-              </svg>
-            </button>
-
-            {/* dropdown panel */}
-            <div
-              role="menu"
-              className={[
-                "absolute right-0 top-full min-w-[200px] origin-top-right pt-3 transition-all duration-300 ease-editorial",
-                open
-                  ? "pointer-events-auto translate-y-0 opacity-100"
-                  : "pointer-events-none -translate-y-1 opacity-0",
-              ].join(" ")}
-            >
-              <ul className="overflow-hidden rounded-md border border-cream/10 bg-ink/95 p-1.5 shadow-[0_24px_60px_-24px_rgba(0,0,0,0.9)]">
-                {worlds.map((w, i) => (
-                  <li key={w.id}>
-                    <button
-                      type="button"
-                      role="menuitem"
-                      disabled={!w.enabled}
-                      onClick={() => goWorld(w.id, w.enabled)}
-                      className={[
-                        "flex w-full items-center justify-between gap-6 rounded-sm px-3 py-2.5 text-left transition-colors duration-200 ease-editorial",
-                        w.enabled
-                          ? "text-cream/85 hover:bg-cream/[0.06] hover:text-cream"
-                          : "cursor-default text-cream/35",
-                      ].join(" ")}
-                    >
-                      <span className="font-satoshi text-[13.5px] font-medium tracking-tight">
-                        {w.label}
-                      </span>
-                      {w.enabled ? (
-                        <span className="font-satoshi text-[11px] tabular-nums text-cream/45">
-                          {`0${i + 1}`}
-                        </span>
-                      ) : (
-                        <span className="rounded-full border border-cream/10 bg-cream/[0.04] px-2 py-[3px] font-satoshi text-[10px] font-medium tracking-tight text-cream/55">
-                          Bientôt
-                        </span>
-                      )}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
+              </button>
+            );
+          })}
 
           {/* CTA — solid white pill that opens the cal.com booking popup
               (data-cal-link, themed in CalInit). The arrow slides on hover and
@@ -242,7 +164,7 @@ export default function Header() {
           aria-label={mobileOpen ? "Fermer le menu" : "Ouvrir le menu"}
           aria-expanded={mobileOpen}
           aria-controls="mobile-menu"
-          className="-mr-1 inline-flex h-10 w-10 items-center justify-center rounded-sm text-cream/80 outline-none transition-colors duration-300 ease-editorial hover:text-cream focus-visible:ring-1 focus-visible:ring-cream/30 md:hidden"
+          className="-mr-1 inline-flex h-10 w-10 items-center justify-center rounded-sm text-cream/80 outline-none transition-colors duration-300 ease-editorial hover:text-cream focus-visible:ring-1 focus-visible:ring-cream/30 xl:hidden"
         >
           <span className="relative block h-[12px] w-[22px]">
             <span
@@ -261,51 +183,19 @@ export default function Header() {
         </button>
       </div>
 
-      {/* Mobile sheet — full-width panel that drops under the bar (md:hidden). */}
+      {/* Mobile sheet — full-width panel that drops under the bar (xl:hidden). */}
       <div
         id="mobile-menu"
         className={[
-          "overflow-hidden border-t border-cream/[0.06] bg-gradient-to-b from-obsidian to-void transition-[max-height,opacity] duration-500 ease-editorial md:hidden",
+          "overflow-hidden border-t border-cream/[0.06] bg-gradient-to-b from-obsidian to-void transition-[max-height,opacity] duration-500 ease-editorial xl:hidden",
           mobileOpen ? "max-h-[80vh] opacity-100" : "max-h-0 opacity-0",
         ].join(" ")}
       >
         <nav className="mx-auto flex max-w-[1600px] flex-col gap-1 px-6 py-5">
           <span className="px-1 pb-1 font-satoshi text-[12px] font-semibold tracking-tight text-cream/50">
-            Mondes
-          </span>
-          {worlds.map((w, i) => (
-            <button
-              key={w.id}
-              type="button"
-              disabled={!w.enabled}
-              onClick={() => goWorld(w.id, w.enabled)}
-              className={[
-                "flex items-center justify-between gap-6 rounded-sm px-1 py-3.5 text-left transition-colors duration-200",
-                w.enabled
-                  ? "text-cream/85 active:text-cream"
-                  : "cursor-default text-cream/35",
-              ].join(" ")}
-            >
-              <span className="font-satoshi text-[17px] font-medium tracking-tight">
-                {w.label}
-              </span>
-              {w.enabled ? (
-                <span className="font-satoshi text-[12px] tabular-nums text-cream/45">
-                  {`0${i + 1}`}
-                </span>
-              ) : (
-                <span className="rounded-full border border-cream/10 bg-cream/[0.04] px-2 py-[3px] font-satoshi text-[10px] font-medium tracking-tight text-cream/55">
-                  Bientôt
-                </span>
-              )}
-            </button>
-          ))}
-
-          {/* In-page sections */}
-          <span className="mt-4 px-1 pb-1 font-satoshi text-[12px] font-semibold tracking-tight text-cream/50">
             Sections
           </span>
-          {SECTIONS.map((s) => (
+          {NAV.map((s) => (
             <button
               key={s.id}
               type="button"
@@ -344,42 +234,5 @@ export default function Header() {
         </nav>
       </div>
     </header>
-  );
-}
-
-/**
- * Quiet glyph for the "Mondes" nav item — an aperture: a threshold framing a room
- * within a room (the three museum "worlds" are doorways you step through), with a
- * single key-light glint in the upper-left, echoing the site's one warm key light.
- * On-metaphor, not a space cliché. 1.1–1.2px strokes in currentColor so it inherits
- * the label; the inner frame brightens a touch on hover.
- */
-function RoomsGlyph() {
-  return (
-    <svg
-      width="15"
-      height="15"
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-hidden
-      className="-translate-y-[0.5px]"
-    >
-      {/* outer threshold */}
-      <rect x="3.5" y="3.5" width="17" height="17" rx="4" stroke="currentColor" strokeWidth="1.2" />
-      {/* inner room — recedes; warms on hover */}
-      <rect
-        x="7.6"
-        y="7.6"
-        width="8.8"
-        height="8.8"
-        rx="2"
-        stroke="currentColor"
-        strokeWidth="1.1"
-        opacity="0.5"
-        className="transition-opacity duration-300 ease-editorial group-hover/btn:opacity-90"
-      />
-      {/* upper-left key-light glint */}
-      <path d="M6 6.4 L8.6 6.4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" opacity="0.85" />
-    </svg>
   );
 }

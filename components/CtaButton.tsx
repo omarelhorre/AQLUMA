@@ -24,6 +24,7 @@ const SIZES = {
   sm: "px-5 py-2.5 text-[12.5px]",
   md: "px-6 py-3 text-[13px]",
   lg: "px-7 py-3.5 text-[14px]",
+  xl: "px-10 py-4 text-[15.5px] gap-2.5",
 } as const;
 
 export default function CtaButton({

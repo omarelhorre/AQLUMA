@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { didot, satoshi } from "./fonts";
+import { caveat, didot, satoshi } from "./fonts";
 import "./globals.css";
 import SmoothScroll from "@/components/SmoothScroll";
 import Grid from "@/components/Grid";
@@ -54,7 +54,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="fr" className={`${didot.variable} ${satoshi.variable}`}>
+    <html lang="fr" className={`${didot.variable} ${satoshi.variable} ${caveat.variable}`}>
       <body className="bg-void text-cream antialiased">
         <SmoothScroll />
         {/* Blueprint grid — a true backdrop: paints behind <main> (which is
