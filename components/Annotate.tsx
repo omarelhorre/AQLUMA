@@ -15,9 +15,11 @@ import { useReducedMotion } from "@/lib/useReducedMotion";
  * itself in under the one word that matters.
  *
  * One treatment, used everywhere, so emphasis reads as a designed decision rather
- * than a collection of effects. The rule is a straight 1.5px stroke, set a little
- * below the baseline, that writes on left→right (dash-offset) when the word
- * settles into view — quiet enough to belong to the typography. Purely
+ * than a collection of effects. The rule is a straight stroke whose weight scales
+ * with the word it underlines (~2.5px under body copy, ~5px under display words,
+ * clamped), set a little below the baseline, that writes on left→right
+ * (dash-offset) when the word settles into view — present enough to be read as a
+ * deliberate mark, straight enough to belong to the typography. Purely
  * decorative: aria-hidden, pointer-events-none, never affects layout.
  *
  * Two ways to fire:
@@ -122,7 +124,12 @@ export function AnnotationMark({
     );
   }, [on, box, reduced]);
 
-  const ruleY = box ? PAD + box.h + PAD * 0.14 : 0;
+  // Weight follows the word: a display-sized word earns a heavier mark than a
+  // body-copy one, so the rule always reads as the same gesture at every scale.
+  const strokeW = box ? Math.max(2.5, Math.min(5.5, box.h * 0.055)) : 2.5;
+  // Sit the rule below the line box, plus half the stroke so the round caps of a
+  // heavier mark never graze the descenders.
+  const ruleY = box ? PAD + box.h + PAD * 0.1 + strokeW / 2 : 0;
 
   return (
     <span ref={rootRef} aria-hidden className="pointer-events-none absolute inset-0 z-0 select-none">
@@ -139,10 +146,10 @@ export function AnnotationMark({
             d={`M${PAD} ${ruleY} L${PAD + box.w} ${ruleY}`}
             fill="none"
             stroke={color}
-            strokeWidth={1.5}
+            strokeWidth={strokeW}
             strokeLinecap="round"
             pathLength={1}
-            style={{ strokeDasharray: 1, strokeDashoffset: reduced ? 0 : 1, opacity: 0.65 }}
+            style={{ strokeDasharray: 1, strokeDashoffset: reduced ? 0 : 1, opacity: 0.9 }}
           />
         </svg>
       )}

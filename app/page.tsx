@@ -9,6 +9,7 @@ import Worlds from "@/components/Worlds";
 import FamilyCards from "@/components/FamilyCards";
 import PourquoiNest from "@/components/PourquoiNest";
 import CtaCard from "@/components/CtaCard";
+import ChapterOverlap from "@/components/ChapterOverlap";
 // Program section parked (recoverable):
 // import ProgramManifesto from "@/components/ProgramManifesto";
 // import ProgramHighlights from "@/components/ProgramHighlights";
@@ -49,6 +50,9 @@ export default function Home() {
         <FamilyCards />
         <PourquoiNest />
         <CtaCard />
+        {/* The one signature chapter transition: « Ce qu'AQLUMA n'est pas » holds
+            while the white slab slides over it (see ChapterOverlap — one-off). */}
+        <ChapterOverlap />
         {/* <ProgramManifesto /> — parked */}
         {/* <ProgramHighlights /> — parked (phone mockup) */}
         {/* <Reviews /> — testimonials removed */}

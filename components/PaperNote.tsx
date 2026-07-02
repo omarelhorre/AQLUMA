@@ -14,7 +14,10 @@ import { fr } from "@/lib/typo";
  * toned toward the site's cream with a CSS filter), hung from a small brass
  * push pin, over layered shadows (a tight contact shadow + a soft ambient one).
  * The quote is set in Caveat (self-hosted, `font-hand`) with a hair of per-line
- * rotation and uneven indents, so it reads as written by hand, not typeset.
+ * rotation, uneven indents and irregular line gaps, plus per-word baseline drift,
+ * cant and ink pressure (see JITTER) — and the ink multiplies into the scan so
+ * the grain shows through the strokes. An aged-edge vignette and a soft fold
+ * crease finish the sheet, so it reads as written by hand, not typeset.
  *
  * On enter it plays ONCE, physically: the pin sets, the sheet swings the last few
  * degrees into place from the pin (soft, no bounce, one tiny settle), then the
@@ -26,15 +29,35 @@ import { fr } from "@/lib/typo";
  * written.
  */
 
-// Pre-wrapped lines with hand-set imperfection: a small per-line rotation and an
-// uneven left indent — handwriting never sits on one perfect left edge.
-const LINES: { t: string; rot: number; indent: number }[] = [
-  { t: "« C'est comme", rot: -0.8, indent: 0 },
-  { t: "donner les clés d'une", rot: 0.4, indent: 14 },
-  { t: "bibliothèque immense", rot: -0.3, indent: 6 },
-  { t: "à quelqu'un qui n'a", rot: 0.5, indent: 18 },
-  { t: "pas appris à lire. »", rot: -0.5, indent: 9 },
+// Pre-wrapped lines with hand-set imperfection: a small per-line rotation, an
+// uneven left indent — handwriting never sits on one perfect left edge — and a
+// slightly irregular gap above each line, because no hand rules its own paper.
+const LINES: { t: string; rot: number; indent: number; gap: number }[] = [
+  { t: "« C'est comme", rot: -0.8, indent: 0, gap: 0 },
+  { t: "donner les clés d'une", rot: 0.4, indent: 14, gap: 3 },
+  { t: "bibliothèque immense", rot: -0.3, indent: 6, gap: 1 },
+  { t: "à quelqu'un qui n'a", rot: 0.5, indent: 18, gap: 4 },
+  { t: "pas appris à lire. »", rot: -0.5, indent: 9, gap: 2 },
 ];
+
+// Per-word imperfection, cycled deterministically (SSR-stable, no Math.random):
+// the baseline drifts a pixel, each word cants a fraction of a degree, and the
+// ink density varies like pen pressure. Together with the per-line rotation this
+// keeps any two words from sitting on the same digital grid.
+const JITTER = [
+  { y: 0.6, r: 0.5, o: 0.94 },
+  { y: -0.9, r: -0.4, o: 1 },
+  { y: 0.3, r: 0.8, o: 0.88 },
+  { y: -0.5, r: -0.7, o: 0.97 },
+  { y: 1.1, r: 0.3, o: 0.9 },
+  { y: -0.3, r: -0.9, o: 1 },
+  { y: 0.8, r: 0.6, o: 0.92 },
+  { y: -1.1, r: 0.2, o: 0.96 },
+  { y: 0.2, r: -0.5, o: 1 },
+  { y: -0.7, r: 0.7, o: 0.9 },
+  { y: 0.9, r: -0.2, o: 0.95 },
+];
+const jitterFor = (li: number, wi: number) => JITTER[(li * 3 + wi) % JITTER.length];
 
 const TILT = -2.2; // resting tilt of the pinned sheet (deg)
 const PIN_X = "47%"; // the pin is a touch off-centre — nobody pins dead-centre
@@ -205,6 +228,30 @@ export default function PaperNote({ className = "" }: { className?: string }) {
           style={{ objectPosition: "50% 78%", filter: "saturate(0.5) brightness(1.24) contrast(0.96)" }}
         />
 
+        {/* aged-edge vignette — a handled sheet darkens toward its edges; keeps
+            the centre (where the ink lives) clean */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(115% 100% at 50% 44%, rgba(0,0,0,0) 58%, rgba(56,44,24,0.14) 90%, rgba(56,44,24,0.22) 100%)",
+            mixBlendMode: "multiply",
+          }}
+        />
+
+        {/* an old fold across the sheet — shadow settling into the crease, a kiss
+            of light where the paper breaks back toward the wall */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-[57%] h-[16px]"
+          style={{
+            background:
+              "linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(58,46,26,0.28) 44%, rgba(255,255,255,0.5) 64%, rgba(255,255,255,0) 100%)",
+            mixBlendMode: "soft-light",
+          }}
+        />
+
         {/* studio sheen — soft light pooled top-left; drifts a hair on parallax */}
         <div
           ref={sheenRef}
@@ -225,10 +272,13 @@ export default function PaperNote({ className = "" }: { className?: string }) {
             // is always on <html>, so the handwriting can never fall back.
             fontFamily: "var(--font-hand)",
             fontSize: "clamp(1.7rem, 2.6vw, 2.65rem)",
-            lineHeight: 1.22,
-            // warm ink + a sub-pixel bleed halo — pen soaked into fibre
+            lineHeight: 1.3,
+            // warm ink + a sub-pixel bleed halo — pen soaked into fibre. Multiply
+            // lets the paper grain show through the strokes, so the writing sits
+            // IN the sheet rather than printed over it.
             color: "#2A251C",
             textShadow: "0 0 0.6px rgba(42,37,28,0.55)",
+            mixBlendMode: "multiply",
           }}
         >
           {LINES.map((line, li) => {
@@ -240,20 +290,28 @@ export default function PaperNote({ className = "" }: { className?: string }) {
                 style={{
                   transform: `rotate(${line.rot}deg)`,
                   paddingLeft: line.indent,
+                  marginTop: line.gap,
                 }}
               >
-                {words.map((w, wi) => (
-                  <span key={wi}>
-                    <span
-                      ref={(el) => { (wordRefs.current[li] ||= [])[wi] = el; }}
-                      className="inline-block will-change-[clip-path]"
-                      style={reduced ? undefined : { clipPath: WORD_HIDDEN }}
-                    >
-                      {w}
+                {words.map((w, wi) => {
+                  const j = jitterFor(li, wi);
+                  return (
+                    <span key={wi}>
+                      <span
+                        ref={(el) => { (wordRefs.current[li] ||= [])[wi] = el; }}
+                        className="inline-block will-change-[clip-path]"
+                        style={{
+                          transform: `translateY(${j.y}px) rotate(${j.r}deg)`,
+                          opacity: j.o,
+                          ...(reduced ? null : { clipPath: WORD_HIDDEN }),
+                        }}
+                      >
+                        {w}
+                      </span>
+                      {wi < words.length - 1 ? " " : null}
                     </span>
-                    {wi < words.length - 1 ? " " : null}
-                  </span>
-                ))}
+                  );
+                })}
               </span>
             );
           })}

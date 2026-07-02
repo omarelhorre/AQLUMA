@@ -43,6 +43,8 @@ type Props = {
   highlight?: RegExp;
   /** Overlay rendered on the highlighted word; `active` = fill front has arrived. */
   renderHighlight?: (active: boolean) => ReactNode;
+  /** Classes for the highlighted word itself (e.g. "font-bold" to weight it). */
+  highlightClassName?: string;
 };
 
 const DEFAULT_GHOST = "rgba(247,244,239,0.13)";
@@ -65,6 +67,7 @@ export default function ScrollFill({
   end = "top 42%",
   highlight,
   renderHighlight,
+  highlightClassName = "",
 }: Props) {
   const reduced = useReducedMotion();
   const containerRef = useRef<HTMLElement>(null);
@@ -156,7 +159,7 @@ export default function ScrollFill({
     const flush = () => {
       if (anchorGroup) {
         nodes.push(
-          <span key={`a${ti}`} ref={anchorRef} className="relative inline">
+          <span key={`a${ti}`} ref={anchorRef} className={`relative inline ${highlightClassName}`}>
             {anchorGroup}
             {renderHighlight?.(anchorActive)}
           </span>,

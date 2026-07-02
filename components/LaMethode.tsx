@@ -43,7 +43,9 @@ function Header() {
       </h2>
       <p className="mt-6 max-w-[34ch] font-satoshi text-[clamp(1rem,1.3vw,1.2rem)] leading-relaxed text-cream/55">
         {fr("Six gestes pour transformer l'IA en ")}
-        <Annotate>partenaire</Annotate>
+        {/* The keyword steps up to full cream + bold under its gold rule, so the
+            emphasis reads at a glance instead of relying on the mark alone. */}
+        <Annotate><span className="font-bold text-cream">partenaire</span></Annotate>
         {fr(" de réflexion.")}
       </p>
     </header>
@@ -57,7 +59,7 @@ function GesteRow({ g }: { g: Geste }) {
         {g.n}
       </span>
       <div className="flex-1">
-        <h3 className="font-satoshi text-[clamp(1.15rem,1.9vw,1.55rem)] font-medium leading-snug tracking-tight text-cream">
+        <h3 className="font-satoshi text-[clamp(1.15rem,1.9vw,1.55rem)] font-bold leading-snug tracking-tight text-cream">
           {g.title}
         </h3>
         <p className="mt-1.5 max-w-[46ch] font-satoshi text-[clamp(0.95rem,1.15vw,1.08rem)] leading-relaxed text-cream/60">

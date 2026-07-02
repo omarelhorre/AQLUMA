@@ -189,7 +189,11 @@ export default function NarrativeRoom() {
                 and the copy sit on one shared editorial line, not two. A whisper of
                 parallax lets the paper drift against the statement for depth. */}
             <div className="flex justify-center md:justify-start md:pt-[3.75rem]">
-              <Parallax speed={0.06} className="w-[31rem] max-w-full">
+              {/* w-full capped by max-w (not a fixed w + max-w-full): a fixed
+                  width sets the grid track's min-content floor to 31rem, which
+                  overflows narrow viewports — the track ignores % max-widths
+                  while sizing itself. */}
+              <Parallax speed={0.06} className="w-full max-w-[31rem]">
                 <PaperNote className="w-full" />
               </Parallax>
             </div>
@@ -228,7 +232,7 @@ export default function NarrativeRoom() {
               <Label center>La fausse solution</Label>
               {CLAUSES.map((c, i) => (
                 <div key={i} className="flex flex-col items-center gap-3.5">
-                  <p className="whitespace-nowrap font-didot text-[clamp(1.7rem,4.6vw,3.6rem)] font-normal leading-[1.1] text-cream">
+                  <p className="font-didot text-[clamp(1.7rem,4.6vw,3.6rem)] font-normal leading-[1.1] text-cream sm:whitespace-nowrap">
                     {fr(c[0])}
                   </p>
                   <p className="font-didot text-[clamp(1.7rem,4.6vw,3.6rem)] font-normal leading-[1.2] text-cream/55 sm:whitespace-nowrap">
@@ -250,7 +254,7 @@ export default function NarrativeRoom() {
                     className="absolute inset-0 mx-auto flex flex-col items-center justify-center gap-3.5 font-didot text-[clamp(1.7rem,4.6vw,3.6rem)] font-normal leading-[1.2] will-change-transform"
                     style={{ transform: i === 0 ? "translateX(0)" : "translateX(105vw)" }}
                   >
-                    <span className="whitespace-nowrap leading-[1.1] text-cream">{fr(c[0])}</span>
+                    <span className="leading-[1.1] text-cream sm:whitespace-nowrap">{fr(c[0])}</span>
                     <span className="text-cream/55 sm:whitespace-nowrap">{fr(c[1])}</span>
                   </p>
                 ))}

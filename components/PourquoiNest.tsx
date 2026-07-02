@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { gsap } from "gsap";
 import Parallax from "@/components/Parallax";
 import Reveal from "@/components/Reveal";
 import Kicker from "@/components/Kicker";
@@ -15,9 +16,10 @@ import { fr } from "@/lib/typo";
  * Two "Pourquoi…" arguments enter in a zig-zag on parallax; their bodies use the
  * site's signature write-in (ScrollFill), so the fill follows the reading. Then
  * everything converges on « Ce qu'AQLUMA n'est pas » with six negative-space cards
- * that slowly orbit the centred title like satellites — a true circular path
- * (rotating arm + counter-rotation to stay upright), each on its own radius, depth
- * and period, so nothing loops in lockstep. Reduced motion / narrow: static grid.
+ * riding ONE shared ellipse around the centred title — the whole constellation
+ * turns clockwise together, one revolution per REV seconds, cards staying upright
+ * (an almost imperceptible wheel, not a carousel). Reduced motion / narrow:
+ * static grid (reduced motion on lg holds the wheel at its seats).
  */
 
 const CREAM_65 = "rgba(247,244,239,0.65)";
@@ -45,16 +47,19 @@ const NEST = [
   "Une application ou un abonnement numérique.",
 ];
 
-// lg+ orbit stations around the centred title. Each card slowly revolves its own
-// small circle (r), on its own period (dur), direction (cw) and apparent depth
-// (scale) — see globals `aq-spin` / `aq-spin-rev`. `enter` is the radial arrival.
+// lg+ wheel: the six cards sit 60° apart on ONE shared ellipse around the centred
+// title (x = 37% of the stage's width, y = 38% of its height — the previous
+// scattered stations, regularised) and the whole formation advances together,
+// clockwise, cards staying upright. `phase` is the card's fixed seat on the
+// wheel; `enter`/`depth` keep the radial arrival and apparent depth.
+const REV = 120; // seconds per full revolution — a slow, almost imperceptible turn
 const ORBIT = [
-  { left: "50%", top: "12%", r: 9, dur: 74, cw: true, depth: 1.02, enter: { x: 0, y: -48, rot: -3 } },
-  { left: "86%", top: "31%", r: 12, dur: 92, cw: false, depth: 0.96, enter: { x: 54, y: -26, rot: 4 } },
-  { left: "86%", top: "69%", r: 8, dur: 84, cw: true, depth: 1.04, enter: { x: 54, y: 26, rot: -4 } },
-  { left: "50%", top: "88%", r: 11, dur: 100, cw: false, depth: 0.98, enter: { x: 0, y: 48, rot: 3 } },
-  { left: "14%", top: "69%", r: 10, dur: 88, cw: true, depth: 1.0, enter: { x: -54, y: 26, rot: 4 } },
-  { left: "14%", top: "31%", r: 13, dur: 96, cw: false, depth: 0.94, enter: { x: -54, y: -26, rot: -3 } },
+  { phase: -90, depth: 1.02, enter: { x: 0, y: -48, rot: -3 } },
+  { phase: -30, depth: 0.96, enter: { x: 54, y: -26, rot: 4 } },
+  { phase: 30, depth: 1.04, enter: { x: 54, y: 26, rot: -4 } },
+  { phase: 90, depth: 0.98, enter: { x: 0, y: 48, rot: 3 } },
+  { phase: 150, depth: 1.0, enter: { x: -54, y: 26, rot: 4 } },
+  { phase: 210, depth: 0.94, enter: { x: -54, y: -26, rot: -3 } },
 ];
 
 /** One negative-space card — unchanged design; the warm paper stock + quiet ✕. */
@@ -76,8 +81,9 @@ function NestCard({ t }: { t: string }) {
 export default function PourquoiNest() {
   const reduced = useReducedMotion();
   const orbitRef = useRef<HTMLDivElement>(null);
+  const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
   // `live` gates the arrival: cards settle in from `enter` once the system scrolls
-  // into view, and the perpetual orbit is held paused until then.
+  // into view, and the perpetual wheel is held paused until then.
   const [live, setLive] = useState(false);
 
   useEffect(() => {
@@ -99,6 +105,50 @@ export default function PourquoiNest() {
     io.observe(el);
     return () => io.disconnect();
   }, [reduced]);
+
+  // The wheel — one proxy angle drives all six seats around the shared ellipse,
+  // so the formation turns as a single body (clockwise: +deg with y-down sin).
+  useEffect(() => {
+    const stage = orbitRef.current;
+    if (!stage) return;
+    const els = cardRefs.current.filter(Boolean) as HTMLDivElement[];
+    if (!els.length) return;
+
+    const place = (deg: number) => {
+      // Reading clientWidth each tick is cheap here: transforms never dirty
+      // layout. Zero when the stage is display:none (< lg) — harmless.
+      const rx = stage.clientWidth * 0.37;
+      const ry = stage.clientHeight * 0.38;
+      els.forEach((card, i) => {
+        const a = ((deg + ORBIT[i].phase) * Math.PI) / 180;
+        gsap.set(card, {
+          xPercent: -50,
+          yPercent: -50,
+          x: Math.cos(a) * rx,
+          y: Math.sin(a) * ry,
+        });
+      });
+    };
+
+    place(0);
+    if (reduced) return; // seats held, no turn
+
+    const proxy = { d: 0 };
+    const wheel = gsap.to(proxy, {
+      d: 360,
+      duration: REV,
+      ease: "none",
+      repeat: -1,
+      paused: !live,
+      onUpdate: () => place(proxy.d),
+    });
+    const onResize = () => place(proxy.d);
+    window.addEventListener("resize", onResize);
+    return () => {
+      wheel.kill();
+      window.removeEventListener("resize", onResize);
+    };
+  }, [reduced, live]);
 
   return (
     <>
@@ -127,6 +177,7 @@ export default function PourquoiNest() {
                   ghost={GHOST}
                   highlight={item.mark}
                   renderHighlight={item.mark ? (active) => <AnnotationMark active={active} /> : undefined}
+                  highlightClassName={item.mark ? "font-bold" : undefined}
                   text={item.body}
                 />
               </Reveal>
@@ -156,20 +207,21 @@ export default function PourquoiNest() {
               <h2 className="section-title text-cream">{fr("Ce qu'AQLUMA n'est pas")}</h2>
             </div>
 
-            {/* orbiting cards — settle wrapper (arrival + depth) › arm (revolves the
-                station) › offset (the radius) › counter (keeps the card upright) */}
+            {/* the wheel's seats — positioner (GSAP owns its transform: the seat
+                on the shared ellipse) › settle wrapper (arrival + depth). The
+                positioner starts invisible (opacity gate below) so the first
+                GSAP placement is never seen as a jump. */}
             {NEST.map((t, i) => {
               const o = ORBIT[i];
-              const armKf = o.cw ? "aq-spin" : "aq-spin-rev";
-              const revKf = o.cw ? "aq-spin-rev" : "aq-spin";
               return (
                 <div
                   key={t}
-                  className="absolute w-[clamp(15rem,19vw,17rem)] -translate-x-1/2 -translate-y-1/2"
-                  style={{ left: o.left, top: o.top }}
+                  ref={(el) => {
+                    cardRefs.current[i] = el;
+                  }}
+                  className="absolute left-1/2 top-1/2 w-[clamp(15rem,19vw,17rem)] will-change-transform"
                 >
                   <div
-                    className="will-change-transform"
                     style={{
                       transform: live
                         ? `translate3d(0,0,0) scale(${o.depth}) rotate(0deg)`
@@ -178,19 +230,7 @@ export default function PourquoiNest() {
                       transition: `transform 1.2s cubic-bezier(0.16,1,0.3,1) ${i * 90}ms, opacity 0.9s ease ${i * 90}ms`,
                     }}
                   >
-                    <div
-                      className="will-change-transform"
-                      style={{ animation: `${armKf} ${o.dur}s linear infinite`, animationPlayState: live ? "running" : "paused" }}
-                    >
-                      <div style={{ transform: `translateX(${o.r}px)` }}>
-                        <div
-                          className="will-change-transform"
-                          style={{ animation: `${revKf} ${o.dur}s linear infinite`, animationPlayState: live ? "running" : "paused" }}
-                        >
-                          <NestCard t={t} />
-                        </div>
-                      </div>
-                    </div>
+                    <NestCard t={t} />
                   </div>
                 </div>
               );

@@ -6,9 +6,6 @@ import { faFacebookF, faInstagram, faLinkedinIn, faWhatsapp } from "@fortawesome
 import { config } from "@fortawesome/fontawesome-svg-core";
 import "@fortawesome/fontawesome-svg-core/styles.css";
 import { fr } from "@/lib/typo";
-import CtaButton from "@/components/CtaButton";
-import PromptTransform from "@/components/PromptTransform";
-import { CTA_SUPPORT_FINAL } from "@/lib/contact";
 import { smoothScrollTo } from "@/lib/lenis";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { useScrubbedFill } from "@/lib/useScrubbedFill";
@@ -62,39 +59,13 @@ const PHONE_TEL = "+212600000000"; // PLACEHOLDER
  * (void / cream / gold): a brand block with the manifesto line + socials, the
  * sitemap, the legal column, and a contact/status column. An oversized AQLUMA
  * wordmark watermark sits faintly behind it; a slim bottom bar carries the
- * copyright and the language / cities row. The call to action itself lives at the
- * end of MindReveal, so this stays a quiet landing rather than a second pitch.
+ * copyright and the language / cities row. The conversion close (« L'IA sera dans
+ * sa vie… » + the cohort pitch + CTA) lives in CtaCard as one merged narrative,
+ * so this stays a quiet landing rather than a second pitch.
  */
 export default function ContactClose() {
   return (
     <footer id="contact" data-loupe className="relative w-full" aria-label="AQLUMA, contact">
-      {/* Closing statement — the last beat, kept on the dark wall (the grid shows
-          behind it), distinct from the solid footer panel below. */}
-      <div className="shell border-t border-cream/10 py-20 md:py-28">
-          <div className="grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
-            <div className="max-w-3xl">
-              <p className="section-title text-cream">
-                {fr("L'IA sera dans sa vie.")}{" "}
-                <span className="text-cream/55">
-                  {fr("La question est : avec quel ")}
-                  <span className="text-gold">jugement</span>
-                  {fr(" ?")}
-                </span>
-              </p>
-              <div className="mt-9 flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:gap-7">
-                <CtaButton size="md" />
-                <p className="max-w-[32ch] font-satoshi text-[0.9rem] leading-relaxed text-cream/45">
-                  {fr(CTA_SUPPORT_FINAL)}
-                </p>
-              </div>
-            </div>
-
-            <div className="hidden lg:block">
-              <PromptTransform />
-            </div>
-          </div>
-      </div>
-
       {/* Footer proper — a distinguished solid panel so it reads as the footer,
           not more of the dark canvas. The wordmark watermark sits behind it. */}
       <div className="relative overflow-hidden border-t border-cream/10 bg-ink">

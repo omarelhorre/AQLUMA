@@ -118,10 +118,12 @@
     display: none;
   }
 
-  /* sentence-case Satoshi kicker / nav label (no caps, no letter-spacing) */
+  /* sentence-case Satoshi kicker / nav label (no caps, no letter-spacing).
+     Bold — the same weight as the <Kicker> component, so every eyebrow on the
+     site carries one voice. */
   .kicker {
     font-family: theme("fontFamily.satoshi");
-    font-weight: 500;
+    font-weight: 700;
   }
 
   /* Custom cursor: enlarges over interactive elements (see Cursor.tsx). */
@@ -271,28 +273,9 @@
   }
 }
 
-/* ── « Ce qu'AQLUMA n'est pas » orbit — each card holds station around the centred
-   title and slowly orbits its own anchor: a small circular translate (constant
-   angular speed → a real orbit, not a back-and-forth wobble) with a subtle
-   perspective tilt (rotateX/Y) and a whisper of depth (scale), so the cards read
-   as gently suspended in space. `perspective()` is baked into the transform so no
-   ancestor 3D context is needed. Almost imperceptible by design; per-card duration
-   / phase / direction (see PourquoiNest ORBIT) keep them out of lockstep. The
-   reduced-motion block below freezes them. ── */
-/* Continuous, seamless rotation for the orbit arm + its counter-rotation. Linear
-   so the angular speed is constant (a real orbit, no eased pulsing), and a 360°
-   loop has no visible seam. Paired opposite (arm spins one way, the card counter-
-   spins the other) so the card orbits its station while staying upright. */
-@keyframes aq-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-@keyframes aq-spin-rev {
-  to {
-    transform: rotate(-360deg);
-  }
-}
+/* (The old per-card aq-spin / aq-spin-rev orbit keyframes are gone — the
+   « Ce qu'AQLUMA n'est pas » cards now ride one shared GSAP-driven ellipse;
+   see PourquoiNest ORBIT.) */
 
 /* The peripheral OS context menu (OsMenu) breathes on a slow vertical float, so
    it drifts like something suspended in the negative space rather than a fixed

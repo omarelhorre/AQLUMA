@@ -37,8 +37,29 @@ const TRAITS = [
   { word: "Concentré", pos: "lg:top-[70%] lg:right-[15vw] lg:text-[clamp(1.7rem,3.8vw,3.3rem)]" },
 ];
 
-const BLUR_HIDDEN = { opacity: 0, filter: "blur(14px)", y: 22 };
-const BLUR_SHOWN = { opacity: 1, filter: "blur(0px)", y: 0 };
+// autoAlpha (opacity + visibility) so dissolved copy — CTA included — can't
+// keep intercepting taps invisibly for the rest of the pin.
+const BLUR_HIDDEN = { autoAlpha: 0, filter: "blur(14px)", y: 22 };
+const BLUR_SHOWN = { autoAlpha: 1, filter: "blur(0px)", y: 0 };
+
+// Scrub beats. On lg+ the copy owns the left column, so the problem HOLDS while
+// the right writes the promise, and both dissolve together at the climax. Below
+// lg everything shares the same centred stage — the problem must clear the stage
+// BEFORE the promise writes over it, so its exit moves to the front of the scrub.
+const BEATS = {
+  desktop: {
+    leftOut: 0.86,
+    devenirIn: 0.06, devenirOut: 0.22,
+    traitsIn: 0.3, traitStep: 0.06, traitsOut: 0.62,
+    climaxIn: 0.68, climaxOut: 0.86,
+  },
+  mobile: {
+    leftOut: 0.14,
+    devenirIn: 0.26, devenirOut: 0.44,
+    traitsIn: 0.5, traitStep: 0.055, traitsOut: 0.74,
+    climaxIn: 0.8, climaxOut: 0.92,
+  },
+};
 
 export default function ActDoor() {
   const sectionRef = useRef<HTMLDivElement>(null);
@@ -62,72 +83,83 @@ export default function ActDoor() {
 
     const traits = traitRefs.current.filter(Boolean) as HTMLDivElement[];
 
-    const ctx = gsap.context(() => {
-      gsap.set(leftRef.current, BLUR_SHOWN); // present from the first frame
-      gsap.set([devenirRef.current, climaxRef.current, ...traits], BLUR_HIDDEN);
+    // Same DOM either side of the breakpoint (never flip the tree under a pin);
+    // only the beat TIMINGS branch, via gsap.matchMedia.
+    const mm = gsap.matchMedia(section);
+    mm.add(
+      { isMobile: "(max-width: 1023.98px)", isDesktop: "(min-width: 1024px)" },
+      (mmCtx) => {
+        const { isMobile } = mmCtx.conditions as { isMobile: boolean };
+        const B = isMobile ? BEATS.mobile : BEATS.desktop;
 
-      const seek = video
-        ? gsap.quickTo(video, "currentTime", { duration: 0.25, ease: "power3.out" })
-        : null;
+        gsap.set(leftRef.current, BLUR_SHOWN); // present from the first frame
+        gsap.set([devenirRef.current, climaxRef.current, ...traits], BLUR_HIDDEN);
 
-      const tl = gsap.timeline({
-        defaults: { ease: "power2.out" },
-        scrollTrigger: {
-          trigger: section,
-          start: "top top",
-          end: "+=600%",
-          pin: true,
-          scrub: true,
-          invalidateOnRefresh: true,
-        },
-      });
+        const seek = video
+          ? gsap.quickTo(video, "currentTime", { duration: 0.25, ease: "power3.out" })
+          : null;
 
-      const reveal = (el: gsap.TweenTarget, at: number, dur = 0.05) =>
-        tl.to(el, { ...BLUR_SHOWN, duration: dur }, at);
-      const dissolve = (el: gsap.TweenTarget, at: number, dur = 0.06) =>
-        tl.to(el, { opacity: 0, filter: "blur(14px)", y: -22, ease: "power2.in", duration: dur }, at);
-
-      // ── « Ici, votre adolescent apprend à devenir » — in, then out. ──
-      reveal(devenirRef.current, 0.06, 0.06);
-      dissolve(devenirRef.current, 0.22, 0.06);
-
-      // ── The scattered traits appear one after another, then clear. ──
-      traits.forEach((t, i) => reveal(t, 0.3 + i * 0.06, 0.05));
-      dissolve(traits, 0.62, 0.07);
-
-      // ── AQLUMA arrives — the LEFT is still there. Then « est là » and the
-      //    problem dissolve TOGETHER, and the door opens. ──
-      reveal(climaxRef.current, 0.68, 0.06);
-      dissolve(climaxRef.current, 0.86, 0.07);
-      dissolve(leftRef.current, 0.86, 0.08);
-
-      if (seek && video) {
-        const proxy = { t: 0 };
-        tl.to(
-          proxy,
-          {
-            t: 1,
-            duration: 0.5,
-            ease: "none",
-            onUpdate: () => {
-              if (video.duration) seek(proxy.t * video.duration);
-            },
+        const tl = gsap.timeline({
+          defaults: { ease: "power2.out" },
+          scrollTrigger: {
+            trigger: section,
+            start: "top top",
+            end: "+=600%",
+            pin: true,
+            scrub: true,
+            invalidateOnRefresh: true,
           },
-          0.94,
+        });
+
+        const reveal = (el: gsap.TweenTarget, at: number, dur = 0.05) =>
+          tl.to(el, { ...BLUR_SHOWN, duration: dur }, at);
+        const dissolve = (el: gsap.TweenTarget, at: number, dur = 0.06) =>
+          tl.to(el, { autoAlpha: 0, filter: "blur(14px)", y: -22, ease: "power2.in", duration: dur }, at);
+
+        // ── The problem — holds through the climax on lg+, clears the shared
+        //    centred stage first below lg. ──
+        dissolve(leftRef.current, B.leftOut, 0.08);
+
+        // ── « Ici, votre adolescent apprend à devenir » — in, then out. ──
+        reveal(devenirRef.current, B.devenirIn, 0.06);
+        dissolve(devenirRef.current, B.devenirOut, 0.06);
+
+        // ── The traits appear one after another, then clear. ──
+        traits.forEach((t, i) => reveal(t, B.traitsIn + i * B.traitStep, 0.05));
+        dissolve(traits, B.traitsOut, 0.07);
+
+        // ── AQLUMA arrives, then « est là » dissolves and the door opens. ──
+        reveal(climaxRef.current, B.climaxIn, 0.06);
+        dissolve(climaxRef.current, B.climaxOut, 0.07);
+
+        if (seek && video) {
+          const proxy = { t: 0 };
+          tl.to(
+            proxy,
+            {
+              t: 1,
+              duration: 0.5,
+              ease: "none",
+              onUpdate: () => {
+                if (video.duration) seek(proxy.t * video.duration);
+              },
+            },
+            0.94,
+          );
+        }
+
+        // ── Parallax hand-off into the Briefing. ──
+        tl.fromTo(
+          videoRef.current,
+          { yPercent: 0, scale: 1 },
+          { yPercent: -12, scale: 1.06, ease: "none", duration: 0.18 },
+          1.46,
         );
-      }
+        tl.to(veilRef.current, { opacity: 1, ease: "power1.in", duration: 0.16 }, 1.48);
+      },
+    );
 
-      // ── Parallax hand-off into the Briefing. ──
-      tl.fromTo(
-        videoRef.current,
-        { yPercent: 0, scale: 1 },
-        { yPercent: -12, scale: 1.06, ease: "none", duration: 0.18 },
-        1.46,
-      );
-      tl.to(veilRef.current, { opacity: 1, ease: "power1.in", duration: 0.16 }, 1.48);
-    }, section);
-
-    return () => ctx.revert();
+    return () => mm.revert();
   }, [reduced]);
 
   return (

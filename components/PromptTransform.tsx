@@ -16,6 +16,10 @@ import { fr } from "@/lib/typo";
  * and to the right, feathering off the frame. No teleporting, no hard cuts —
  * every phrase is either arriving, being absorbed, or emerging. Reduced motion →
  * a calm static tableau (messy in, pill, clean out).
+ *
+ * `surface` flips the chip inks for the wall it sits on: "dark" (the original
+ * void register) or "light" (the CtaCard cream slab — void chips, same gold
+ * pill). Existing tokens only, no new colours.
  */
 
 const BAD = ["Donne-moi la réponse.", "Juste le résultat.", "Copie, colle."];
@@ -37,7 +41,12 @@ const TO = [
 const CYCLE = 4.2; // seconds per lane loop
 const STEP = CYCLE / 3; // stagger between the three lanes
 
-export default function PromptTransform() {
+export default function PromptTransform({
+  surface = "dark",
+}: {
+  surface?: "dark" | "light";
+}) {
+  const light = surface === "light";
   const rootRef = useRef<HTMLDivElement>(null);
   const pillRef = useRef<HTMLDivElement>(null);
   const badRefs = useRef<(HTMLSpanElement | null)[]>([]);
@@ -96,12 +105,12 @@ export default function PromptTransform() {
   }, [reduced]);
 
   return (
-    <div ref={rootRef} aria-hidden className="relative mx-auto h-[24rem] w-full select-none">
+    <div ref={rootRef} aria-hidden className="relative mx-auto h-[21rem] w-full select-none">
       {/* warm glow at the transformation point */}
       <div
         aria-hidden
         className="pointer-events-none absolute left-1/2 top-[58%] h-56 w-56 -translate-x-1/2 -translate-y-1/2"
-        style={{ background: "radial-gradient(closest-side, rgba(232,178,58,0.18), rgba(8,10,12,0) 70%)" }}
+        style={{ background: "radial-gradient(closest-side, rgba(232,178,58,0.18), rgba(232,178,58,0) 70%)" }}
       />
 
       {/* IN — the messy prompts, drifting toward the pill to be absorbed */}
@@ -113,7 +122,9 @@ export default function PromptTransform() {
             transform: reduced ? `translate(calc(-50% + ${FROM[i].x}px), calc(-50% + ${FROM[i].y}px))` : undefined,
             opacity: reduced ? 0.4 : 0,
           }}
-          className="absolute left-1/2 top-[58%] whitespace-nowrap font-satoshi text-[clamp(0.9rem,1vw,1.05rem)] leading-none text-cream/40 will-change-transform"
+          className={`absolute left-1/2 top-[58%] whitespace-nowrap font-satoshi text-[clamp(0.9rem,1vw,1.05rem)] leading-none will-change-transform ${
+            light ? "text-void/45" : "text-cream/40"
+          }`}
         >
           {fr(t)}
         </span>
@@ -137,7 +148,11 @@ export default function PromptTransform() {
             transform: reduced ? `translate(calc(-50% + ${TO[i].x}px), calc(-50% + ${TO[i].y}px))` : undefined,
             opacity: reduced ? 1 : 0,
           } as CSSProperties}
-          className="absolute left-1/2 top-[58%] whitespace-nowrap rounded-full bg-cream px-3.5 py-1.5 font-satoshi text-[clamp(0.9rem,1.05vw,1.1rem)] font-semibold leading-none text-void shadow-[0_12px_30px_-14px_rgba(0,0,0,0.7)] will-change-transform"
+          className={`absolute left-1/2 top-[58%] whitespace-nowrap rounded-full px-3.5 py-1.5 font-satoshi text-[clamp(0.9rem,1.05vw,1.1rem)] font-semibold leading-none will-change-transform ${
+            light
+              ? "bg-void text-cream shadow-[0_12px_30px_-14px_rgba(8,10,12,0.45)]"
+              : "bg-cream text-void shadow-[0_12px_30px_-14px_rgba(0,0,0,0.7)]"
+          }`}
         >
           {fr(t)}
         </span>

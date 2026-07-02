@@ -117,7 +117,7 @@ export default function FAQ() {
                     </span>
                     <span
                       className={[
-                        "flex-1 font-satoshi text-[clamp(1.05rem,1.7vw,1.4rem)] font-medium leading-snug tracking-tight transition-colors duration-300 ease-editorial",
+                        "flex-1 font-satoshi text-[clamp(1.05rem,1.7vw,1.4rem)] font-bold leading-snug tracking-tight transition-colors duration-300 ease-editorial",
                         isOpen ? "text-cream" : "text-cream/80 group-hover:text-cream",
                       ].join(" ")}
                     >
